@@ -32,7 +32,7 @@ For the uninitiated, Red Hat uses metrics collected by Telemeter to:
 
 ## Motivation
 
-OLM managed operators would significantly benefit from the ability to interact with Prometheus Operators deployed on cluster. By presenting OLM managed operators with the ability to seemlessly integrate with the Prometheus Operator, Cluster Admins would be given a single portal to gauge the health of operators installed on their clusters.
+OLM managed operators would significantly benefit from the ability to interact with Prometheus Operators deployed on cluster. By presenting OLM managed operators with the ability to seamlessly integrate with the Prometheus Operator, Cluster Admins would be given a single portal to gauge the health of operators installed on their clusters.
 
 This feature present unique value on OpenShift Clusters, where Telemeter could provide Red Hat with the ability to identify and proactively fix customer issues caused by Red Hat owned operators.
 
@@ -114,7 +114,7 @@ As OLM gains support for these Prometheus objects, there is a chance that instal
 
 Once OLM is capable of managing `ServiceMonitor` and `PrometheusRule` objects along with the lifecycle of an operator, OLM must allow Red Hat owned operators to take advantage of Telemeter. Before moving forward, let's review the requirements that must be met for Telemeter to scrape an application's metrics:
 
-1. The application must be deployed in a namespace that is both prefixed with `openshift-` and labbeled with `openshift.io/cluster-monitoring=true`
+1. The application must be deployed in a namespace that is both prefixed with `openshift-` and labeled with `openshift.io/cluster-monitoring=true`
 2. A [ServiceMonitor object](https://github.com/coreos/prometheus-operator/blob/master/Documentation/user-guides/getting-started.md#related-resources) must be created in the namespace mentioned above and point to the application's metrics endpoint
 3. A role/rolebinding must be created that provides the Prometheus Operator ServiceAccount with the appropriate RBAC priviledges to discover the `ServiceMonitors` and `PrometheusRules` objects in the newly created namespace.
 
@@ -130,13 +130,12 @@ On OpenShift cluster, OLM can simply update the default Prometheus instance with
 
 #### Risks and Mitigations
 
-It is possible that the Prometheus team will not allow OLM managed operators to use the default prometheus operator to record meterics. If they are concerned about OLM managed operators overloading the prometheus instance, one solution that addresses this concern includes creating a new operator that is responsible for adding the `openshift.io/cluster-monitoring=true` label to namespaces and for generating the Telemter RBAC. This operator would:
+It is possible that the Prometheus team will not allow OLM managed operators to use the default prometheus operator to record metrics. If they are concerned about OLM managed operators overloading the prometheus instance, one solution that addresses this concern includes creating a new operator that is responsible for adding the `openshift.io/cluster-monitoring=true` label to namespaces and for generating the Telemter RBAC. This operator would:
 
 - Be deployed in the `openshift-monitoring` namespace
 - Have a list of approved OLM managed operators that may report metrics to Telemeter
-- Watche for events on namespaces
+- Watch for events on namespaces
 - If an event occurs on a namespace that starts with `openshift-` and the namespace only includes valid operators, add the `openshift.io/cluster-monitoring=true` annotation and create RBAC that allows the Telemeter service account to watch for events in the namespace.
-
 
 Alternatively, we could only add the `openshift.io/cluster-monitoring=true` on operators that originated from the `redhat-operators` and `certified-operators` CatalogSources.
 
