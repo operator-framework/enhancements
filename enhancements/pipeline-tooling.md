@@ -172,7 +172,7 @@ Add a flag to `opm index extract` called `related-images` that takes an index im
 
 TODO(lance)
 
-### Design migration of upstream-community-operators
+### Migrate upstream-community-operators to the new formats
 
 As a maintainer of the upstream-community-operators git repository, I want my catalog build automation to use the new bundle/index format so that I can:
 
@@ -182,7 +182,7 @@ As a maintainer of the upstream-community-operators git repository, I want my ca
 
 #### Design Proposal
 
-To design a migration, we'll paint a picture of a plausible final and work backward from there.
+To design a migration, we'll paint a picture of a plausible final design and work backward from there.
 
 On top of conformance with the rest of the ecosystem, the value-add of bundles and indexes for upstream-community-operators a reduction in operator manifests managed in the repository. Ideally, these new features will shrink the operator inclusion mechanism from a set of directories to a finite number of config files.
 
@@ -197,42 +197,64 @@ Once fully migrated to the new formats, the general flow for updating the catalo
 7. If the production index image changes before it merges, the PR drops from the queue (GOTO 4)
 8. Once merged, build a new production index image
 
-An configuration file will inform a build of the bundles to add or remove, if any, from an index:
+Now that we've outlined a target flow, we can identify the key migration stages:
+
+1. Only the latest operator manifests stored in the git repository are added to the index image
+    - index image is being additively built from previous released versions
+    - manifests are still managed in the git repository
+    - non-latest versions for package/channels can be removed
+    - reduces maintainer burden while waiting for operator authors to start publishing bundle images
+2. Both existing operator manifests and bundle images are added to the index image
+    - manifests are still managed in the git repository
+    - bundle images are also added to the index image
+    - existing operator manifests are replaced by bundle images as they become available
+3. Only bundle images are added to the index image
+    - all existing operator manifests have been replaced by their bundle images
+    - PRs adding operator manifests are no longer accepted
+
+In order to drive these stages, we need a configuration file to inform an index build of the bundles to add or remove from an index:
 
 ```yaml
-from: image://quay.io/operator-framework/community-operators:latest
-included:
-- ref: quay.io/coreos/something-bundle:v1
-  package: something
-  channel: stable
-- ref: quay.io/coreos/something-bundle@sha256:abcdef...
-  package: something
-  channel: alpha
-- ref: quay.io/redhat/something-else-bundle:v5.5
-  package: something-else
-  channel: v5.Y
-exluded:
-- ref: quay.io/redhat/something-else-bundle:v5.4
-  package: something-else
-  channel: v5.Y
+from: image://quay.io/operator-framework/upstream-community-operators:latest
+add:
+# bundle images
+- ref: "image://quay.io/coreos/something-bundle:v1"
+- ref: "image://quay.io/coreos/something-bundle@sha256:abcdef..."
+- ref: "image://quay.io/redhat/something-else-bundle:v5.5"
+# old-format operator manifests referenced by a package file
+- ref: "file://upstream-community-operators/etcd/etcd.package.yaml"
+# old-format operator manifests referenced by package files in a directory (recursive)
+- ref: "file://upstream-community-operators/"
+remove:
+# remove by bundle image reference
+- ref: "image://quay.io/redhat/something-else-bundle:v5.4"
+# remove by name
+- ref: "name://couchdb-operator.v0.2.0"
 ```
+
+**Note:** _The `ref` field is present to allow for the addition of more fields if necessary_
 
 A new `-f` option will be added to the `opm index add` subcommand which specifies the path of an index config file. The command will parse the given file and idempotently:
 
 - add bundles referenced by the `included` directive to the index specified by `from`
 - remove bundles referenced by the `excluded` directive from the index specified by `from`
 
-The command will also be capable of sourcing "from indexes" in varying formats using reference prefixes:
+The command will interpret references under the `add` directive differently based on the given URI-like prefix. These are the supported prefixes and associated behaviors:
 
-- "image://" for container image references
-- "file://" for database file paths
+- `image://` denotes a bundle image to pull
+- `file://` denotes a file or directory containing bundles to add
+  - if the reference is to a file, it is interpreted as a `package` file and the bundles it references are searched for and added in or below its directory
+  - if the reference is to a directory, it is recursively descended and all bundles referenced by `package` files found therein are added
 
-TODO(njhale): staged migration to bundle images
+Similarly, the command will interpret the `remove` directive using its own set of prefixes:
 
-1. create an index configuration specifying the existing catalog image in `from`
-2. reduce the number of manifest versions kept for each operator to the head of each package/channel
-3. walk manifest directories adding to the index database
-4. run `opm index add` using the index config as an overlay
+- `image://` denotes a bundle image to remove
+- `name://` denotes the name of a bundle version to remove
+
+The command will also be capable of sourcing `from` indexes in varying formats using prefixes as well:
+
+- `image://` denotes an index image
+- `file://` denotes a index database file path
 
 ### Migrate away from appregistry
 
