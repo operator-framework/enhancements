@@ -70,11 +70,17 @@ There are a set of specific constraints that the resolver needs to manage. At a 
 
 The implementation of a dependency resolver is a satisfiability problem and NP-Complete. As such, the runtime of a trivial resolver becomes 2^n. For an initial implementation to have relatively good average runtime, we need to transform the dependency problem into a set of boolean statements and feed them into a SAT solver algorithm. Rather than implement one from scratch, our proposal is to use a well tested existing SAT solver library to solve this problem. However, because dependency resolution is a relatively narrow field, there does not exist a generic dependency resolver that would be trivial for our project to import. Instead, we have evaluated several existing solver libraries and compared them with our own constraints and intend to wrap that solver in our own resolver library to satisfy all of them.
 
-Imported SAT solver constraits:
+Imported SAT solver selection constraints:
 * Written in pure Go
 * Large project with a healthy ecosystem, good documentation and recent commits
 * Common interface that would be easy to replace if needed
-* Open Souce license
+* Open Source license
+
+SAT solver needs to take in account several other constraints in order to resolve dependencies correctly. Here is the list of potential resolution constraints:
+* InstallMode (OperatorGroup)
+* Minimum Kubernetes version
+* Native APIs
+* OpenShift version (OpenShift only)
 
 After evaluating several libraries, we have chosen https://github.com/irifrance/gini as the SAT solver. This implementation of the solver is general, a popular library, and is written in pure go.
 
@@ -94,7 +100,7 @@ The registry will parse the dependency information in `dependencies.yaml` and ad
 
 ### Syntax
 
-The dependency list will contain a `type` field for each item to specify what kind of dependency this is. It can be a package type (`olm.package`) meaning this is a dependency for a specific operator. For `olm.package` type, the dependency information should include the `package` name and the `version` of the package in semver format. We use `blang/semver` library for semver parsing (https://github.com/blang/semver). For example, you can specify an exact version such as `0.5.2` or a range of version such as `>0.5.1` (https://github.com/blang/semver#ranges). In addition, the author can specify dependency that is similiar to existing CRD/API-based using proposed `crd` or `api` type and then specify GVK information as how it is done in CSV. This is a path to enable operator authors to consolidate all dependencies (API or explicit) to be in the same place.
+The dependency list will contain a `type` field for each item to specify what kind of dependency this is. It can be a package type (`olm.package`) meaning this is a dependency for a specific operator. For `olm.package` type, the dependency information should include the `package` name and the `version` of the package in semver format. We use `blang/semver` library for semver parsing (https://github.com/blang/semver). For example, you can specify an exact version such as `0.5.2` or a range of version such as `>0.5.1` (https://github.com/blang/semver#ranges). In addition, the author can specify dependency that is similiar to existing CRD/API-based using proposed `olm.gvk` type and then specify GVK information as how it is done in CSV. This is a path to enable operator authors to consolidate all dependencies (API or explicit) to be in the same place.
 
 Moreover, for explicit operator dependency, a new field named `indexNamespace` is proposed to enable operator authors to choose a specific source where the operator is provided. This concept is similiar to choosing a specific CatalogSource. However, we choose not to include CatalogSource information in the bundle as that information is out of scope of a bundle. Operator authors shouldn't need to know about all CatalogSources that are available in the cluster as they may not be the same across different clusters. By using this `indexNamespace` type, we require changes in pipeline that build CatalogSources to add a new label `indexNamespace` that indicates the "index namespace" in term of provider where all of operators inside belong to. This `indexNamespace` constrain will allow OLM to pick the correct operator when the same operator is included in different CatalogSource.
 
@@ -120,7 +126,7 @@ dependencies:
     indexNamespace: io.redhat
     name: prometheus
     version: >0.27.0
-  - type: crd
+  - type: olm.gvk
     name: etcdclusters.etcd.database.coreos.com
     group: etcd.database.coreos.com
     kind: EtcdCluster
@@ -129,7 +135,7 @@ dependencies:
 
 #### Provided APIs
 
-The two default types of provided APIs (operator name + version and CRD GVK) will be implied just by the registry parsing the yaml provided in the bundle. However, we acknowledge that in the future there may be addition APIs provided by operators that are not as easily discoverable.
+The two default types of provided APIs (operator name + version and CRD GVK) will be inferred just by the registry parsing the manifests provided in the bundle. However, we acknowledge that in the future there may be additional APIs provided by operators that are not as easily discoverable.
 
 There are cases when the operators provide/own certain APIs that are important to consider during dependency resolution in order to allow the operator to work properly. This information needs to be declared in the bundle so it can be queried later. The proposed syntax for provided APIs in `dependencies.yaml`:
 ```
