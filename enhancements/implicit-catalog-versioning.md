@@ -150,3 +150,182 @@ There was some significant discussion around bumping the CSV API version to `v1a
 Simply making the change outright given that the CSV API is still in an `alpha` version. We chose not to go this route given there are already many production workloads in the wild using this API.
 
 Attempting to only make this requirement exist in the case where new catalog images built from `opm` are present, in which case anything could be migrated by looking up the relevant subscription during the migration to `v1alpha2` by querying the API for the new catalog image. For CSVs not tied to the subscription, just remove the `replaces` field and choose a sane default for the version. We chose not to go this route because there are simply too many moving pieces and it significantly increased the scope of this enhancement and tied it too closely with a similar migration effort around replacing app-registry support with native container images.
+
+### Tooling
+
+In order to actually reason about and interact with existing indexes, we need a convenient method of inspecting them. Currently, the only way to determine what is actually *in* the index is to fetch the image, run it, and query the served grpc API. Even then, you need a somewhat involved understanding of the replacement chain abstraction to follow the graph down for a given channel. Instead, we will create a new `opm` command `inspect` that abstracts the need for someone to serve the database to determine what packages and versions are in the registry. For example:
+
+`opm index inspect packages`
+
+```json
+{
+  "packages": [
+    {
+      "name": "etcd",
+      "channels": ["stable", "latest"],
+      "defaultChannel": "stable"
+    },
+    {
+      "name": "prometheus",
+      "channels": ["stable"],
+      "defaultChannel": "stable"
+    }
+  ]
+}
+```
+
+Will return a list of packages included in the index.
+
+`opm index inspect package etcd`
+
+```json
+{
+    "name": "etcd",
+    "defaultChannel": "stable",
+    "channels": [
+        {
+            "name": "alpha",
+            "bundles": [
+                {
+                    "version": "0.6.1",
+                    "csv": "etcdoperator.v0.6.1",
+                    "bundlePath": "quay.io/etcd/etcd-operator-bundle@sha256:abcdef",
+                    "replaces": null,
+                    "replacements": [
+                        {
+                            "version": "0.9.0",
+                            "csv": "etcdoperator.v0.9.0"
+                        },
+                        {
+                            "version": "0.9.2",
+                            "csv": "etcdoperator.v0.9.2"
+                        }
+                    ]
+                },
+                {
+                    "version": "0.9.0",
+                    "csv": "etcdoperator.v0.9.0",
+                    "bundlePath": "quay.io/etcd/etcd-operator-bundle@sha256:defghi",
+                    "replaces": [
+                        {
+                            "version": "0.6.1",
+                            "csv": "etcdoperator.v0.6.1"
+                        }
+                    ],
+                    "replacements": [
+                        {
+                            "version": "0.9.2",
+                            "csv": "etcdoperator.v0.9.2"
+                        }
+                    ]
+                },
+                {
+                    "version": "0.9.2",
+                    "csv": "etcdoperator.v0.9.2",
+                    "bundlePath": "quay.io/etcd/etcd-operator-bundle@sha256:ghijkl",
+                    "replaces": [
+                    {
+                        "version": "0.6.1",
+                        "csv": "etcdoperator.v0.6.1"
+                    },
+                    {
+                        "version": "0.9.0",
+                        "csv": "etcdoperator.v0.9.0"
+                    }
+                    ],
+                    "replacements": null
+                }
+            ]
+        },
+        {
+            "name": "stable",
+            "bundles": [
+                {
+                    "version": "0.9.0",
+                    "csv": "etcdoperator.v0.9.0",
+                    "bundlePath": "quay.io/etcd/etcd-operator-bundle@sha256:defghi",
+                    "replaces": null,
+                    "replacements": [
+                        {
+                            "version": "0.9.2",
+                            "csv": "etcdoperator.v0.9.2"
+                        }
+                    ]
+                },
+                {
+                    "version": "0.9.2",
+                    "csv": "etcdoperator.v0.9.2",
+                    "bundlePath": "quay.io/etcd/etcd-operator-bundle@sha256:ghijkl",
+                    "replaces": [
+                        {
+                            "version": "0.9.0",
+                            "csv": "etcdoperator.v0.9.0"
+                        }
+                    ],
+                    "replacements": null
+                }
+            ]
+        }
+    ]
+}
+```
+
+Will return a list of bundles along with the bundle image they were built from and lists of (zero or more) bundles that they replace and are replaced by. One thing to note about this result is that, in it's current state `version` could still be null at this time. In the future, if CSV-less bundles become a common standard that requirement may be updated where CSV becomes an optional field and version becomes required.
+
+Additionally, now that semantic version is used to insert bundles anywhere in the graph, we can also delete individual bundles in any part of the graph as long as we are in `--semver` or `--semver-skippatch` mode. We will create a new command `opm index rmb`:
+
+`opm index rmb quay.io/etcd/etcd-operator-bundle@sha256:defghi --mode=semver`
+
+This command will delete the `quay.io/etcd/etcd-operator-bundle@sha256:defghi` bundle from the registry. In our case, that bundle refers to etcd 0.9.0, so we would use the semver mode rules to synthetically stitch other versions of etcd togeother:
+
+`opm index inspect package etcd`
+
+```json
+{
+    "name": "etcd",
+    "defaultChannel": "stable",
+    "channels": [
+        {
+            "name": "alpha",
+            "bundles": [
+                {
+                    "version": "0.6.1",
+                    "csv": "etcdoperator.v0.6.1",
+                    "bundlePath": "quay.io/etcd/etcd-operator-bundle@sha256:abcdef",
+                    "replaces": null,
+                    "replacements": [
+                        {
+                            "version": "0.9.2",
+                            "csv": "etcdoperator.v0.9.2"
+                        }
+                    ]
+                },
+                {
+                    "version": "0.9.2",
+                    "csv": "etcdoperator.v0.9.2",
+                    "bundlePath": "quay.io/etcd/etcd-operator-bundle@sha256:ghijkl",
+                    "replaces": [
+                        {
+                            "version": "0.6.1",
+                            "csv": "etcdoperator.v0.6.1"
+                        }
+                    ],
+                    "replacements": null
+                }
+            ]
+        },
+        {
+            "name": "stable",
+            "bundles": [
+                {
+                    "version": "0.9.2",
+                    "csv": "etcdoperator.v0.9.2",
+                    "bundlePath": "quay.io/etcd/etcd-operator-bundle@sha256:ghijkl",
+                    "replaces": null,
+                    "replacements": null
+                }
+            ]
+        }
+    ]
+}
+```
