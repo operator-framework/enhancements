@@ -107,7 +107,6 @@ An example of a `dependencies.yaml` that specifies Prometheus operator and etcd 
 ```
 dependencies:
   - type: olm.package
-    indexNamespace: io.redhat
     name: prometheus
     version: >0.27.0
   - type: olm.gvk
@@ -178,6 +177,15 @@ I can use some toolings to list the operators that will be installed for my oper
 Internal details:
 The proposal sat solver (resolver) will be in a separate repository in operator-framework and it can be imported into operator-registry and `opm` can use the resolver to perform the dependency resolution that OLM will do. Then, operator author can utilize the `opm` binary for testing and validation
 The other option is to have a tool that can interact with existing cluster to perform dependency resolution with all existing CatalogSource in the cluster as a "--dry-run" option.
+
+#### Forced Installation and Skip Dependency Resolution
+As an operator user, I would like to force OLM to just install the operator without resolving its dependencies. The reason is because I may already install all dependencies manually and I simply want OLM to install this particular operator alone.
+
+Acceptance Criteria:
+I can install the operator without resolving its dependencies. I understand I will need to take care of dependencies resolution manually if required.
+
+Internal details:
+Operator manifests can be installed manually using a series of commands (`kubectl`). We can provide guideline on how to do this properly.
 
 #### Cluster Admin Dependency Observability
 
