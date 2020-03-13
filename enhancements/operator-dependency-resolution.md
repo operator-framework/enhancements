@@ -102,22 +102,6 @@ The registry will parse the dependency information in `dependencies.yaml` and ad
 
 The dependency list will contain a `type` field for each item to specify what kind of dependency this is. It can be a package type (`olm.package`) meaning this is a dependency for a specific operator. For `olm.package` type, the dependency information should include the `package` name and the `version` of the package in semver format. We use `blang/semver` library for semver parsing (https://github.com/blang/semver). For example, you can specify an exact version such as `0.5.2` or a range of version such as `>0.5.1` (https://github.com/blang/semver#ranges). In addition, the author can specify dependency that is similiar to existing CRD/API-based using proposed `olm.gvk` type and then specify GVK information as how it is done in CSV. This is a path to enable operator authors to consolidate all dependencies (API or explicit) to be in the same place.
 
-Moreover, for explicit operator dependency, a new field named `indexNamespace` is proposed to enable operator authors to choose a specific source where the operator is provided. This concept is similiar to choosing a specific CatalogSource. However, we choose not to include CatalogSource information in the bundle as that information is out of scope of a bundle. Operator authors shouldn't need to know about all CatalogSources that are available in the cluster as they may not be the same across different clusters. By using this `indexNamespace` type, we require changes in pipeline that build CatalogSources to add a new label `indexNamespace` that indicates the "index namespace" in term of provider where all of operators inside belong to. This `indexNamespace` constrain will allow OLM to pick the correct operator when the same operator is included in different CatalogSource.
-
-Here is an example of CatalogSource with `indexNamespace` label:
-
-```
-apiVersion: operators.coreos.com/v1alpha1
-kind: CatalogSource
-metadata:
-  name: catsrc-test
-spec:
-  displayName: CatalogSource Test
-  sourceType: grpc
-  image: docker.io/test/catsrc-test:latest
-  indexNamespace: io.redhat
-```
-
 An example of a `dependencies.yaml` that specifies Prometheus operator and etcd CRD dependencies:
 
 ```
@@ -133,16 +117,33 @@ dependencies:
     version: v1beta2
 ```
 
+In order to provide a more deterministic dependency resolution, CatalogSource weighting is introduced as a method to order CatalogSource selection when there are multiple CatalogSource providing the same operators and/or APIs. This CatalogSource weighting is specified in CatalogSource and can be modified by cluster admin.
+
+Here is an example of CatalogSource with specified weight:
+```
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: catsrc-example
+spec:
+  displayName: CatalogSource Example
+  sourceType: grpc
+  image: quay.io/example/catsrc-example:latest
+  weight: 10
+```
+Note: The lower the weight number is the higher priority of the CatalogSource.
+
+The CatalogSource weight setting is meant to be immutable after the CatalogSource is created. Regular users without cluster admin access are not allowed to change this setting to ensure they don't cause any changes in dependency resolution without cluster admin approval or awareness. Currently, the default CatalogSources are deployed via operator marketplace using `OperatorSource` that are shipped along with operator marketplace. Any changes to those OperatorSource are restricted by operator marketplace unless it is modified by cluster admin. This default CatalogSource installation mechanism is going to be changed as a part of OperatorSource API depreciation. The CatalogSource weighting setting should be enforced regardless how the default CatalogSources are installed in the future.
+
+In addition of CatalogSource weighting, the new model will only attempt to resolve dependencies using the default channel. If the specified version of dependency can't be found in default channel, OLM will simply fail to resolve the dependency.
+
+To further enhance the deterministic aspect of dependency resolution, a new field named `indexNamespace` is proposed to enable operator authors to choose a specific source where the operator is provided. This field is essentially a domain/label that can be applied to a specific package or a set of operators. This field combined with operator name will provide a "fully qualified domain name" that is unique for a specific operator. However, the implementation details for this feature is still under development. As a result, this feature is not expected to be included in near-future releases.
+
 #### Provided APIs
 
 The two default types of provided APIs (operator name + version and CRD GVK) will be inferred just by the registry parsing the manifests provided in the bundle. However, we acknowledge that in the future there may be additional APIs provided by operators that are not as easily discoverable.
 
-There are cases when the operators provide/own certain APIs that are important to consider during dependency resolution in order to allow the operator to work properly. This information needs to be declared in the bundle so it can be queried later. The proposed syntax for provided APIs in `dependencies.yaml`:
-```
-provided:
-  - type: istio
-    version: >1.14.0
-```
+There are cases when the operators provide/own certain APIs that are important to consider during dependency resolution in order to allow the operator to work properly. This information needs to be declared in the bundle so it can be queried later.
 
 That being said, these additional types will need to be implemented as they become more clear. For now, `dependencies.yaml` will not include any explicit reference to provided APIs.
 
@@ -150,7 +151,7 @@ That being said, these additional types will need to be implemented as they beco
 
 Given the changes to the way OLM will resolve dependencies, it is also necessary to push more detailed data to cluster administrators about what dependencies were installed (or will be installed) and why. To that end, we will continue to use the InstallPlan status to push detailed resolution information to the user. This will include data about what dependencies were installed along with information about where child dependencies came from (essentially, the result of the resolver in detail).
 
-There was also some initial discussion around what the user workflow would be to edit/override dependencies. Given the current state of the APIs that exist (specifically the Subscription and InstallPlan APIs), those would require extensive changes to create a trivial override for dependencies. Even then, there is a configurability problem where a single install overriding a dependency may not enough and a cluster admin may want to create a cluster wide or namespaced override that is persistent and editable. Initially, there was some discussion about the possibility of a dependency Override API or the possibility of using the Operator API for this purpose, but those discussions are ultimately outside the scope of the immediate (3+ month) timeframe and scope of this enhancement proposal, and will be taken up further in the future.
+There was also some initial discussion around what the user workflow would be to edit/override dependencies. Given the current state of the APIs that exist (specifically the Subscription and InstallPlan APIs), those would require extensive changes to create a trivial override for dependencies. Even then, there is a configurability problem where a single install overriding a dependency may not be enough and a cluster admin may want to create a cluster wide or namespaced override that is persistent and editable. Initially, there was some discussion about the possibility of a dependency Override API or the possibility of using the Operator API for this purpose, but those discussions are ultimately outside the scope of the immediate (3+ month) timeframe and scope of this enhancement proposal, and will be taken up further in the future.
 
 ### User Stories
 
@@ -175,7 +176,8 @@ Acceptance Criteria:
 I can use some toolings to list the operators that will be installed for my operator that will meet all of my dependency requirements that I specify in the bundle.
 
 Internal details:
-The proposal sat solver (resolver) will be in a separate repository in operator-framework and it can be imported into operator-registry and `opm` can use the resolver to perform the dependency resolution that OLM will do. Then, operator author can utilize the `opm` binary for testing and validation.
+The proposal sat solver (resolver) will be in a separate repository in operator-framework and it can be imported into operator-registry and `opm` can use the resolver to perform the dependency resolution that OLM will do. Then, operator author can utilize the `opm` binary for testing and validation
+The other option is to have a tool that can interact with existing cluster to perform dependency resolution with all existing CatalogSource in the cluster as a "--dry-run" option.
 
 #### Cluster Admin Dependency Observability
 
