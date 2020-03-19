@@ -8,7 +8,7 @@ approvers:
   - TBD
 creation-date: 2020-03-19
 last-updated: 2019-03-19
-status: implementable
+status: proposed
 ---
 
 # Service Binding for operator-backed services
