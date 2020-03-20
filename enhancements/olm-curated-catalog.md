@@ -59,7 +59,8 @@ Companies would like to be able to limit the list of operators to those that are
 
 Cluster administrators can build multiple catalog images and install them in different namespaces based on company policies.   Although, by itself, doesn't disable the ability to install other operators in other catalogs, it does provide a better user experience.
 
-When used with the os/architecture filter, this MUST be used in conjunction with a disconnected, local image registry.  This is because a new, sparse image manifest index must be created in the local repository. Registry implementations would need first class support of sparse manifest indexes.
+When used with the os/architecture filter, this MUST be used in conjunction with a disconnected, local image registry.  Since multi-architecture images employ a manifest index (also known as a manifest list or fat manifest), the digest of that image includes the digests of ALL supported os, architecture and variants within that image.  If an image is added or removed from the manifest index, then the digest changes.  In the case of an os/architecture filter, a subset of the manifest index will be created, or a _sparse manifest index_.  This manifest must be created in the local, disconnected image registry since the end-user will not be able to push this to the public image registry, and it isn't feasible for the public image owner to generate all known combinations of these index manifests. 
+
 
 ### Goals
 
@@ -101,7 +102,7 @@ $ opm index build \
   --filter-by-version=">=0.9.2" \
   --filter-by-os="linux\/amd64|linux\/ppc64le" \
   --tag="disconnected-registry:5000/catalogs/curated-catalog:latest"
-  --merge
+  --merge-index
 ```
 
 It will have the following additional flags:
@@ -201,6 +202,8 @@ Example using `opm` and `oc`
 $ opm registry images --from=disconnected-registry:5000/catalogs/curated-catalog:latest --to=disconnected-registry:5000/operators --manifests=./mirror-manifests | xargs oc image mirror --filter-by-os="linux\/amd64|linux\/ppc64le"
 ```
 
+In this example, `opm` will gather a list of all of the images and sparse images and feed them one-by-one into `oc image mirror`, which has the ability to automatically build the sparse index manifest when mirroring, when using the `--filter-by-os` argument.
+
 Example using `oc adm catalog mirror`:
 ```
 $ oc adm catalog mirror \
@@ -229,6 +232,7 @@ When the `--filter-by-os` option is specified:
 - Generate the `mapping.txt` file as before.
   - TODO: Verify that this works with the `--filter-by-os`
 
+# TODO: FOLLOWING SECTIONS TO BE FILLED IN FROM TEMPLATE
 
 ### Implementation Details/Notes/Constraints [optional]
 
