@@ -73,6 +73,84 @@ spec:
 
 ```
 
+## Making a service bindable
+
+### Operator Providing Metadata in CRD Annotations
+
+In this method,
+the binding information is provided as annotations in the CRD of the operator
+that manages the backing service. The Service Binding Operator extracts the
+annotations to bind the application together with the backing service.
+
+For example, this is a *bind-able* operator's annotations in its CRD for a
+PostgreSQL database backing operator.
+``` yaml
+---
+[...]
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
+  name: databases.postgresql.baiju.dev
+  annotations:
+    servicebindingoperator.redhat.io/status.dbConfigMap.password: 'binding:env:object:secret'
+    servicebindingoperator.redhat.io/status.dbConfigMap.username: 'binding:env:object:configmap'
+    servicebindingoperator.redhat.io/status.dbName: 'binding:env:attribute'
+    servicebindingoperator.redhat.io/spec.Token.private: 'binding:volumemount:secret'
+spec:
+  group: postgresql.baiju.dev
+  version: v1alpha1
+```
+
+### Operator Providing Metadata in OLM
+
+This feature enables operator providers to specify binding information an
+operator's OLM (Operator Lifecycle Manager) descriptor. The Service Binding
+Operator extracts to bind the application together with the backing service.
+The information may be specified in the "status" and/or "spec" section of the
+OLM in plaintext or as a reference to a secret.
+
+For example, this is a *bind-able* operator OLM Descriptor for a
+PostgreSQL database backing operator.
+``` yaml
+---
+[...]
+statusDescriptors:
+  description: Name of the Secret to hold the DB user and password
+    displayName: DB Password Credentials
+    path: dbCredentials
+    x-descriptors:
+      - urn:alm:descriptor:io.kubernetes:Secret
+      - binding:env:object:secret:user
+      - binding:env:object:secret:password
+  description: Database connection IP address
+    displayName: DB IP address
+    path: dbConnectionIP
+    x-descriptors:
+      - binding:env:attribute
+```
+
+### User Providing Metadata in the CR or the Kubernetes resource
+
+```
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: foo
+  namespace: bar
+spec:
+  host: example-sbose.apps.ci-ln-smyggvb-d5d6b.origin-ci-int-aws.dev.rhcloud.com
+  path: /
+  to:
+    kind: Service
+    name: example
+    weight: 100
+  port:
+    targetPort: 80
+  wildcardPolicy: None
+```
+
+
+
 ## Advanced Configuration
 
 ### Custom Environment variables
@@ -113,3 +191,156 @@ spec:
 
 
 Here's an example on [binding an Imported Java Spring Boot app to an In-cluster Operator Managed PostgreSQL Database](https://github.com/redhat-developer/service-binding-operator/blob/master/examples/java_postgresql_customvar/README.md)
+
+
+## In Action
+
+* [Binding an Imported app with an In-cluster Operator Managed PostgreSQL Database](examples/nodejs_postgresql/README.md)
+
+    * Create a 'Service' which is this case is a Database
+
+      ```
+      apiVersion: postgresql.baiju.dev/v1alpha1
+      kind: Database
+      metadata:
+        name: db-demo
+        namespace: service-binding-demo
+      spec:
+        image: docker.io/postgres
+        imageName: postgres
+        dbName: db-demo
+      ```
+
+    * Deploy an application called `nodejs-rest-http-crud` as a Kubernetes `Deployment`
+
+    * Create a binding
+
+      ```
+      apiVersion: apps.openshift.io/v1alpha1
+      kind: ServiceBindingRequest
+      metadata:
+        name: binding-request
+        namespace: service-binding-demo
+      spec:
+        applications:
+          - resourceRef: nodejs-rest-http-crud
+            group: apps
+            version: v1
+            resource: deployments
+        services:
+          - group: postgresql.baiju.dev
+            version: v1alpha1
+            kind: Database
+            resourceRef: db-demo
+      ```
+
+
+
+* [Binding an Imported app with an Off-cluster Operator Managed AWS RDS Database](examples/nodejs_awsrds_varprefix/README.md)
+
+    * Create a 'Service' which is this case is a Database
+
+      ``` 
+      apiVersion: aws.pmacik.dev/v1alpha1
+      kind: RDSDatabase
+      metadata:
+        name: mydb
+        namespace: service-binding-demo
+
+      spec:
+        class: db.t2.micro
+        engine: postgres
+        dbName: mydb
+        name: mydb
+        password:
+          key: DB_PASSWORD
+          name: mydb
+        username: postgres
+        deleteProtection: true
+        size: 10
+
+      status:
+        dbConnectionConfig: mydb
+        dbCredentials: mydb
+        message: ConfigMap Created
+        state: Completed
+      ```
+
+    * Deploy an application called `nodejs-app` as a Kubernetes `Deployment`
+
+    * Create a binding
+
+      ```
+      apiVersion: apps.openshift.io/v1alpha1
+      kind: ServiceBindingRequest
+      metadata:
+        name: mydb.to.nodejs-app
+        namespace: service-binding-demo
+      spec:
+        envVarPrefix: "MYDB"
+        services:
+          - group: aws.pmacik.dev
+            version: v1alpha1
+            kind: RDSDatabase
+            resourceRef: mydb
+        applications:
+          - resourceRef: nodejs-app
+            group: apps
+            version: v1
+            resource: deployments
+      ```
+
+* [Binding an Imported Quarkus app deployed as Knative service with an In-cluster Operator Managed PostgreSQL Database](examples/knative_postgresql_customvar/README.md)
+
+    * Create a 'Service' which is this case is a Database
+
+      ```
+      apiVersion: postgresql.baiju.dev/v1alpha1
+      kind: Database
+      metadata:
+        name: db-demo
+        namespace: service-binding-demo
+      spec:
+        image: docker.io/postgres
+        imageName: postgres
+        dbName: db-demo
+      ```
+
+    * Deploy an `KnativeService` called `knative-app` 
+
+    * Create a binding
+
+      ```
+      apiVersion: apps.openshift.io/v1alpha1
+      kind: ServiceBindingRequest
+      metadata:
+        name: binding-request
+        namespace: service-binding-demo
+
+      spec:
+        applications:
+          - group: serving.knative.dev
+            version: v1beta1
+            resource: services
+            resourceRef: knative-app
+        services:
+          - group: postgresql.baiju.dev
+            version: v1alpha1
+            kind: Database
+            resourceRef: db-demo
+        customEnvVar:
+          - name: JDBC_URL
+            value: 'jdbc:postgresql://{{ .status.dbConnectionIP }}:{{ .status.dbConnectionPort }}/{{ .status.dbName }}'
+          - name: DB_USER
+            value: '{{ index .status.dbConfigMap "db.username" }}'
+          - name: DB_PASSWORD
+            value: '{{ index .status.dbConfigMap "db.password" }}'
+      ```
+
+      * Verify that a `Secret` named `binding-request` has been injected into the `Deployment`.
+
+
+
+* [Binding an Imported app to an Off-cluster Operator Managed IBM Cloud Service](examples/nodejs_ibmcloud_operator/README.md)
+
+  
