@@ -75,7 +75,7 @@ CSV support for webhooks will begin with the introduction of the `Webhook` and `
 
 ```go
 // Webhook is an exact replica of the MutatingWebhook struct with the exception that the WebhookClientConfig and NamespaceSelector fields are missing, as OLM will generate these resource itself.
-// This struct MUST contain all fields that are present in the ValidataingWebhook and MutatingWebhook structs. 
+// This struct MUST contain all fields that are present in the ValidataingWebhook and MutatingWebhook structs.
 type Webhook struct {
 	Name                    string                                          `json:"name"`
 	Rules                   []admissionregistrationv1.RuleWithOperations    `json:"rules"`
@@ -106,6 +106,8 @@ It important to note that the Webhook structure does not provide users with the 
 - OLM will create the WebhookConfigClient after generating the Service and the CA-Cert.
 - The NamespaceSelector field will be generated based on the OperatorGroup that the operator is deployed in. When creating the OperatorGroup, OLM will apply a label to all namespaces that are included in that operator group. Then, when creating the Webhook, OLM will update the namespace selector to use that label.
 
+It is also important to call out that OLM will not allow webhooks to define rules that allows the webhook to intercept actions against CSVs and webhooks. Consider the worst case scenario where a broken webhook intercepts all calls against any resource and has a `Fail` [FailurePolicy](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#failure-policy). In this scenario, all calls to the K8s API would be rejected. As such OLM will implement constraints that prevent webhooks from including rules that include webhooks. Furthermore, if a webhook includes a rule that allows it to intercept calls to delete a CSV, it could effectively prevent a cluster admin from disabling the webhook described earlier, as OLM would attempt to reinstall the deleted webhook. As such, OLM will not allow webhooks to include rules that allows the webhook to intercept API requests targeting CSVs.
+
 ### Securing webhook via certificates
 
 The certificate creation and lifecycle management is planned to utilize the same certs package that is already in OLM managing the certificates for api services. OLM has tested this feature extensively at this point and could easily port it to webhooks.
@@ -114,9 +116,37 @@ The certificate creation and lifecycle management is planned to utilize the same
 
 There is a great deal of community support for integration with certificate management projects such as the [service-ca operator](https://github.com/openshift/service-ca-operator) or [cert-manager](https://github.com/jetstack/cert-manager). Cluster Admins should be given the opportunity to integrate with either of these tools be disabling the OLM management of certs and adding appropriate annotations to the deployment and webhook resources via the [SubscriptionConfig resource](https://github.com/operator-framework/operator-lifecycle-manager/blob/8985872bfd5888c8d7d49e4dfc9be162a87691e7/pkg/api/apis/operators/v1alpha1/subscription_types.go#L41-L87).
 
+### Deployment Installation Order
+
+There are a number of customer usecases in which the rollout order of deployments matters. Consider the following scenarios:
+
+- An operator may be written to assume that any CR it reconciles has been acted upon by a webhook defined in its CSV. In this situation, OLM should provide the Operator Author with the ability to install the admission webhook before the operator.
+- An operator may be written such that it expects to perform some action prior to starting the webhook. This logic may involve creating a CR that has special values that would be changed by the webhook defined in the CSV. In this situation, OLM should provide the Operator Author with the ability to install the operator prior to the webhook.
+
+Both of the usecases described above can be addressed by updating OLM to:
+
+- Create Deployments defined in the CSV in order.
+- When creating the deployments defined in the CSV:
+  - Waiting for the Deployment to reach the `READY` state.
+  - Checking if the deployment owns any webhook or APIServices resources and if so, create the required resource.
+
+### Webhook Upgrades
+
+OLM must support the addition, subtraction, and upgrade of webhooks between versions of a CSV:
+
+- If an admission webhook is removed in a new version of the CSV, the on cluster Webhook should be deleted.
+- If a new webhook is added in a new version of the CSV, the webhook should be deployed.
+- If the webhook is updated in a new version of the CSV, the existing webhook should be disabled before upgrading the operator.
+
 ### Risks and Mitigations
 
-- Webhooks allow operators to intercept core resource and could wreak havok on clusters if incorrectly configured. As such, users should be notified when an operator bundle includes a webhook.
+- Webhooks allow operators to intercept core resource and could wreak havoc on clusters if incorrectly configured. As such, users should be notified when an operator bundle includes a webhook.
+
+- It is possible that a CR could be created between the time that a CRD is introduced and the time that the webhook, designed to validate or mutate those CRs, is created. The Operator Author should have some logic to validate that the webhook has intercepted the resource before reconciling it.
+
+- When upgrading a CSV that includes a webhook, it is possible that the webhook could prevent the operator from being upgraded successfully. As such, OLM will disable webhooks associated with a CSV when performing an update. This can introduce a window where a CR can be created that is not intercepted by the webhook defined in the CSV.
+
+- A webhook could be implemented that prevents the cluster from deleting the webhook. As such, OLM will not allow any webhook to intercept delete calls to an operator. Furthermore, if a webhook intercepts delete calls to a CSV, it could effectively prevent a user from disabling the webhook described above. As such, OLM will not allow Webhooks to intercept Delete calls to CSVs.
 
 ## Design Details
 
