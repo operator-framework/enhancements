@@ -10,7 +10,7 @@ approvers:
 
 creation-date: 2020-03-19
 
-last-updated: 2020-03-19
+last-updated: 2020-04-01
 
 status: 
 
@@ -32,9 +32,10 @@ superseded-by:
 - [ ] Graduation criteria for dev preview, tech preview, GA
 
 ## Open Questions
-- Where is the best place to physically mirror images.  `opm` or `oc`?
-  - It appears that [opm-mirroring.md](opm-mirroring.md) was implmented as an OpenShift enhancment to: `oc adm catalog mirror`
-
+- Should the filter spec be YAML, JSON, both (auto-detect)?  I think we should support both automatically like kubectl does.
+- Should the filter use patterns/expressions for the channel filters?
+- Verify it's OK that we create new bundle images on the fly.  I don't see a way around this unless unless we remove the bundle image references from the index database.
+- Consider how the filterspec could be used as a Kube manifest in the future.  I can imagine creating an operator running in a micro-bastion-cluster that keeps a docker registry synchronized.
 
 ## Summary
 
@@ -59,60 +60,30 @@ Companies would like to be able to limit the list of operators to those that are
 
 Cluster administrators can build multiple catalog images and install them in different namespaces based on company policies.   Although, by itself, doesn't disable the ability to install other operators in other catalogs, it does provide a better user experience.
 
-When used with the os/architecture filter, this MUST be used in conjunction with a disconnected, local image registry.  Since multi-architecture images employ a manifest index (also known as a manifest list or fat manifest), the digest of that image includes the digests of ALL supported os, architecture and variants within that image.  If an image is added or removed from the manifest index, then the digest changes.  In the case of an os/architecture filter, a subset of the manifest index will be created, or a _sparse manifest index_.  This manifest must be created in the local, disconnected image registry since the end-user will not be able to push this to the public image registry, and it isn't feasible for the public image owner to generate all known combinations of these index manifests. 
-
 
 ### Goals
 
 * Define `opm` commands which can build or update a catalog index image from one or more other catalog index images using the following filters:
   * Catalog Index Image
-  * Operator Package Name
+  * Operator Packages
   * Channels
-  * Versions
-  * OS/Architecture
+* Support `opm registry` and `opm image` use cases
 
 ### Non-Goals
-* This assumes that the os and architecture values in the manifest image index are consistent between the image repository and the CSV, using the [GOARCH](https://golang.org/doc/install/source#environment) and [GOOS](https://golang.org/doc/install/source#environment) constant values.
-* Enhance or improve the Docker or OCI registry specifications to support sparse manifest indexes.
+
+
 
 ## Proposal
 
 The basic approach will be to:
 
-- Generate catalog index container images that contain a subset of existing catalog container images
+- Generate catalog index container images that contain a subset of one or more existing catalog container images
 - Provide the ability to merge catalogs together, to allow periodic mirroring of catalogs that are updated over time.
-- When filtering by version:
-  - Update any broken graph links with a subset of the new, sparse graph
-- When filtering by os/arch:
-  - Update the CSVs in the catalog index to have updated `relatedImages` references to the sparse manifest indexes 
-  - Update the CSVs in the catalog index to have updated `operatorframework.io/arch` and `operatorframework.io/os` labels.
-  - This requires the multi-architecture images to be mirrored to a repository with the appropriate sparse manifest index created.
 
+### Generate a curated index catalog
 
-### Generate a curated catalog
-
-`opm index build` will be created with flags:
-
-```sh
-$ opm index build \ 
-  --from-index  "quay.io/openshift/community-operators-catalog:latest"
-  --package etcd \
-  --filter-by-channel "beta|stable"\
-  --default-channel "stable" \
-  --filter-by-version=">=0.9.2" \
-  --filter-by-os="linux\/amd64|linux\/ppc64le" \
-  --tag="disconnected-registry:5000/catalogs/curated-catalog:latest"
-  --merge-index
-```
-
-It will have the following additional flags:
-- `--from-index` - the index image to use as the source to retrieve operators from.
-- `--package` - the name of an operator package to include.
-- `--filter-by-channel` - a regular expression of one or more channels to include from the package.
-- `--default-channel` - the default channel to set for the package.
-- `--filter-by-version` - a semver range identifying a subset of the version graph (DAG) to include from the package.
-- `--filter-by-os` - a regular expression of operating system and architectures to support.
-- `--merge-index` - the index image to merge the filtered operator versions into.
+`opm index filter` will be created with flags:
+- `-f, --filter-spec` - a path to a filter YAML file
 
 The following flags are inherited from the `opm index add` command:
 ```
@@ -125,112 +96,90 @@ The following flags are inherited from the `opm index add` command:
   -t, --tag string              custom tag for container image being built
 ```
 
-`opm index build` will be enhanced to:
+Examples:
+```sh
+$ opm index filter -t dockerreg.local/catalogs/company-catalog:latest -f ./filter.yaml
+```
 
-- Retrieve the source Catalog Index Image
-- Extract the Catalog Index Image that match the following filters into a separate directory representing an Operator Bundle (CRDs, CSVs, Metadata).
-  - Package Name (the operator name)
-  - Channel names
-  - Version range to include (semver range)
-- If the `filter-by-version` is specified:
-  - Remove any `replaces` versions for the beginning of the graph, if the previous versions are excluded.  This builds a new, sparse graph for the entire package.
-- If the `filter-by-os` filter is specified:
-  - For each extracted bundle:
-    - If the CSV specifies all of the filtered `os/arch/variant` labels (see [the olm-book](https://github.com/operator-framework/olm-book/blob/master/docs/multiarch.md)):
-      - Remove any `os/arch/variant` that are not specified in the filter.
-      - For each `relatedImage`
-        - Update the `relatedImage` reference with the digest of the, new sparse manifest index:
-          - Retrieve the full manifest index
-          - Construct a new, sparse manifest index with ONLY the specified architecture manifest images and retrieve the digest.
-            - `oc image mirror --filter-by-os`, for example, has the ability to create a sparse manifest index
-            - `skopeo manifest-digest`, for example,  has the ability to retrieve the manifest index digest.
-          - Calculate the digest for the sparse manifest list.
-            - The manifest index is discarded and will be constructed during the mirroring process.
-          - Update the `relatedImage` digest to include a `sparseImage` key with the same repository, but the updated digest of the calculated sparse image
-- For each extracted bundle:
-  - Create the bundle image
-    - `operator-sdk bundle create` has the ability to create a bundle image
-- For each extracted package:
-  - Add all bundles to the catalog image:
-    - `opm index add --from-index <idx> --bundles <bundles>` has the ability to add a bundle image to a catalog index image
+or
+```sh
+$ cat filter.yaml | opm index filter -t dockerreg.local/catalogs/company-catalog:latest  -f -
+```
+
+The `filterSpec` yaml specification is as follows:
+
+* `filterSpec` (array of objects): array of filter specification objects as follows
+  * `indexImage` (string): the catalog index image refererence
+  * `filter` (array of objects):  array of filter objects as follows:
+    * `package` (string) : the name of the operator package to include.
+    * `includedChannels` (array of string): the array of channel names to include from the package (Optional, defaults to all channels)
+    * `excludedChannels` (array of string): the array of channels to exclude (Optional, defaults to no excluded channels)
+    
+    This is useful to use to support future channels without updating the filter and takes precedence over the `includedChannels`
+     
+
+ "quay.io/openshift/community-operators-catalog:latest"
+
+Example (in yaml for readabiilty)
+```yaml
+filterSpec:
+- indexImage:  "quay.io/openshift/community-operators-catalog:latest"
+  filter:
+  - package: etcd
+    # Include only the clusterwide channels.
+    includedChannels:
+    - beta-clusterwide
+    - stable-clusterwide
+  - package: postresql
+    # Include only the stable channel.
+    includedChannels:
+    - stable
+- indexImage:  "mydockerreg.local/myapp-catalog:latest"
+  - package: myapp1
+    # No includedChannels or excludedChannels, implies ALL channels
+  - package: myapp2
+    includedChannels:
+    # Include any 1.1.x and 2.x operators
+    - v1.1
+    - v2
+  - package: myapp3
+    # Include every channel except for the 1.x and 2.x beta channels
+    excludedChannels:
+    - v1
+    - v2-alpha
+    - v2-beta
+```
+#### Filter Flow
+`opm index filter` will be added to perform the equivalent steps (non-optimized):
+
+- For each `filterSpec` as `FSPEC`:
+  - Extract the source `FSPEC.indexImage` into a temp file structure as follows:
+    ```
+    catalog
+      package
+        bundle
+          metadata/annotations.yaml (with channels info)
+          ...
+    ```
+  - Delete any packages and bundles that don't match the filter:
+
+    For each extracted `catalog.package` as `PKG`:
+    - if `PKG` NOT IN `FSPEC.filter.packages`, delete the package
+    - else: 
+      - for each `PKG.bundle.channels` AS `CHN`
+        - if `CHN` IN `FSPEC.filter.PKG.excludedChannels` OR (`FSPEC.filter.PKG.includedChannels` != Empty AND `CHN` NOT IN `FSPEC.filter.PKG.includedChannels`)
+          - delete `PKG.bundle`
+      - Create the bundle image with only the intersecting `PKG.bundle.channels` and the filtered channels as `NEWBNDL`
+        - `operator-sdk bundle create` and `opm alpha bundle generate` have the ability to create a bundle image
+          - The bundle images also need to be pushed to a docker registry, ideally teh same registry where the curated image will be located.
+        - `opm index add --from-index <curated-idx> --bundles NEWBNDL` has the ability to add a bundle image to a catalog index image
+- Tag and Push the curated index image specified by `--tag`
   
-The resulting `--tag`ged image now contains a functional catalog index with only the filtered graph of operators and references to both the original manifest index and the sparse manifest index. 
+The resulting `--tag`ged image now contains a functional catalog index with only the filtered graph of operators and references from all of the specified index images.
 
-An example of a multi-architecture CSV before and after filtering to one architecture:
+### TODO Generate a curated registry database
+This section will describe how this works for the `opm registry filter` command.
 
-Before:
-```
-labels:
-    operatorframework.io/os.linux: supported
-    operatorframework.io/arch.amd64: supported
-    operatorframework.io/arch.ppc64le: supported
-    operatorframework.io/arch.s390x: supported
-
-  relatedImages: 
-  - name: default
-    image: quay.io/coreos/etcd@sha256:12345 
-  - name: etcd-2.1.5
-    image: quay.io/coreos/etcd@sha256:12345 
-  - name: etcd-3.1.1
-    image: quay.io/coreos/etcd@sha256:12345 
-```
-
-After:
-```
-labels:
-    operatorframework.io/os.linux: supported
-    operatorframework.io/arch.amd64: supported
-
-  relatedImages: 
-  - name: default
-    image: quay.io/coreos/etcd@sha256:12345 
-    sparseImage: quay.io/coreos/etcd@sha256:56789 
-  - name: etcd-2.1.5
-    image: quay.io/coreos/etcd@sha256:12345 
-    sparseImage: quay.io/coreos/etcd@sha256:56789 
-  - name: etcd-3.1.1
-    image: quay.io/coreos/etcd@sha256:12345 
-    sparseImage: quay.io/coreos/etcd@sha256:56789 
-```
-
-### Mirroring a curated catalog
-
-To mirror the curated catalog index image, the mirroring technology, for example, `oc adm catalog mirror` or `opm registry images` with `oc image mirror` must support the ability to create the same manifest index that was generated during the build process.
-
-Example using `opm` and `oc`
-```
-$ opm registry images --from=disconnected-registry:5000/catalogs/curated-catalog:latest --to=disconnected-registry:5000/operators --manifests=./mirror-manifests | xargs oc image mirror --filter-by-os="linux\/amd64|linux\/ppc64le"
-```
-
-In this example, `opm` will gather a list of all of the images and sparse images and feed them one-by-one into `oc image mirror`, which has the ability to automatically build the sparse index manifest when mirroring, when using the `--filter-by-os` argument.
-
-Example using `oc adm catalog mirror`:
-```
-$ oc adm catalog mirror \
-    disconnected-registry:5000/catalogs/curated-catalog:latest \
-    disconnected-registry:5000/operators  \
-    --filter-by-os="linux\/amd64|linux\/ppc64le"
-```
-
-```
-oc adm catalog mirror \
-    <registry_host_name>:<port>/olm/redhat-operators:v1 \
-    <registry_host_name>:<port> \
-    [-a <path_to_registry_credentials>] \
-    [--insecure] 
-    [--filter-by-os=<regex of os/arch]
-```
-
-When the `--filter-by-os` option is specified:
-- For each package
-  - For each CSV
-    - If the CSV specifies all of the filtered `os/arch/variant` labels:
-      - for each `relatedImages` image:
-        - Mirror the `image` using `oc image mirror --filter-by-os`
-          - This will copy the selected images and recreate the same manifest index with the digest.
-          - The digest will match that specified in the `sparseImages` attribute and the annotations in the install deployment.
-- Generate the `mapping.txt` file as before.
-  - TODO: Verify that this works with the `--filter-by-os`
 
 # TODO: FOLLOWING SECTIONS TO BE FILLED IN FROM TEMPLATE
 
