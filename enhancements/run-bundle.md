@@ -144,7 +144,7 @@ creates a cluster-wide `OperatorGroup`.
 * `operator-sdk run bundle <bundle-image> --install-mode SingleNamespace=bar`
   would install into the default kube namespace, does the OperatorGroup logic
 
-#### Detailed Examples
+#### Simple Example
 
 Let's take the simplest example from above.
 
@@ -172,6 +172,8 @@ What happens when the above is invoked?
  1. Operator installed into the default namespace defined by KUBECONFIG
  1. Verify operator is installed.
  1. Exit with success (leaving operator running)
+
+#### Complex Example
 
 Now let's look at one of the more complex examples:
 
