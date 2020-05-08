@@ -92,8 +92,7 @@ things easier to understand and eliminate flag bloat.
 The new command line will look as follows:
 
 ```
-operator-sdk run bundle <bundle-image> [--index-image=] [--namespace=] \
-            [--install-mode=(AllNamespace|OwnNamespace|SingleNamespace=)]
+operator-sdk run bundle <bundle-image> [--index-image=] [--namespace=] [--install-mode=(AllNamespace|OwnNamespace|SingleNamespace=)]
 ```
 
 * `<bundle-image>` is a positional argument that specifies the bundle image.
@@ -245,6 +244,7 @@ N/A
 
 ## Implementation History
 
+20200508 - Do not wrap CLI command in document
 20200508 - Updated questions, clarified CLI flags, defined UX, detailed examples
 20200507 - Initial proposal to add `run bundle` subcommand
 
