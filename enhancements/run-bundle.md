@@ -98,7 +98,7 @@ operator-sdk run bundle <bundle-image> [--index-image=] [--namespace=] [--instal
 * `<bundle-image>` is a positional argument that specifies the bundle image.
 * `[--index-image=]` is an optional flag that specifies the index image.
   * If `--index-image` is not provided, default to
-    `quay.io/operator-framework/upstream-registry-builder`
+    `quay.io/operator-framework/upstream-opm-builder`
   * If `--index-image` is provided, use the provided value
 * `[--namespace=]` is an optional flag that specifies the namespace to install
   the operator. It will default to the `KUBECONFIG` context.
@@ -138,7 +138,7 @@ exhaustive list, these are some example uses of the `run bundle` command.
 creates a cluster-wide `OperatorGroup`.
 * `operator-sdk run bundle <bundle-image> --namespace foo` would install into
   namespace `foo`, creates a cluster-wide `OperatorGroup`
-* `operator-sdka run bundle <bundle-image> --namespace foo --install-mode
+* `operator-sdk run bundle <bundle-image> --namespace foo --install-mode
   SingleNamespace=bar` would install into namespace foo, would determine if
   OperatorGroup exists and is sufficient, if not it would error
 * `operator-sdk run bundle <bundle-image> --install-mode SingleNamespace=bar`
@@ -155,7 +155,7 @@ operator-sdk run bundle <bundle-image>
 What happens when the above is invoked?
 
  1. Since `--index-image` was not provided, assign variable `registryImage`
-    equal to `quay.io/operator-framework/upstream-registry-builder`
+    equal to `quay.io/operator-framework/upstream-opm-builder`
  1. Create pod using `registryImage`, set container command (entrypoint) to:
     ```
     /bin/bash -c ‘ \
@@ -182,7 +182,7 @@ operator-sdk run bundle <bundle-image> --namespace foo --install-mode SingleName
 ```
 
  1. Since `--index-image` was not provided, assign variable `registryImage`
-    equal to `quay.io/operator-framework/upstream-registry-builder`
+    equal to `quay.io/operator-framework/upstream-opm-builder`
  1. Create pod using `registryImage`, set container command (entrypoint) to:
     ```
     /bin/bash -c ‘ \
