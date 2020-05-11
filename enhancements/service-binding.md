@@ -42,7 +42,7 @@ The steps needed to perform the binding include:
 
 * Locating the binding information in the backing service’s resources.
 * Creating and referencing any necessary secrets.
-Manually editing the application’s DeploymentConfig, Deployment, Replicaset, KnativeService, or anything else that uses a standard PodSpec to reference the binding request.
+* Modifying the application’s DeploymentConfig, Deployment, Replicaset, KnativeService, or anything else that uses a standard PodSpec to reference the binding request.
 
 In contrast, by using the Service Binding Operator, the only action that an application developer must make during the import of the application is to make clear the intent that the binding must be performed. This task is accomplished by creating the `ServiceBinding`. The Service Binding controller takes that intent and performs the binding on behalf of the application developer.
 
@@ -110,7 +110,7 @@ This guidance enables operator providers to specify binding information an
 operator's OLM (Operator Lifecycle Manager) descriptor. The Service Binding
 Operator extracts to bind the application together with the backing service.
 The information may be specified in the "status" and/or "spec" section of the
-OLM in plaintext or as a reference to a secret.
+OLM in plaintext or as a reference to a Secret or a ConfigMap.
 
 For example, this is a *bind-able* operator OLM Descriptor for a
 PostgreSQL database backing operator.
@@ -167,7 +167,7 @@ A detailed guide to decorating backing services to make them binding friendly ha
 ### Custom Environment variables
 
 
-To make binding applications (e.g., legacy Java applications that depend on JDBC connectioon strings)  together with backing services more flexible, the Service Binding Operator supports the optional use of custom environment variables. To use custom environment variables, an application developer creates a ServiceBindingRequest that looks like the one shown 
+To make binding applications (e.g., legacy Java applications that depend on JDBC connectioon strings)  together with backing services more flexible, the Service Binding Operator supports the optional use of custom environment variables. To use custom environment variables, an application developer creates a ServiceBinding that looks like the one shown 
 
 ```yaml
 apiVersion: service.binding/v1alpha1
@@ -260,14 +260,14 @@ The following is a summary of the [scenario](examples/knative_postgresql_customv
 ### Read and Watch Resources which provide binding metadata
 * CSVs
 * CRDs
-* All CRs, which is effecively implies all resources! This is because the we don't know the Group and Resource of CRs in advance.
+* All CRs, which is effecively implies all resources! This is because we don't know the Group and Resource of CRs in advance.
 
 ### Read Resources which contain binding information
 * ConfigMaps 
 * Secrets
 * Routes
 * Services
-* All CRs, which is effecively implies all resources! This is because the we don't know the Group and Resource of CRs in advance.
+* All CRs, which is effecively implies all resources! This is because we don't know the Group and Resource of CRs in advance.
 
 ### Read and Update popular podSpec-based workloads
 * deployments
