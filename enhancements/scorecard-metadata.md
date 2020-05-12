@@ -31,7 +31,7 @@ suggests naming and paths for the scorecard metadata within the bundle.
 ## Motivation
 
 The purpose of this enhancement is to define a location for scorecard
-and other test assets to be included into the bundle.  This allows
+and other test assets to be included into the bundle.  This definition
 test frameworks and tools a known place to search for test assets
 within a bundle and reduces confusion to test developers as to 
 where test assets will reside.
@@ -97,4 +97,3 @@ conflict with other metadata or usage of the bundle.
 Some sort of check would need to be created when inserting test
 metadata within a bundle to allow a maximum size of metadata
 that needs to be determined.
-
