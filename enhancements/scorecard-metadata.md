@@ -59,7 +59,7 @@ included in the following locations within a bundle:
 bundle/
 ├── manifests
 │   ├── cache.example.com_memcacheds_crd.yaml
-│   └── memcached-operator.v0.0.1.clusterserviceversion.yaml
+│   └── memcached-operator.clusterserviceversion.yaml
 ├── metadata
 │   └── annotations.yaml
 └── tests
