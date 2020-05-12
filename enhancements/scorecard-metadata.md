@@ -32,7 +32,7 @@ suggests naming and paths for the scorecard metadata within the bundle.
 
 The purpose of this enhancement is to define a location for scorecard
 and other test assets to be included into the bundle.  This definition
-test frameworks and tools a known place to search for test assets
+informs test frameworks and tools of a well-known location to search for test assets
 within a bundle and reduces confusion to test developers as to 
 where test assets will reside.
 
