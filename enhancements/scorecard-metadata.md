@@ -8,7 +8,7 @@ reviewers:
 approvers:
   - TBD
 creation-date: 2020-04-29
-last-updated: 2020-04-29
+last-updated: 2020-05-14
 status: provisional
 ---
 
@@ -74,6 +74,22 @@ In the above proposed layout, the test metadata resides under a new
 directory called `tests`.  Below that directory is free form but
 in the case of operator-sdk scorecard, it would populate this
 directory with a subdirectory named `scorecard` as depicted.
+
+The scorecard test label annotations for the bundle would be as follows:
+```
+annotations:
+  operators.operatorframework.io.test.mediatype.v1: "scorecard+v1"
+  operators.operatorframework.io.test.config.v1: "/tests/scorecard/config.yaml"
+  # optional
+  operators.operatorframework.io.test.type.v1: "kuttl"
+```
+
+For the purpose of this enhancement, scorecard would assume that its test
+metadata would be in the same bundle image as the operator image.
+
+The operator-registry API would need to be updated to support an ability
+to add custom metadata such as what scorecard would need into a bundle
+image.  
 
 ## Proposal
 
