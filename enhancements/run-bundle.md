@@ -37,12 +37,14 @@ superseded-by:
    Can we change that to using the discovery API?
    * Based on discussions, using the discovery API is the way to go.
 
-2. How do we handle --mode= flag on registry add
-   * should we ALWAYS default to --mode=semver?
-     * this has less testing and isnot yet the default. We should stick with
-        the default.
-   * should we have a flag that allows our default mode handling to be overridden?
-     * no
+2. How do we handle --mode= flag on registry add?
+   * When adding a bundle to an empty index, default to **semver**
+   * When adding a bundle to a provided index, default to **replaces**
+   * Should the add mode be configurable on the CLI? **optional flag**;
+     not in an example right now
+
+3. Is there no case we want to enable permissive mode?
+   * No, always keep permissive disabled.
 
 ## Summary
 
@@ -67,6 +69,15 @@ This design does not cover the replacement of run --olm with run
 packagemanifest. The change to `run packagemanifest` is covered by
 [OSDK-1126](https://issues.redhat.com/browse/OSDK-1126).
 
+For now we will assume the existing registry DB located at `/database/index.db`.
+In a follow-up design we can investigate having the SDK use the labels to
+detect the DB path.
+
+Another non-goal, is that `run bundle` is **NOT** intended to help users build
+and manage indexes. It is an opinionated command to help users test simple
+bundle-based execution scenarios with ephemeral indexes. We are intentionally
+**NOT** supporting advanced use cases.
+
 ## Proposal
 
 ### Implementation Details/Notes/Constraints [optional]
@@ -84,7 +95,7 @@ the URLs below:
 The idea is to consolidate the run command into different subcommands to make
 things easier to understand and eliminate flag bloat.
 
- * `run local` - exists today
+ * `run --local` - exists today; converting to a subcommand will be covered by [OSDK-1126](https://issues.redhat.com/browse/OSDK-1126)
  * `run packagemanifest` - covered by [OSDK-1126](https://issues.redhat.com/browse/OSDK-1126)
  * `run bundle` - covered by this design document
 
@@ -106,11 +117,11 @@ operator-sdk run bundle <bundle-image> [--index-image=] [--namespace=] [--instal
   [OLM install mode](https://red.ht/2YK0ksD).
   * We support 3 modes:
     * AllNamespaces
-    * OwnNamspace
+    * OwnNamespace
     * SingleNamespace=ns1
       * NOTE: if ns1 is the same as the operator's namespace, a warning will be
         printed
-  * When `--install-mode` is not supplied, the default precendence order is:
+  * When `--install-mode` is not supplied, the default precedence order is:
     * `OperatorGroup`, if it already exists
     * `AllNamespaces`, if the CSV supports it
     * `OwnNamespace`, if the CSV supports it
@@ -122,7 +133,7 @@ Like the existing `run` command, we **assume** the following:
 
  1. OLM is already installed
  1. kube API is available with the permissions to create resources
- 1. kube server can see and pull the provided images (i.e. bundle and index)
+ 1. kubelet can see and pull the provided images (i.e. bundle and index)
  1. If an index image is provided, we assume that it has:
     * bash, so we can change the entrypoint
     * dependencies required for `opm registry add` so we can inject
@@ -134,15 +145,36 @@ Like the existing `run` command, we **assume** the following:
 Running the following scenarios results in different results. While not an
 exhaustive list, these are some example uses of the `run bundle` command.
 
-* `operator-sdk run bundle <bundle-image>` would install into the default kube namespace,
-creates a cluster-wide `OperatorGroup`.
-* `operator-sdk run bundle <bundle-image> --namespace foo` would install into
-  namespace `foo`, creates a cluster-wide `OperatorGroup`
-* `operator-sdk run bundle <bundle-image> --namespace foo --install-mode
-  SingleNamespace=bar` would install into namespace foo, would determine if
-  OperatorGroup exists and is sufficient, if not it would error
+* `operator-sdk run bundle <bundle-image>`
+* `operator-sdk run bundle <bundle-image> --namespace foo`
+* `operator-sdk run bundle <bundle-image> --namespace foo --install-mode SingleNamespace=bar`
 * `operator-sdk run bundle <bundle-image> --install-mode SingleNamespace=bar`
-  would install into the default kube namespace, does the OperatorGroup logic
+
+It is important to remember that the presence of an OperatorGroup in the
+namespace can affect the how `run bundle` behaves. Let's look at a couple scenarios.
+
+* Given an operator that supports install modes `OwnNamespace` and
+  `SingleNamespace` being installed into a namespace with *no* OperatorGroup.
+  The `run bundle` command would behave as follows:
+  * `operator-sdk run bundle <bundle-image>` would install into the default
+    namespace configured in the `KUBECONFIG` context. An OperatorGroup would be
+    created targeting the same install namespace.
+  * `operator-sdk run bundle <bundle-image> --namespace foo --install-mode SingleNamespace=bar`
+    would install into namespace `foo`. An OperatorGroup would be created
+    targeting the `bar` namespace.
+* Given an operator that supports install modes `AllNamespaces`, `OwnNamespace`,
+  and `SingleNamespace`, being installed into a namespace with an existing
+  OperatorGroup that targets all namespaces:
+  * `operator-sdk run bundle <bundle-image>` would install into the default
+    namespace configured in the `KUBECONFIG` context. The operator would watch
+    all namespaces.
+  * `operator-sdk run bundle <bundle-image> --namespace foo --install-mode SingleNamespace=bar`
+    would install into namespace `foo`. The operator would watch namespace
+    `bar`.
+
+As you can see the presence of the OperatorGroup will take precedence. If the
+OperatorGroup does not support a version an error condition will occur. The `run
+bundle` command will return with a non-zero exit status and log the errors.
 
 #### Simple Example
 
@@ -164,13 +196,17 @@ What happens when the above is invoked?
       /bin/opm registry serve -d /database/index.db’
     ```
  1. If pod fails, clean it up, and error out with message of unsupported
-    index image
+    index image. Also capture the pod's logs for debugging.
  1. Create GRPC CatalogSource, pointing to <pod-name>.<namespace>:50051
  1. Create OperatorGroup, only if it does not exist, since `--install-mode` was
-    not supplied, defaults to `AllNamespaces`.
+    not supplied, defaults to `AllNamespaces` (assuming operator supports this
+    mode).
  1. Create Subscription
  1. Operator installed into the default namespace defined by KUBECONFIG
  1. Verify operator is installed.
+ 1. Log what happened and final state (e.g. operator is running in namespace
+    X, watching namespace(s) Y.
+ 1. Log command to execute to cleanup operator.
  1. Exit with success (leaving operator running)
 
 #### Complex Example
@@ -191,12 +227,15 @@ operator-sdk run bundle <bundle-image> --namespace foo --install-mode SingleName
       /bin/opm registry serve -d /database/index.db’
     ```
  1. If pod fails, clean it up, and error out with message of unsupported
-    index image
+    index image. Also capture the pod's logs for debugging.
  1. Create GRPC CatalogSource, pointing to <pod-name>.<namespace>:50051
- 1. Creates a `SingleNamespace` OperatorGroup watching namespace `bar`.
+ 1. Creates an OperatorGroup in and targetting namespace `bar`.
  1. Create Subscription
  1. Operator installed into the default namespace `foo`
  1. Verify operator is installed.
+ 1. Log what happened and final state (e.g. operator is running in namespace
+    `foo`, watching namespace `bar`.
+ 1. Log command to execute to cleanup operator.
  1. Exit with success (leaving operator running)
 
 #### Prototype Links
@@ -229,8 +268,8 @@ referenced above the following assumptions will not work:
 ### Test Plan
 
   * add tests for `internal/olm/operator/operator.go`
-  * investigate adding e2e tests for `run bundle`, there are currently no e2e
-    tests for `run --olm`
+  * investigate adding e2e tests for `run bundle`, use the `run --olm` [e2e tests](https://github.com/operator-framework/operator-sdk/blob/master/test/integration/operator_olm_test.go)
+    as an example.
   * manual testing of `run bundle` will be done as well
 
 ### Graduation Criteria
@@ -246,6 +285,7 @@ N/A
 
 ## Implementation History
 
+20200515 - Answer semver; capture all the PR feedback
 20200508 - Do not wrap CLI command in document
 20200508 - Updated questions, clarified CLI flags, defined UX, detailed examples
 20200507 - Initial proposal to add `run bundle` subcommand
@@ -256,7 +296,12 @@ N/A
 
 ## Alternatives
 
-N/A
+There is a potential alternative to handling failed pods. Instead of cleaning up
+the failed pod and capturing the logs, we could keep the failed pod around to
+allow developers to capture the logs and debug the issue.
+
+A flag, --skip-cleanup, could be added to skip cleaning up failed pods. This is
+similar to scorecard.
 
 ## Infrastructure Needed [optional]
 
