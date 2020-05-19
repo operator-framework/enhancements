@@ -242,7 +242,7 @@ The following is a summary of the [scenario](examples/knative_postgresql_customv
             version: v1alpha1
             kind: Database
             resourceRef: db-demo
-        customEnvVar:
+        dataMapping:
           - name: JDBC_URL
             value: 'jdbc:postgresql://{{ .status.dbConnectionIP }}:{{ .status.dbConnectionPort }}/{{ .status.dbName }}'
           - name: DB_USER
