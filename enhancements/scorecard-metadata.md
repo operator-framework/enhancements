@@ -8,7 +8,7 @@ reviewers:
 approvers:
   - TBD
 creation-date: 2020-04-29
-last-updated: 2020-05-14
+last-updated: 2020-05-19
 status: provisional
 ---
 
@@ -63,6 +63,7 @@ bundle/
 ├── metadata
 │   └── annotations.yaml
 └── tests
+    └── other-tests
     └── scorecard
         ├── config.yaml
         └── kuttl
@@ -78,10 +79,14 @@ directory with a subdirectory named `scorecard` as depicted.
 The scorecard test label annotations for the bundle would be as follows:
 ```
 annotations:
-  operators.operatorframework.io.test.mediatype.v1: "scorecard+v1"
-  operators.operatorframework.io.test.config.v1: "/tests/scorecard/config.yaml"
+  operators.operatorframework.io.test.scorecard.mediatype.v1: "scorecard+v1"
+  operators.operatorframework.io.test.scorecard.config.v1: "/tests/scorecard/config.yaml"
   # optional
-  operators.operatorframework.io.test.type.v1: "kuttl"
+  operators.operatorframework.io.test.scorecard.type.v1: "kuttl"
+  operators.operatorframework.io.test.other-tests.mediatype.v1: "other-tests+v1"
+  operators.operatorframework.io.test.other-tests.config.v1: "/tests/other-tests/setup.yaml"
+  # optional
+  operators.operatorframework.io.test.other-tests.type.v1: "other-tests"
 ```
 
 For the purpose of this enhancement, scorecard would assume that its test
@@ -97,13 +102,14 @@ image.
 
 #### Story 1
 
-As a test developer I would like to be able to include and replace test metadata into 
-operator bundles.
+As a test developer I would like to be able to include and replace test 
+metadata into operator bundles.
 
 #### Story 2
 
 As a test developer I would like to extract test metadata from
-operator bundles so as to execute tests against the operator and its bundle contents.
+operator bundles so as to execute tests against the operator and its i
+bundle contents.
 
 ### Risks and Mitigations
 
