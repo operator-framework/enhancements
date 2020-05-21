@@ -81,12 +81,8 @@ The scorecard test label annotations for the bundle would be as follows:
 annotations:
   operators.operatorframework.io.test.scorecard.mediatype.v1: "scorecard+v1"
   operators.operatorframework.io.test.scorecard.config.v1: "/tests/scorecard/config.yaml"
-  # optional
-  operators.operatorframework.io.test.scorecard.type.v1: "kuttl"
   operators.operatorframework.io.test.other-tests.mediatype.v1: "other-tests+v1"
   operators.operatorframework.io.test.other-tests.config.v1: "/tests/other-tests/setup.yaml"
-  # optional
-  operators.operatorframework.io.test.other-tests.type.v1: "other-tests"
 ```
 
 For the purpose of this enhancement, scorecard would assume that its test
