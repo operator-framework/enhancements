@@ -279,6 +279,23 @@ The following is a summary of the [scenario](examples/knative_postgresql_customv
 
 We may want to disallow daemonsets, replicasets and statefulsets as they aren't very commonly used without deployments/deploymentconfigs.
 
+## Security
+
+### Why
+Assuming the user gets to create a ServiceBinding CR, how do we avoid letting the user execute an escalation of privilege.
+
+* John doesn't have view on Secrets.
+* John creates a ServiceBinding, which leads to a backing service's secret being read, and contents written into a binding secret.
+* ServiceBinding controller injects the binding secret into the application workload.
+* If John has the privileges to print the environment variables in the Deployment's container, John gets access to secret's contents which were otherwise not visible to John.( aka escalation of privilege)
+* If John was otherwise not allowed to modify a Deployment, John gets to do that as well (aka escalation of privilege)
+
+### How
+To avoid this, we plan to implement a validating webhook to verify
+
+* Does John have reasonable access to the backing services ( and it's sub-resources )?
+* Does John have reasonable access to the application ?
+* A validating webhook "validates" conditions before an object is accepted. In this case, subject access reviews (SARs) could be made use of, to validate user privileges.
 
 ## Bill of materials
 
