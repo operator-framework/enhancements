@@ -79,10 +79,10 @@ directory with a subdirectory named `scorecard` as depicted.
 The scorecard test label annotations for the bundle would be as follows:
 ```
 annotations:
-  operators.operatorframework.io.test.scorecard.mediatype.v1: "scorecard+v1"
-  operators.operatorframework.io.test.scorecard.config.v1: "/tests/scorecard/config.yaml"
-  operators.operatorframework.io.test.other-tests.mediatype.v1: "other-tests+v1"
-  operators.operatorframework.io.test.other-tests.config.v1: "/tests/other-tests/setup.yaml"
+  operators.operatorframework.io.scorecard.mediatype.v1: "scorecard+v1"
+  operators.operatorframework.io.scorecard.config.v1: "/tests/scorecard/config.yaml"
+  operators.operatorframework.io.other-tests.mediatype.v1: "other-tests+v1"
+  operators.operatorframework.io.other-tests.config.v1: "/tests/other-tests/setup.yaml"
 ```
 
 For the purpose of this enhancement, scorecard would assume that its test
