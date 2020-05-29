@@ -65,7 +65,7 @@ bundle/
 └── tests
     └── other-tests
     └── scorecard
-        ├── config.yaml
+        └── config.yaml
         └── kuttl
             ├── example1
             └── example2
