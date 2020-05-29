@@ -66,9 +66,7 @@ bundle/
     └── other-tests
     └── scorecard
         └── config.yaml
-        └── kuttl
-            ├── example1
-            └── example2
+
 ```
 
 In the above proposed layout, the test metadata resides under a new
