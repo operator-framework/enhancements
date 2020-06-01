@@ -38,7 +38,7 @@ superseded-by: []
    The current situation is that controller-runtime is running its e2e tests against an older
    version of Kubernetes than it actually depends on and supports.
 
-   Do we attempt to resolve this problem now or is this out-of-scope?
+   This is likely out-of-scope for this enhancement, but we should follow up on this in parallel.
 
 2. In the same timeframe of this enhancement, we are also considering splitting the SDK repository
    into separate repositories. How do these changes impact each other? Does one block the other?
@@ -46,7 +46,7 @@ superseded-by: []
 ## Summary
 
 Operator SDK consists of many components (project scaffolding, OLM integrations, scorecard, helm and
-ansible operators, and a Go library for operator authors)that have interactions with Kubernetes
+ansible operators, and a Go library for operator authors) that have interactions with Kubernetes
 clusters. The goal of this enhancement is to upgrade ALL components of Operator SDK to be compatible
 with Kubernetes 1.19.
 
@@ -120,6 +120,11 @@ This story consists of:
 - Upgrading any relevant documentation to note support for and any breaking changes introduced by
   the bump to Kubernetes 1.19.
 - Making any necessary changes to get CI to pass.
+- Potentially bump the default Webhook and CRD version to `v1` in the project Makefile. See
+  [kubernetes-sigs/kubebuilder#1065](https://github.com/kubernetes-sigs/kubebuilder/issues/1065) for
+  details.
+- Potentially bump `kubernetes-sigs/kubebuilder-declarative-pattern` to use Kubernetes 1.19 (only if
+  necessary to make CI pass. Refer to non-goals to decide whether this is in or out of scope.).
 
 #### Upgrade helm to support Kubernetes 1.19
 
@@ -149,6 +154,7 @@ This story consists of:
   dependency versions in go.mod to versions that support Kubernetes 1.19.
 - Bumping the controller-runtime version in go.mod scaffolds to the controller-runtime version that
   supports Kubernetes 1.19.
+- Fix unmarshalling code in SDK that assumes CRDs are `v1beta1`.
 - Updating e2e tests to use Kubernetes 1.19 where possible and create follow-on tasks for tests that
   cannot be updated (this often happens when we update before kind images we use have been updated)
 - Making any necessary changes to get CI to pass.
