@@ -33,15 +33,10 @@ superseded-by:
 
 ## Open Questions [optional]
 
-1. How will separate repos affect the SDK website and docs in general?
-   * What if each individual repo maintains their own docs? Then have a
-     pipeline sort of thing that would regenerate the entire doc if there are
-     any changes
-     * Could this be an intern project?
-   * How do versions work? netlify handles it
-   * Only other thought is to have a single website docs repo
 1. What do we do with other shared tooling, CI, test helpers, etc. (e.g.
    changelog generator)? Do we need a separate repo for that?
+   * Answer: We should visit these on a case by case basis as we see what is needed
+     during the splitting.
 
 ## Summary
 
@@ -146,6 +141,30 @@ section above.
    * export the pkg/ansible tree to the new repo at the top level
      maintaining history
 
+### Affect on docs website
+
+Today the docs are stored in a website directory in the operator-sdk repo. The
+following illustrates how the docs can be split to follow the repos:
+
+1. CLI and Go Operator
+   * maintains a website directory that contains the SDK docs, hosted at
+     sdk.operatorframework.io
+1. SDK library
+   * will contain Godocs for the library
+1. Helm operator
+   * will contain Godocs for the library portion
+   * would contain a website directory that contains the Helm docs, hosted at
+     helm-operator.operatorframework.io
+     * having its own domain means we can version the docs with the releases of
+       the Helm operator
+1. Ansible operator
+   * will contain Godocs for the library portion
+   * would contain a website directory that contains the Helm docs, hosted at
+     ansible-operator.operatorframework.io
+     * having its own domain means we can version the docs with the releases of
+       the Ansible operator
+
+
 ### Implementation Details/Notes/Constraints [optional]
 
 See above
@@ -177,6 +196,7 @@ N/A
 
 ## Implementation History
 
+20200602 - Answered the docs question.
 20200601 - Added versioning as a non-goal; Added KB phase 2 note to CLI repo.
 20200527 - This document is created.
 20200518 - Initial Google Document created to do initial set of review.
@@ -187,4 +207,15 @@ N/A
 
 ## Alternatives
 
-N/A
+### Docs
+
+An alternative to splitting up the docs would be to build a mechanism to add
+docs from Ansible/Helm repos into the main SDK site at build time. This would
+keep the top level site as it is now. A drawback would be that the documentation
+versioning would be for the entire SDK which negates the individual versioning
+we are attempting with splitting the repos.
+
+There are disussions about whether to version the Operator Framework as a whole,
+which could affect docs in a major way. It could also affect the underlying
+repos as well. This is not something we can solve in this proposal nor should
+we.
