@@ -83,7 +83,8 @@ and Helm operators could go afterwards if need be.
 ### Non-Goals
 
 * We will not solve the downstream SDK in this enhancement.
-* We will not solve all of the items required for a 1.0 release
+* We will not solve all of the items required for a 1.0 release.
+* Defining when version bumps occur in each repo.
 
 ## Proposal
 
@@ -97,6 +98,7 @@ section above.
    * lives in operator-framework/operator-sdk
    * will have a deprecation policy
      * we can deprecate in minor versions; removal becomes a major version bump
+   * this split is dependent on Kubebuilder Phase 2.
 1. SDK library
    * contains utility code like package status, status condition, annotated
      watcher, etc.
@@ -175,6 +177,7 @@ N/A
 
 ## Implementation History
 
+20200601 - Added versioning as a non-goal; Added KB phase 2 note to CLI repo.
 20200527 - This document is created.
 20200518 - Initial Google Document created to do initial set of review.
 
