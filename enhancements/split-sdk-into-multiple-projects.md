@@ -154,13 +154,13 @@ following illustrates how the docs can be split to follow the repos:
 1. Helm operator
    * will contain Godocs for the library portion
    * would contain a website directory that contains the Helm docs, hosted at
-     helm-operator.operatorframework.io
+     helm.operatorframework.io
      * having its own domain means we can version the docs with the releases of
        the Helm operator
 1. Ansible operator
    * will contain Godocs for the library portion
    * would contain a website directory that contains the Helm docs, hosted at
-     ansible-operator.operatorframework.io
+     ansible.operatorframework.io
      * having its own domain means we can version the docs with the releases of
        the Ansible operator
 
