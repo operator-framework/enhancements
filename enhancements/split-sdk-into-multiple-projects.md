@@ -136,7 +136,10 @@ section above.
    * create new repo operator-framework/helm-operator
    * export the pkg/helm tree to the new repo at the top level maintaining
      history
-     * Deprecate pkg/helm and replace with [Joe's helm repo](https://github.com/joelanford/helm-operator)
+     * There is a plan to deprecate pkg/helm and replace with
+       [Joe's helm repo](https://github.com/joelanford/helm-operator) this
+       will be covered in a separate proposal to explicitly explain why and
+       how this will occur.
 1. Ansible operator and plugin
    * create new repo operator-framework/ansible-operator
    * export the pkg/ansible tree to the new repo at the top level
@@ -197,6 +200,7 @@ N/A
 
 ## Implementation History
 
+20200603 - Answer the helm-operator question.
 20200603 - Address questions from the review.
 20200602 - Answered the docs question.
 20200601 - Added versioning as a non-goal; Added KB phase 2 note to CLI repo.
