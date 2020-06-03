@@ -46,7 +46,7 @@ thought on component breakdown mirrors the kubebuilder and controller-runtime
 projects:
 
 1. Common libraries and operator building blocks
-1. Project scaffolding and the main SDK CLI
+1. Go scaffolding plugin and the main SDK CLI
 1. Helm operator library and scaffolding plugin
 1. Ansible operator library and scaffolding plugin
 
@@ -89,28 +89,29 @@ section above.
 1. CLI and Go Operator
    * contains the Go operator code
    * contains the CLI code
-   * related scaffolding
+   * related plugin and scaffolding
    * lives in operator-framework/operator-sdk
-   * will have a deprecation policy
-     * we can deprecate in minor versions; removal becomes a major version bump
-   * this split is dependent on Kubebuilder Phase 2.
+   * the split of the CLI/Go Operator repo is dependent on Kubebuilder Phase 2
+     to avoid creating a moving target.
 1. SDK library
    * contains utility code like package status, status condition, annotated
      watcher, etc.
    * this is something that operator projects (including Helm and Ansible
      operators) would import
    * depends on controller-runtime
-   * lives in operator-framework/sdk-lib (or some other name TBD)
+   * lives in operator-framework/operator-lib (or some other name TBD)
    * this library should probably *not* be 1.0; it's most likely to change often
    * use Go apidiff tool to determine major version bumps
 1. Helm operator
    * contains Helm operator code
-   * related scaffolding
+   * related plugin and scaffolding
    * lives in operator-framework/helm-operator
+   * the Helm plugin is dependent on Kubebuilder Phase 1.
 1. Ansible operator
    * contains Ansible operator code
-   * related scaffolding
+   * related plugin and scaffolding
    * lives in operator-framework/ansible-operator
+   * the Ansible plugin is dependent on Kubebuilder Phase 1.
 
 ![Image of project dependencies](split-sdk-into-multiple-projects-deps.png)
 
@@ -129,7 +130,7 @@ section above.
    * consider making `generate csv` separate like `controller-gen` to support
      OLM's plan for CSVless bundles (could be done later)
 1. SDK library
-   * create new repo operator-framework/sdk-lib
+   * create new repo operator-framework/operator-lib
    * export the directories / files based on task 1 triage.
 1. Helm operator and plugin
    * create new repo operator-framework/helm-operator
@@ -196,6 +197,7 @@ N/A
 
 ## Implementation History
 
+20200603 - Address questions from the review.
 20200602 - Answered the docs question.
 20200601 - Added versioning as a non-goal; Added KB phase 2 note to CLI repo.
 20200527 - This document is created.
