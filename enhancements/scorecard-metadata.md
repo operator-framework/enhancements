@@ -88,7 +88,8 @@ metadata would be in the same bundle image as the operator image.
 
 The operator-registry API would need to be updated to support an ability
 to add custom metadata such as what scorecard would need into a bundle
-image.  
+image.  The API would also need to support updating or removing custom
+metadata from a bundle image.
 
 ## Proposal
 
@@ -96,8 +97,10 @@ image.
 
 #### Story 1
 
-As a test developer I would like to be able to include and replace test 
-metadata into operator bundles.
+As a test developer I would like to be able to include, replace, and 
+remove test metadata within operator bundles.  The ability to remove
+test metadata would support disconnected environments where running
+tests is not applicable.
 
 #### Story 2
 
