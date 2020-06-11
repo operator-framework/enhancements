@@ -86,10 +86,16 @@ annotations:
 For the purpose of this enhancement, scorecard would assume that its test
 metadata would be in the same bundle image as the operator image.
 
-The operator-registry API would need to be updated to support an ability
-to add custom metadata such as what scorecard would need into a bundle
-image.  The API would also need to support updating or removing custom
-metadata from a bundle image.
+This proposal would require the operator-registry github repo to 
+contain a golang API that can be used by the SDK to add scorecard
+metadata into a bundle image.
+
+The SDK scorecard is just one example of the type of metadata
+that might be added into the bundle image using the proposed 
+operator-registry golang API.
+
+The proposed operator-registry golang API would also need to 
+support updating or removing custom metadata from a bundle image.
 
 ## Proposal
 
@@ -97,16 +103,22 @@ metadata from a bundle image.
 
 #### Story 1
 
-As a test developer I would like to be able to include, replace, and 
-remove test metadata within operator bundles.  The ability to remove
-test metadata would support disconnected environments where running
-tests is not applicable.
+As a developer, I would like to use the operator-registry github repo
+golang API to include, replace, and remove test metadata within operator 
+bundles.  The ability to remove test metadata would support 
+disconnected environments where running tests is not applicable.
 
 #### Story 2
 
-As a test developer I would like to extract test metadata from
-operator bundles so as to execute tests against the operator and its
-bundle contents.
+As a developer I would like to use the operator-registry github repo
+golang API to extract test metadata from operator bundles so as to 
+execute tests against the operator and its bundle contents.
+
+#### Story 3
+
+As a developer I would like to use the operator-registry github repo
+golang API to extract test metadata from operator bundles but also
+have the ability to control what bundle contents are extracted.
 
 ### Risks and Mitigations
 
