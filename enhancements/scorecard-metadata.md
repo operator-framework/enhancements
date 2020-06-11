@@ -105,7 +105,7 @@ tests is not applicable.
 #### Story 2
 
 As a test developer I would like to extract test metadata from
-operator bundles so as to execute tests against the operator and its i
+operator bundles so as to execute tests against the operator and its
 bundle contents.
 
 ### Risks and Mitigations
