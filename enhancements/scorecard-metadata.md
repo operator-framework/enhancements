@@ -120,6 +120,13 @@ As a developer I would like to use the operator-registry github repo
 golang API to extract test metadata from operator bundles but also
 have the ability to control what bundle contents are extracted.
 
+#### Story 4
+
+As a openshift user I would like to use the 'oc adm catalog build' 
+command to optionally include the scorecard test images into the catalog. 
+This would enable openshift users to mirror the test images like other
+operator images using the 'oc adm catalog mirror' command.
+
 ### Risks and Mitigations
 
 You would not want to define locations in the bundle that might
