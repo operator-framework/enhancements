@@ -63,6 +63,8 @@ build and test strategy.
   which any individual build system will resolve image references
 - upstream operator manifests must not be required to know how common names or
   referecnes change when built in a downstream pipeline
+- no prescriptive statement is made about the specific format or contents of the
+  bundle image layer; any will be transparently supported as an output
 
 ## Proposal
 
