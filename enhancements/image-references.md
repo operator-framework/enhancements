@@ -135,17 +135,12 @@ and provide an `image-references` file alongside their manifests that declares
 which strings inside of their manifest are referring to pull specifications of
 images and names each occurence [ex](https://github.com/openshift/machine-config-operator/blob/98d9ba6841eb4811ed6f4d4de7016ea83c131c54/install/image-references#L7-L10).
 
-The `image-references` file holds data in the format of an OpenShift `ImageStream`:
+The `metadata/image-references` file holds data in the following format, mapping
+common names of container imags to their string placeholders in the manifests:
 
 ```yaml
-kind: ImageStream
-apiVersion: image.openshift.io/v1
-spec:
-  tags:
-  - name: my-image-name # this is the semantic identifier for this image
-    from:
-      kind: DockerImage
-      name: registry.svc.ci.openshift.org/openshift:image # this is an opaque string which exists in manifests
+imageReferences:
+  common-name: registry.svc.ci.openshift.org/openshift:image
 ```
 
 This mapping, therefore, defines what needs to be replced in manifests when
@@ -155,21 +150,13 @@ from those names to literal image pull specifications and will run the replaceme
 In this manner, the configuration provided by the manifest author remains static
 regardless of the eventual replacement that a build system will execute.
 
-The second mapping required at build-time will also take the form of an `ImageStream`
-and will be provided either via reading an `ImageStream` from an OpenShift cluster or
-reading a serialized `ImageStream` from disk. A build system that does not store the
-images used as sources in an `ImageStream` may therefore provide a static file instead.
-The mapping to provide the image sources looks like:
+The second mapping required at build-time, known as `image-replacements`, will take
+a similar form, mapping the common names of images to their explicitly resolved pull
+specifications. This file will have the following format:
 
 ```yaml
-apiVersion: image.openshift.io/v1
-kind: ImageStreamImageam
-status:
-  tags:
-  - tag: my-image-name # this matches the semantic identifier provided by the manifest author
-    items:
-    - dockerImageReference: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:298d0b496f67a0ec97a37c6e930d76db9ae69ee6838570b0cd0c688f07f53780 # this is the fully-resolved pull specification that will be used in replacements
-      image: sha256:298d0b496f67a0ec97a37c6e930d76db9ae69ee6838570b0cd0c688f07f53780
+imagePullSpecs:
+  common-name: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:298d0b496f67a0ec97a37c6e930d76db9ae69ee6838570b0cd0c688f07f53780
 ```
 
 `operator-sdk bundle create` will use this chain of mapping to perform replacements
@@ -180,6 +167,19 @@ elevated permissions, privleges, capacities or SELinux roles. As the output imag
 layer in both cases is `FROM scratch` and simply contains manifest data, this build
 process is simple and producing the layer by creating the underlying tar bundle does
 not come with risks.
+
+The bundle creation process will furthermore create as output an `images` metadata file
+that will expose the build-time inputs used to create the bundle, so that downstream
+consumers can access this data as necessary. This file will also allow the build system
+to add any further metadata necessary. The format for the `images` file is a strict
+super-set of the `image-replacements` file:
+
+```yaml
+metadata:
+  some-key: some-value
+imagePullSpecs:
+  common-name: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:298d0b496f67a0ec97a37c6e930d76db9ae69ee6838570b0cd0c688f07f53780
+```
 
 ### Test Plan
 
