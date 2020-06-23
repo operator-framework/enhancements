@@ -140,7 +140,8 @@ common names of container imags to their string placeholders in the manifests:
 
 ```yaml
 imageReferences:
-  common-name: registry.svc.ci.openshift.org/openshift:image
+- name: common-name
+  placeholder: registry.svc.ci.openshift.org/openshift:image
 ```
 
 This mapping, therefore, defines what needs to be replced in manifests when
@@ -156,7 +157,8 @@ specifications. This file will have the following format:
 
 ```yaml
 imagePullSpecs:
-  common-name: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:298d0b496f67a0ec97a37c6e930d76db9ae69ee6838570b0cd0c688f07f53780
+- name: common-name
+  pullSpec: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:298d0b496f67a0ec97a37c6e930d76db9ae69ee6838570b0cd0c688f07f53780
 ```
 
 `operator-sdk bundle create` will use this chain of mapping to perform replacements
@@ -178,7 +180,8 @@ super-set of the `image-replacements` file:
 metadata:
   some-key: some-value
 imagePullSpecs:
-  common-name: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:298d0b496f67a0ec97a37c6e930d76db9ae69ee6838570b0cd0c688f07f53780
+- name: common-name
+  pullSpec: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:298d0b496f67a0ec97a37c6e930d76db9ae69ee6838570b0cd0c688f07f53780
 ```
 
 ### Test Plan
