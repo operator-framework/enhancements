@@ -62,7 +62,7 @@ build and test strategy.
 - operator manifest authors must not be required to define the registry from
   which any individual build system will resolve image references
 - upstream operator manifests must not be required to know how common names or
-  referecnes change when built in a downstream pipeline
+  references change when built in a downstream pipeline
 - no prescriptive statement is made about the specific format or contents of the
   bundle image layer; any will be transparently supported as an output
 
@@ -98,7 +98,7 @@ need to configure each build system independently.
 
 The core problems that must be solved in the implementation of this proposal have
 already been handled in the workflow used in `oc adm release new`. When implementing
-improvements to the `operator-sdk bundle create` process we will simply need to
+improvements to the `operator-sdk generate bundle` process we will simply need to
 create a shared library for the two tools to use. While the shape of the output
 is slightly different and some of the semantics about how the output should be 
 formatted are dissmilar, the core image reference rewriting is identical and the
@@ -120,11 +120,11 @@ ecosystem, which is directly opposed to the goal of this enhancement.
 ## Design Details
 
 The definition of a minimally-viable operator bundle image will be changed to
-ensure that all iamge references in the contained manifests have been resolved 
+ensure that all image references in the contained manifests have been resolved 
 to a digest and had the pull specifications rewritten to refer to those digests.
 
 The only acceptable process for creating an operator bundle will be to run the
-`operator-sdk bundle create` CLI, providing the manifests, metadata and image
+`operator-sdk generate bundle` CLI, providing the manifests, metadata and image
 sources as input to the creation process.
 
 ### Proposed UX
@@ -144,9 +144,9 @@ imageReferences:
   placeholder: registry.svc.ci.openshift.org/openshift:image
 ```
 
-This mapping, therefore, defines what needs to be replced in manifests when
+This mapping, therefore, defines what needs to be replaced in manifests when
 they are bundled and identifies each replacement with a name. When
-`operator-sdk bundle create` runs, it will require as input a second mapping
+`operator-sdk generate bundle` runs, it will require as input a second mapping
 from those names to literal image pull specifications and will run the replacement.
 In this manner, the configuration provided by the manifest author remains static
 regardless of the eventual replacement that a build system will execute.
@@ -161,11 +161,11 @@ imagePullSpecs:
   pullSpec: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:298d0b496f67a0ec97a37c6e930d76db9ae69ee6838570b0cd0c688f07f53780
 ```
 
-`operator-sdk bundle create` will use this chain of mapping to perform replacements
+`operator-sdk generate bundle` will use this chain of mapping to perform replacements
 in the manifests before creating a bundle image layer. The layer creation will also
 be shared logic with `oc adm release new` in order to allow both processes to build
 image layers without requiring the use of a containe runtime, other build system, any
-elevated permissions, privleges, capacities or SELinux roles. As the output image
+elevated permissions, privileges, capacities or SELinux roles. As the output image
 layer in both cases is `FROM scratch` and simply contains manifest data, this build
 process is simple and producing the layer by creating the underlying tar bundle does
 not come with risks.
@@ -186,7 +186,7 @@ imagePullSpecs:
 
 ### Test Plan
 
-It should be possible to duplicate all current tests for `operator-sdk bundle create`
+It should be possible to duplicate all current tests for `operator-sdk generate bundle`
 in order to validate that the new workflow creates identical output bundle images.
 
 It should furthermore be possible to duplicate all tests that exist for the OSBS
