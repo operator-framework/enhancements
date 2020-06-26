@@ -106,9 +106,9 @@ is slightly different and some of the semantics about how the output should be
 formatted are dissmilar, the core image reference rewriting is identical and the
 process of building a `FROM scratch` image layer is also identical.
 
-Today, some prior art exists in the OSBS workflow for building operator bundles.
-As we improve the Operator SDK tooling to create a straghtforward process for
-creating bundle images, we must make sure a seamless migration is possible.
+Today, some prior art exists in the OSBS, IIB and CVP workflows for building
+operator bundles. As we improve the Operator SDK tooling to create a straghtforward
+process for creating bundle images, we must make sure a seamless migration is possible.
 
 ### Risks and Mitigations
 
@@ -191,8 +191,8 @@ imagePullSpecs:
 It should be possible to duplicate all current tests for `operator-sdk generate bundle`
 in order to validate that the new workflow creates identical output bundle images.
 
-It should furthermore be possible to duplicate all tests that exist for the OSBS
-workflows to similarly validate output.
+It should furthermore be possible to duplicate all tests that exist for the OSBS, IIB
+and CVP workflows to similarly validate output.
 
 ### Graduation Criteria
 
