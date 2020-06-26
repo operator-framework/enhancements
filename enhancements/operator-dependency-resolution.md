@@ -98,53 +98,132 @@ The dependencies of an operator are listed as a list in `dependencies.yaml` file
 
 The registry will parse the dependency information in `dependencies.yaml` and add to the database when the bundle is loaded into the registry. OLM will query the dependency information from the registry to facilitate the dependency resolution using sat solver.
 
-### Syntax
+### Dependency Constraints
 
-The dependency list will contain a `type` field for each item to specify what kind of dependency this is. It can be a package type (`olm.package`) meaning this is a dependency for a specific operator. For `olm.package` type, the dependency information should include the `package` name and the `version` of the package in semver format. We use `blang/semver` library for semver parsing (https://github.com/blang/semver). For example, you can specify an exact version such as `0.5.2` or a range of version such as `>0.5.1` (https://github.com/blang/semver#ranges). In addition, the author can specify dependency that is similiar to existing CRD/API-based using proposed `olm.gvk` type and then specify GVK information as how it is done in CSV. This is a path to enable operator authors to consolidate all dependencies (API or explicit) to be in the same place.
+The operator dependencies can be specified as constraints that SAT solver will take in account in order to resolve the dependency requirements. The dependency constraint will contain a `type` field for each item to specify what kind of dependency it is. It can be a package type (`olm.package`) meaning this is a dependency for a specific operator. For `olm.package` type, the dependency information should include the `package` name and the `version` of the package in semver format. We use `blang/semver` library for semver parsing (https://github.com/blang/semver). For example, you can specify an exact version such as `0.5.2` or a range of version such as `>0.5.1` (https://github.com/blang/semver#ranges). In addition, the author can specify dependency that is similar to existing CRD/API-based using proposed `olm.gvk` type and then specify GVK information as how it is done in CSV. Besides the package and GVK types, the operators can also depends on additional [properties](#operator-properties) that other operators may provide. Moreover, the constraints can be combined to create a set of constraints which will enable a more precise dependency selection.
 
-An example of a `dependencies.yaml` that specifies Prometheus operator and etcd CRD dependencies:
+An example of the `constraints` section of `dependencies` file that specifies dependency constraints that fit those requirements:
+* An etcd operator that is `1.0.0` or newer, provides API `etcdclusters.etcd.database.coreos.com/v1beta1` and has `LTS` (long term support) label.
+AND
+* An operator that provides API `prometheusrules.prometheus.com/v1`.
+OR
+* A single operator fits all above requirements.
+
+Note: We use JSON format for visibility.
+```
+{
+  "constraints": [
+    [
+      {
+        "type": "olm.gvk",
+        "version": "v1beta2",
+        "group": "etcd.database.coreos.com",
+        "kind": "EtcdCluster"
+      },
+      {
+        "type": "olm.package",
+        "version": ">=1.0.0",
+        "packageName": "etcd"
+      },
+      {
+        "type": "label",
+        "value": "LTS"
+      }
+    ],
+    [
+      {
+        "type": "olm.gvk",
+        "version": "v1",
+        "group": "prometheus.com",
+        "kind": "PrometheusRule"
+      }
+    ]
+  ]
+}
+```
+
+#### Operator Properties
+
+Today, an operator "provides" a specific version and GVK (API) information implicitly. We anticipate the need of adding an explicit “provides” metadata. Plus, an operator may have additional properties that it either provides or is depended on. As a result, there is a section in `dependencies.json` named `properties` where operator authors can declare the operator properties that they either provide and other operators can depend on.
+
+An example of the `properties` section of `dependencies` file that specifies operator properties:
+* Provide a package named `vault` in version `1.0.0`
+* Provide an API `vaultclusters.vault.database.coreos.com/v1beta2`
+* Have a label named `MySpecialLabel`
+
+Note: We use JSON format for visibility.
+```
+{
+  "properties": [
+    {
+      "type": "olm.package",
+      "version": "1.0.0",
+      "packageName": "vault"
+    },
+    {
+      "type": "olm.gvk",
+      "version": "v1beta2",
+      "group": "vault.database.coreos.com",
+      "kind": "VaultCluster"
+    },
+    {
+      "type": "label",
+      "value": "MySpecialLabel"
+    }
+  ]
+}
+```
+
+An example of a full `dependencies` file with `constraints` and `properties` sections:
 
 ```
-dependencies:
-  - type: olm.package
-    name: prometheus
-    version: >0.27.0
-  - type: olm.gvk
-    name: etcdclusters.etcd.database.coreos.com
-    group: etcd.database.coreos.com
-    kind: EtcdCluster
-    version: v1beta2
+{
+  "properties": [
+    {
+      "type": "olm.package",
+      "version": "1.0.0",
+      "packageName": "vault"
+    },
+    {
+      "type": "olm.gvk",
+      "version": "v1beta2",
+      "group": "vault.database.coreos.com",
+      "kind": "VaultCluster"
+    },
+    {
+      "type": "label",
+      "value": "MySpecialLabel"
+    }
+  ],
+  "constraints": [
+    [
+      {
+        "type": "olm.gvk",
+        "version": "v1beta2",
+        "group": "etcd.database.coreos.com",
+        "kind": "EtcdCluster"
+      },
+      {
+        "type": "olm.package",
+        "version": ">=1.0.0",
+        "packageName": "etcd"
+      },
+      {
+        "type": "label",
+        "value": "LTS"
+      }
+    ],
+    [
+      {
+        "type": "olm.gvk",
+        "version": "v1",
+        "group": "prometheus.com",
+        "kind": "PrometheusRule"
+      }
+    ]
+  ]
+}
 ```
-
-In order to provide a more deterministic dependency resolution, CatalogSource weighting is introduced as a method to order CatalogSource selection when there are multiple CatalogSource providing the same operators and/or APIs. This CatalogSource weighting is specified in CatalogSource and can be modified by cluster admin.
-
-Here is an example of CatalogSource with specified weight:
-```
-apiVersion: operators.coreos.com/v1alpha1
-kind: CatalogSource
-metadata:
-  name: catsrc-example
-spec:
-  displayName: CatalogSource Example
-  sourceType: grpc
-  image: quay.io/example/catsrc-example:latest
-  weight: 10
-```
-Note: The lower the weight number is the higher priority of the CatalogSource.
-
-The CatalogSource weight setting is meant to be immutable after the CatalogSource is created. Regular users without cluster admin access are not allowed to change this setting to ensure they don't cause any changes in dependency resolution without cluster admin approval or awareness. Currently, the default CatalogSources are deployed via operator marketplace using `OperatorSource` that are shipped along with operator marketplace. Any changes to those OperatorSource are restricted by operator marketplace unless it is modified by cluster admin. This default CatalogSource installation mechanism is going to be changed as a part of OperatorSource API depreciation. The CatalogSource weighting setting should be enforced regardless how the default CatalogSources are installed in the future.
-
-In addition of CatalogSource weighting, the new model will only attempt to resolve dependencies using the default channel. If the specified version of dependency can't be found in default channel, OLM will simply fail to resolve the dependency.
-
-To further enhance the deterministic aspect of dependency resolution, a new field named `indexNamespace` is proposed to enable operator authors to choose a specific source where the operator is provided. This field is essentially a domain/label that can be applied to a specific package or a set of operators. This field combined with operator name will provide a "fully qualified domain name" that is unique for a specific operator. However, the implementation details for this feature is still under development. As a result, this feature is not expected to be included in near-future releases.
-
-#### Provided APIs
-
-The two default types of provided APIs (operator name + version and CRD GVK) will be inferred just by the registry parsing the manifests provided in the bundle. However, we acknowledge that in the future there may be additional APIs provided by operators that are not as easily discoverable.
-
-There are cases when the operators provide/own certain APIs that are important to consider during dependency resolution in order to allow the operator to work properly. This information needs to be declared in the bundle so it can be queried later.
-
-That being said, these additional types will need to be implemented as they become more clear. For now, `dependencies.yaml` will not include any explicit reference to provided APIs.
 
 ### Cluster Admin UX
 
