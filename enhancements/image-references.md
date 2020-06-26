@@ -6,7 +6,7 @@ reviewers:
   - "@jwforres"
   - "@shawn-hurley"
   - "@gallettilance"
-  - "@lui"
+  - "@lcarva"
 approvers:
   - "@jwforres"
   - "@shawn-hurley"
@@ -44,8 +44,10 @@ build and test strategy.
 
 ### Goals
 
-- there is one, canonical, method for building an operator bundle image layer
+- there is one, canonical, method for building an operator bundle images
   from a directory of manifests
+- it is possible to perform image resolution and pinning separate from bundle
+  creation, but not the opposite
 - building an operator bundle image does not require the use of a container
   runtime, elevated privileges or any capacities that are not present for 
   containerized workloads on OpenShift
@@ -64,7 +66,7 @@ build and test strategy.
 - upstream operator manifests must not be required to know how common names or
   references change when built in a downstream pipeline
 - no prescriptive statement is made about the specific format or contents of the
-  bundle image layer; any will be transparently supported as an output
+  bundle image layers; any will be transparently supported as an output
 
 ## Proposal
 
@@ -136,7 +138,7 @@ which strings inside of their manifest are referring to pull specifications of
 images and names each occurence [ex](https://github.com/openshift/machine-config-operator/blob/98d9ba6841eb4811ed6f4d4de7016ea83c131c54/install/image-references#L7-L10).
 
 The `metadata/image-references` file holds data in the following format, mapping
-common names of container imags to their string placeholders in the manifests:
+common names of container images to their string placeholders in the manifests:
 
 ```yaml
 imageReferences:
