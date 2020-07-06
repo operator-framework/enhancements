@@ -77,11 +77,18 @@ directory with a subdirectory named `scorecard` as depicted.
 The scorecard test label annotations for the bundle would be as follows:
 ```
 annotations:
-  operators.operatorframework.io.scorecard.mediatype.v1: "scorecard+v1"
-  operators.operatorframework.io.scorecard.config.v1: "/tests/scorecard/config.yaml"
-  operators.operatorframework.io.other-tests.mediatype.v1: "other-tests+v1"
-  operators.operatorframework.io.other-tests.config.v1: "/tests/other-tests/setup.yaml"
+  # scorecard
+  operators.operatorframework.io.test.mediatype.v1: "scorecard+v1"
+  operators.operatorframework.io.test.config.v1: "tests/scorecard/config.yaml"
+  # Some other test framework
+  operators.other.domain.test.mediatype.v1: custom+v1
+  operators.other.domain.test.config.v1: tests/custom/config.yaml
 ```
+
+Different test frameworks other than scorecard could define their
+own set of annotations using a different domain other than 
+operators.operatorframework.io which we would associate with the 
+domain owned by the operator-framework.
 
 For the purpose of this enhancement, scorecard would assume that its test
 metadata would be in the same bundle image as the operator image.
