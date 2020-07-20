@@ -156,13 +156,14 @@ Requires OLM to be installed.
   - List installed Operators
 
     `kubectl operator list`
+
     `kubectl operator list installed`
 
   - List installed Operators in a namespace
 
     `kubectl operator list -n my-namespace`
 
-   - List installed Operators from a particular catalog
+  - List installed Operators from a particular catalog
 
     `kubectl operator list -c my-catalog`
 
