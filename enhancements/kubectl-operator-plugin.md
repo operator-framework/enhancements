@@ -197,6 +197,9 @@ tbd
 The output format of all commands should adhere to `kubectl` behavior as closely as possible.
 ASCII tables are the default with the option to provide YAML and JSON equivalents.
 
+Operator updates are manual by default. Update availability is determined from the `operator list` output. Updates are approved
+using the `operator update` command.
+
 ### Risks and Mitigations
 
 1) Confusion with the `Operator` API
