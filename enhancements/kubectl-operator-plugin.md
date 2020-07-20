@@ -132,10 +132,6 @@ Requires OLM to be installed.
   - Install an Operator with automatic updates enabled
 
     `kubectl operator install -p auto my-operator`
-  
-  - Update an Operator to the next available version
-
-    `kubectl operator update my-operator`
 
   - Update an Operator to the next available version
 
