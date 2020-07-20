@@ -37,6 +37,7 @@ A `kubectl` plugin for managing Operators and Operator catalogs with an OLM enab
 - What are the distribution vectors of this plugin?
 - How are downstream users of OpenShift going to get the plugin installed?
 - What is the minimum OLM version the plugin should support?
+- Should the plugin install OLM?
 
 ## Summary
 
