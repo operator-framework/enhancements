@@ -159,11 +159,11 @@ Requires OLM to be installed.
     `kubectl operator list installed`
 
   - List installed Operators in a namespace
-    
+
     `kubectl operator list -n my-namespace`
 
    - List installed Operators from a particular catalog
-    
+
     `kubectl operator list -c my-catalog`
 
   - List Operators available to install
@@ -189,7 +189,7 @@ tbd
 #### Constraints
 
 - the plugin does not expose the concept of `OperatorGroup` but handles as much as possible of that in the background
-- the plugin 
+- the plugin does not support OpenShift specific concepts like preferred namespaces or automated annotations for cluster-monitoring
 
 #### Notes
 
@@ -211,56 +211,7 @@ like driving UIs, GitOps workflows and other API-driven use cases.
 
 ### Test Plan
 
-**Note:** *Section not required until targeted at a release.*
-
-Consider the following in developing a test plan for this enhancement:
-- Will there be e2e and integration tests, in addition to unit tests?
-- How will it be tested in isolation vs with other components?
-
-No need to outline all of the test cases, just the general strategy. Anything
-that would count as tricky in the implementation and anything particularly
-challenging to test should be called out.
-
-All code is expected to have adequate tests (eventually with coverage
-expectations).
-
 ### Graduation Criteria
-
-**Note:** *Section not required until targeted at a release.*
-
-Define graduation milestones.
-
-These may be defined in terms of API maturity, or as something else. Initial proposal
-should keep this high-level with a focus on what signals will be looked at to
-determine graduation.
-
-Consider the following in developing the graduation criteria for this
-enhancement:
-- Maturity levels - `Dev Preview`, `Tech Preview`, `GA`
-- Deprecation
-
-Clearly define what graduation means.
-
-#### Examples
-
-These are generalized examples to consider, in addition to the aforementioned
-[maturity levels][maturity-levels].
-
-##### Dev Preview -> Tech Preview
-
-- Ability to utilize the enhancement end to end
-- End user documentation, relative API stability
-- Sufficient test coverage
-- Gather feedback from users rather than just developers
-
-##### Tech Preview -> GA 
-
-- More testing (upgrade, downgrade, scale)
-- Sufficient time for feedback
-- Available by default
-
-**For non-optional features moving to GA, the graduation criteria must include
-end to end tests.**
 
 ##### Removing a deprecated feature
 
