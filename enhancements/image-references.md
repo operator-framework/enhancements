@@ -54,7 +54,7 @@ build and test strategy.
 - it is as simple for a developer to build a bundle referring to test versions
   of operand images as it is for a CI or productized build pipleine to create
   bundle images for publication
-- operator manifest authors dictate the set of image references in manfiests
+- operator manifest authors dictate the set of image references in manifests
   that must be resolved and pinned
 - operator bundle images may be inspected to determine the pull specifications
   that were used in the creation of the bundle
@@ -132,18 +132,17 @@ sources as input to the creation process.
 ### Proposed UX
 
 Operator manifest authors write a manifest that refers to images using some
-opaque string [ex](https://github.com/openshift/machine-config-operator/blob/master/install/0000_80_machine-config-operator_04_deployment.yaml#L22),
-and provide an `image-references` file alongside their manifests that declares
-which strings inside of their manifest are referring to pull specifications of
-images and names each occurence [ex](https://github.com/openshift/machine-config-operator/blob/98d9ba6841eb4811ed6f4d4de7016ea83c131c54/install/image-references#L7-L10).
+opaque string, and provide an `image-references.yaml` file alongside their
+manifests that declares which strings inside of their manifest are referring
+to pull specifications of images and names each occurence.
 
-The `metadata/image-references` file holds data in the following format, mapping
+The `metadata/image-references.yaml` file holds data in the following format, mapping
 common names of container images to their string placeholders in the manifests:
 
 ```yaml
 imageReferences:
 - name: common-name
-  placeholder: registry.svc.ci.openshift.org/openshift:image
+  substitute: registry.svc.ci.openshift.org/openshift:image
 ```
 
 This mapping, therefore, defines what needs to be replaced in manifests when
@@ -153,7 +152,7 @@ from those names to literal image pull specifications and will run the replaceme
 In this manner, the configuration provided by the manifest author remains static
 regardless of the eventual replacement that a build system will execute.
 
-The second mapping required at build-time, known as `image-replacements`, will take
+The second mapping required at build-time, known as `image-replacements.yaml`, will take
 a similar form, mapping the common names of images to their explicitly resolved pull
 specifications. This file will have the following format:
 
@@ -166,25 +165,26 @@ imagePullSpecs:
 `operator-sdk generate bundle` will use this chain of mapping to perform replacements
 in the manifests before creating a bundle image layer. The layer creation will also
 be shared logic with `oc adm release new` in order to allow both processes to build
-image layers without requiring the use of a containe runtime, other build system, any
+image layers without requiring the use of a container runtime, other build system, any
 elevated permissions, privileges, capacities or SELinux roles. As the output image
 layer in both cases is `FROM scratch` and simply contains manifest data, this build
 process is simple and producing the layer by creating the underlying tar bundle does
 not come with risks.
 
-The bundle creation process will furthermore create as output an `images` metadata file
-that will expose the build-time inputs used to create the bundle, so that downstream
-consumers can access this data as necessary. This file will also allow the build system
-to add any further metadata necessary. The format for the `images` file is a strict
-super-set of the `image-replacements` file:
+The bundle creation process will commit the `image-replacements.yaml` file into the output
+bundle, and will furthermore create as output a `release-metadata.yaml` metadata file
+that will expose any further build-time inputs used to create the bundle, so that downstream
+consumers can access this data as necessary. The format for the `release-metadata.yaml` file
+is a loose key-value store:
 
 ```yaml
 metadata:
   some-key: some-value
-imagePullSpecs:
-- name: common-name
-  pullSpec: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:298d0b496f67a0ec97a37c6e930d76db9ae69ee6838570b0cd0c688f07f53780
 ```
+
+The `image-replacments.yaml` content will also be injected into the CSV using the extant
+`relatedImages` stanza for backwards compatibility, but this data is not expected to be
+committed to the CSV in source control.
 
 ### Test Plan
 
