@@ -58,13 +58,13 @@ build and test strategy.
   that must be resolved and pinned
 - operator bundle images may be inspected to determine the pull specifications
   that were used in the creation of the bundle
-
-### Non-Goals
-
 - operator manifest authors must not be required to define the registry from
   which any individual build system will resolve image references
 - upstream operator manifests must not be required to know how common names or
   references change when built in a downstream pipeline
+
+### Non-Goals
+
 - no prescriptive statement is made about the specific format or contents of the
   bundle image layers; any will be transparently supported as an output
 
