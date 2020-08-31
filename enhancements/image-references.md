@@ -131,6 +131,10 @@ sources as input to the creation process.
 
 ### Proposed UX
 
+A set of new files in the `metadata/` directory of a bundle will be authored by
+the manifest authors and build systems to record image replacement intent and
+execution.
+
 Operator manifest authors write a manifest that refers to images using some
 opaque string, and provide an `image-references.yaml` file alongside their
 manifests that declares which strings inside of their manifest are referring
@@ -182,7 +186,14 @@ metadata:
   some-key: some-value
 ```
 
-The `image-replacments.yaml` content will also be injected into the CSV using the extant
+#### Interaction with CSV Related Images
+
+Users can today use the `relatedImages` field in a CSV to instruct OLM on what images must
+exist in disconnected environments. The proposed workflow will interact with this field by
+managing it explicitly. The tool will refuse to build a bundle for a CSV that has manually-
+specified related images.
+
+The `image-replacements.yaml` content will also be injected into the CSV using the extant
 `relatedImages` stanza for backwards compatibility, but this data is not expected to be
 committed to the CSV in source control.
 
