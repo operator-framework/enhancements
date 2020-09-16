@@ -85,7 +85,6 @@ The `operator-framework/ansible-operator` repository only contains `ansible-oper
 
 - I am a maintainer/contributor, I want to see the projects adopting concepts such as [separation of concerns](https://en.wikipedia.org/wiki/Separation_of_concerns) and [Single Responsibility principle](https://en.wikipedia.org/wiki/Single, so that I can maintain, read and re-use them easily
 - I am a Helm/Ansible operator developer, I want to need to update my projects only when the new release address changes my type of project, so that I can easily keep my operator projects updated. 
-- I am a Helm/Ansible operator developer, I want to need to update my projects only when the new release address changes my type of project, so that I can easily keep my operator projects updated. 
 
 #### Provide the based-operator image implementation as lib
 
@@ -246,11 +245,27 @@ Besides Ansible/Helm be decoupled from SDK CLI tool their tests should still ens
 
 For Helm, we have the [joelanford/helm-operator](https://github.com/joelanford/helm-operator) and the need to use the new pkg implementation. An alternative suggested was to use this repository as base for the split. However, with this approach would be harder ensure that no breaking changes, issues or regressions would be introduced since it also contains a new implementation for the base image. See the proposal [Proposal to introduce New based-operator image implementation #45](https://github.com/operator-framework/enhancements/pull/45).
 
-Another alternative option could be to create a lib such as `SDK Operator Build Lib` with the code implementation that is common and used to build any kind of operator. (e.g. plugins, utils, templates). However, it would increase the effort to keep the projects maintained.  
+### SDK Operator Build Lib 
+
+Another alternative option could be to create a lib such as `SDK Operator Build Lib` with the code implementation that is common and used to allow to scaffold any Operator Type (e.g. plugins, utils, templates). However, it would increase the effort to keep the projects maintained. 
+
+To ensure the compatibility between the projects and SDK tools as to mitigate the chance of introduce changes which can affect the expected behaviour would be mainly required to ensure a common base shared for the files which are created in the`config/` directory as the common targets which are into the`Makefile`.
+    
+By creating a new repository `SDK Operator Build Lib` would to be possible to customized implementations for any Operator Type such as a common Boilerplates for the Makefile which could be used by them and address the need describe above. 
+
+This Lib repository could also address needs such as provide helpers for developers to build their Operator Types which could be compatible with SDK tool and OLM and indeed could be added as "incubating" solutions to the framework which was the suggested approach to incorporate solutions such as [Proposal Doc: Composable integration in Operator-SDK #2340](https://github.com/operator-framework/operator-sdk/pull/2340). Also, it could be helpful to achieve the goal to support new Operator Types such as Hybrid Operators. See [Support hybrid operators #670](https://github.com/operator-framework/operator-sdk/issues/670). See [Meta: Operator SDK's in other languages #2745](https://github.com/operator-framework/operator-sdk/issues/2745) and [Extend operator-sdk to autogenerate controller that instantiates argo workflows #2497](https://github.com/operator-framework/operator-sdk/issues/2497) to have a better idea of the requirements which could be addressed with it.
+
+However, the proposed changes here shows beneficial to achieve the goal described as an Alternative solution (offer a lib with helpers such as plugins, utils, templates that ought to be used for any Operator Type) in a long term.  
+
+So, shows reasonable first to split the Operator Types in their repo and keep Upstream as the source of truth from where the Operator Types would consume these standard base files at the first moment as proposed here to reduce the complexities. And then, at a second moment, detail by a new EP the steps required to achieve these alternative solution by offering the `SDK Operator Build Lib` to address these requirements highlighted above and to facilitate the process to build and support new Operator Types.
+
+Following diagram of the dependencies of this alternative solution for a better understanding. 
+
+<img width="906" alt="Screen Shot 2020-09-16 at 12 41 44" src="https://user-images.githubusercontent.com/7708031/93332797-4ba27e80-f81a-11ea-8c86-9236af7df590.png">
 
 **NOTES**
 
-Following the script used to gen the diagram via https://www.planttext.com/.
+Following the script used to create the diagrams via https://www.planttext.com/.
  
 ```
 @startuml
@@ -281,6 +296,47 @@ Ansible -up-> SDK
 Kube -left-> Helm
 Kube -up-> SDK
 Kube -right-> Ansible
+Lib -up-> Helm
+Lib -up-> Ansible
+@enduml
+```
+
+```
+@startuml
+
+package "operator-sdk"  #34ebba {
+    component [User Interface \n CLI tool] as SDK #FFFFFF
+}
+
+ 
+package "helm-operator"  #6fb2ed {
+    component [+Helm plugin \n +Helm lib for based images] as Helm #FFFFFF
+}
+
+package "ansible-operator" #6fb2ed  {
+    component [+Ansible plugin \n +Ansible lib for based images] as Ansible #FFFFFF
+}
+
+package "Kubebuilder" #34ebba {
+    component [+Go plugin \n +Lib for CLI plugins] as Kube #FFFFFF
+}
+
+
+package "operator-lib" #9eb5e8 {
+    component [+Lib \n +features to be used by the projects] as Lib #FFFFFF
+}
+
+
+package "operator-build-lib" #9eb5e8 {
+    component [+Lib \n +helpers and Boilerplates to build any Operator Type project \n (e.g hybrid, java, python)] as Build #FFFFFF
+}
+
+Helm -up-> SDK
+Ansible -up-> SDK
+Build -up-> Helm
+Kube -up-> SDK
+Kube -down-> Build
+Build -up-> Ansible
 Lib -up-> Helm
 Lib -up-> Ansible
 @enduml
