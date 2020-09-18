@@ -52,7 +52,7 @@ build and test strategy.
   runtime, elevated privileges or any capacities that are not present for 
   containerized workloads on OpenShift
 - it is as simple for a developer to build a bundle referring to test versions
-  of operand images as it is for a CI or productized build pipleine to create
+  of operand images as it is for a CI or productized build pipeline to create
   bundle images for publication
 - operator manifest authors dictate the set of image references in manifests
   that must be resolved and pinned
