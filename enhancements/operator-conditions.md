@@ -62,6 +62,10 @@ As an operator author, I want operators managed by OLM to be able to communicate
 
 As an operator author, I want operators managed by OLM to be able to communicate whether or not they are ready to be upgraded.
 
+#### Story 3
+
+As an operator author, I want operators managed by OLM to be able to communicate whether or not they are currently upgrading or if they successfully completed the upgrade process.
+
 ## Design Details
 
 ### Condition CRD
@@ -136,6 +140,78 @@ status:
 ```
 
 Given that the `Upgradable Condition`'s status is set to `False`, OLM will understand that it should not upgrade the operator.
+
+#### Upgrading
+
+The `Upgrading` "OLM Supported Condition" allows an operator to communicate if it's now performing upgrade to a newer version.
+
+When the `Upgrading` condition exists, OLM will use it to find out if the operator completed the upgrade process, instead of the readiness probe.
+
+If the `Upgrading` condition is not exists in the CR, OLM will keep the current behaviour of detecting the upgrade status.
+
+##### Open Issues
+- **Issue**: How can OLM distinct between an upgrade process that was not started yet, and one that was already completed.
+
+  **Suggestion**: Add a version field to the operator configuration in the CSV. Add a version field to the condition CR. 
+  The operator will update this new version filed only in two cases: on a clean deployment, or upon completion of successful 
+  upgrade.
+  
+  OLM will check the CSV version with the CR version field in addition to the `Upgrading=false` in order to make sure  the upgrade was completed.
+  
+  For example: the CR represents an operator that is now upgrading from version v1.2.3 to version v2.3.4:
+  ```yaml
+  apiVersion: operators.coreos.com/v1
+  kind: Condition
+  metadata:
+    name: foo-operator-zdgen-asdf # RandomGen Name
+    namespace: operators
+  status:
+    conditions:
+    - type: "Upgradeable" # The name of the `foo` OLM Supported Condition.
+      ...
+    - type: "Upgrading" # The name of the `foo` OLM Supported Condition.
+      status: "True"   # The operator is now performing upgrade.
+      reason: "migration"
+      message: "The operator is performing a migration to version v2.3.4"
+      lastTransitionTime: "2020-08-24T23:15:55Z"
+    version: "v1.2.3" 
+  ```
+ 
+##### Example Condition with the Upgrading Condition
+
+```yaml
+apiVersion: operators.coreos.com/v1
+kind: Condition
+metadata:
+  name: foo-operator-zdgen-asdf # RandomGen Name
+  namespace: operators
+status:
+  conditions:
+  - type: "Upgradeable" # The name of the `foo` OLM Supported Condition.
+    ...
+  - type: "Upgrading" # The name of the `foo` OLM Supported Condition.
+    status: "True"   # The operator is now performing upgrade.
+    reason: "migration"
+    message: "The operator is performing a migration to version v2.3.4"
+    lastTransitionTime: "2020-08-24T23:15:55Z"
+```
+
+```yaml
+apiVersion: operators.coreos.com/v1
+kind: Condition
+metadata:
+  name: foo-operator-zdgen-asdf # RandomGen Name
+  namespace: operators
+status:
+  conditions:
+  - type: "Upgradeable" # The name of the `foo` OLM Supported Condition.
+    ...
+  - type: "Upgrading" # The name of the `foo` OLM Supported Condition.
+    status: "False"   # The operator is not performing upgrade right now
+    reason: "Upgrade Done"
+    message: "Sucessfully upgraded to version v2.3.4"
+    lastTransitionTime: "2020-08-24T23:15:55Z"
+```
 
 ### Non-OLM Supported Conditions
 
