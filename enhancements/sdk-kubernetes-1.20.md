@@ -1,5 +1,5 @@
 ---
-title: Support Kubernetes 1.19 in Operator SDK
+title: Support Kubernetes 1.20 in Operator SDK
 authors:
   - "@bharathi-tenneti"
 reviewers:
@@ -19,7 +19,7 @@ replaces: []
 superseded-by: []
 ---
 
-# Support Kubernetes 1.19 in Operator SDK
+# Support Kubernetes 1.20 in Operator SDK
 
 ## Release Signoff Checklist
 
@@ -82,9 +82,9 @@ Operator SDK needs to support the latest features of Kubernetes since that opera
 
 _GitHub: [kubernetes-sigs/controller-runtime][gh-controller-runtime]_
 
-This story consists of:
+##### Graduation Criteria
 
-- Bumping the Kubernetes dependency versions in go.mod from 1.19 to 1.20.
+- Bumping the Kubernetes dependency versions in go.mod from 1.18+ or 1.19+ to 1.20.
 - Upgrading any relevant documentation to note support for and any breaking changes introduced by
   the bump to Kubernetes 1.20.
 - Making any necessary changes to get CI to pass.
@@ -93,10 +93,9 @@ This story consists of:
 
 _GitHub: [kubernetes-sigs/controller-tools][gh-controller-tools]_
 
-This story consists of:
+##### Graduation Criteria
 
-- Bumping the Kubernetes dependency versions in go.mod from 1.18 to 1.20.
-- Changing the default generated CRD version in controller-gen from v1beta1 to v1.
+- Bumping the Kubernetes dependency versions in go.mod from 1.18+ or 1.19+ to 1.20.
 - Upgrading any relevant documentation to note support for and any breaking changes introduced by
   the bump to Kubernetes 1.20.
 - Making any necessary changes to get CI to pass.
@@ -105,12 +104,13 @@ This story consists of:
 
 _GitHub: [kubernetes-sigs/kubebuilder][gh-kubebuilder]_
 
-This story consists of:
+##### Graduation Criteria
 
 - Bumping the controller-runtime dependency version in go.mod file scaffolds to the version of
   controller-runtime that supports Kubernetes 1.20.
 - Bumping the controller-gen dependency version in the Makefile scaffolds to the version of
   controller-gen that supports Kubernete 1.20.
+- Bumping kubebuilder-declarative-pattern dependency to 1.20 to support kubebuilder.  
 - Upgrading any relevant documentation to note support for and any breaking changes introduced by
   the bump to Kubernetes 1.20.
 - Making any necessary changes to get CI to pass.
@@ -120,7 +120,7 @@ This story consists of:
 
 _GitHub: [operator-framework/operator-sdk][gh-operator-sdk]_
 
-This story consists of:
+##### Graduation Criteria
 
 - Bumping the controller-runtime, controller-tools, OLM, and Kubernetes
   dependency versions in go.mod to versions that support Kubernetes 1.20.
@@ -134,7 +134,7 @@ This story consists of:
 
 _GitHub: [operator-framework/operator-lib][gh-operator-lib]_
 
-This story consists of:
+##### Graduation Criteria
 
 - Bumping the controller-runtime version in go.mod scaffolds to the controller-runtime version that supports Kubernetes 1.20.
 - Updating e2e tests to use Kubernetes 1.20 where possible and create follow-on tasks for tests that cannot be updated (this often happens when we update before kind images we use have been updated)
@@ -151,9 +151,6 @@ This story consists of:
 [gh-operator-sdk]: https://github.com/operator-framework/operator-sdk
 [gh-operator-lib]: https://github.com/operator-framework/operator-lib
 
-### Implementation Details/Notes/Constraints [optional]
-
-N/A
 
 ### Risks and Mitigations
 
@@ -194,13 +191,6 @@ tricky in the implementation and anything particularly challenging to test shoul
 
 All code is expected to have adequate tests (eventually with coverage expectations).
 
-### Graduation Criteria
-
-N/A
-
-### Upgrade / Downgrade Strategy
-
-N/A
 
 ### Version Skew Strategy
 
@@ -230,19 +220,3 @@ The only other aspect of this enhancement that involves upgrading and downgradin
 use v1beta1 or v1 CRDs. controller-gen and operator-sdk already support configurable CRD generation
 that gives users the ability to choose the version of CRD to generate.
 
-## Implementation History
-
-Major milestones in the life cycle of a proposal should be tracked in `Implementation
-History`.
-
-## Drawbacks
-
-None
-
-## Alternatives
-
-None
-
-## Infrastructure Needed
-
-None
