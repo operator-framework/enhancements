@@ -45,10 +45,10 @@ Operator SDK needs to support the latest features of Kubernetes since that opera
 
 ## Dependencies
 
-[external] Require controller-runtime release that supports 1.20
-[external] Require Helm release that supports 1.20
-[external] Require kubebuilder release that scaffolds projects using 1.20
-[internal] Require operator-framework/api release that supports 1.20
+- [external] Require controller-runtime release that supports 1.20
+- [external] Require Helm release that supports 1.20
+- [external] Require kubebuilder release that scaffolds projects using 1.20
+- [internal] Require operator-framework/api release that supports 1.20
 
 
 ### Goals
