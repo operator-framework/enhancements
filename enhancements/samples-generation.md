@@ -165,6 +165,8 @@ gen-samples: ## Generate samples
 
 - The e2e test to run the OLM and scorecard commands should ensure that all manifests inside of `config/` and `bundle/` directories are using the dev tag for the `quay.io/operator-framework/scorecard-test` in the function before test which means the tests should fail if not. In the failures case, it should output the manifests and tag image used instead. It would prevent the scenarios where the tests are succefully executed with the released tag image. More info: https://github.com/operator-framework/operator-sdk/issues/3922.   
 
+- The improvements in the helpers used in the utils in order to throw the error should be pushed to upstream/kb. Note that the biggest part of the utils can and ought to be centralized in the upstream. 
+
 ### Risks and Mitigations
 
 This proposal has the goal of reducing the risk of the projects gets outdated. By reusing the samples code in the e2e tests it is possible to ensure that they are runnable as well and all possible risks closer to zero (0). 
@@ -261,8 +263,9 @@ pkg.CheckError(err)
 However, note that we also need to call the samples from the e2e tests which means that in this scenario the context to generated the samples (e.g directory, version, group andd etc), requires to be the same used by the test. To attend this need we need be able to create the instance using the `TextContext:
 
 ```go
-// NewSampleContextWith returns a SampleContext containing the kubebuilder TestContext informed 
-func NewSampleContextWith(tc *utils.TestContext) (s SampleContext, err error) {
+// NewSampleContextWithTestContext returns a SampleContext containing the kubebuilder TestContext informed
+// It is useful to allow the samples code be re-used in the e2e tests.
+func NewSampleContextWithTestContext(tc *utils.TestContext) (s SampleContext, err error) {
 	s.TestContext = *tc
 	return s, err
 }
@@ -309,7 +312,7 @@ func (mh *MemcachedHelm) Run() {
 	err = mh.ctx.Init(
 		"--plugins", "helm",
 		"--domain", mh.ctx.Domain)
-	pkg.CheckError(err)
+	pkg.CheckError("creating the project", err)
 
 	...
 }
@@ -327,9 +330,7 @@ ctx, err := pkg.NewSampleContext(samplesPath, "GO111MODULE=on")
 pkg.CheckError(err)
 
 log.Infof("creating Memcached Sample")
-memcached := helm.NewMemcachedHelm(&ctx)
-memcached.Prepare()
-memcached.Run()
+helm.GenerateMemcachedHelmSample(&ctx)
 ```
   
 **To call in the e2e test**
@@ -356,7 +357,7 @@ One common need is to replace one value for another. See how it is solved with t
 log.Infof("replacing project Dockerfile to use ansible base image with the dev tag")
 version := strings.TrimSuffix(version.Version, "+git")
 err := testutils.ReplaceInFile(filepath.Join(tc.Dir, "Dockerfile"), version, "dev")
-samples.CheckError(err)
+samples.CheckError("replacing Dockerfile", err)
 ```
 
 However, let's now think in the scenario where is required to replace the same information in all files of a directory and its sub-directories as well (tree). 
@@ -366,7 +367,7 @@ In this example, we would like to replace `quay.io/operator-framework/custom-sco
 ```go
 log.Infof("replacing scorecard-test image to use the dev tag")
 err = testutils.ReplaceInAllFilesFromTree(filepath.Join(tc.Dir, "config", "scorecard"), "quay.io/operator-framework/scorecard-test:master", "quay.io/operator-framework/scorecard-test:dev")
-samples.CheckError(err)
+samples.CheckError("replacing  scorecard-test image", err)
 ```
 
 ##### To abstract the complexity 
@@ -382,7 +383,7 @@ log.Infof("uncomment kustomization.yaml to enable webhook and ca injection")
 utils.UncommentCode(
 	filepath.Join(sc.Dir, "config", "default", "kustomization.yaml"),
 	"#- ../webhook", "#")
-samples.CheckError(err)
+samples.CheckError("uncomment kustomization.yaml to enable webhook and ca injection", err)
 ```
 
 ##### To insert the code in specific positions
@@ -395,7 +396,7 @@ err := utils.InsertCode(filepath.Join(sc.Dir, "api", sc.Version, fmt.Sprintf("%s
 	fmt.Sprintf(`type %sSpec struct {`, kbc.Kind),
 		`	// +optional
 	Count int `+"`"+`json:"count,omitempty"`+"`"+``)
-samples.CheckError(err)
+samples.CheckError("implementing the API", err)
 ```
 
 ##### Code on samples inject by Replace (e.g reconcile)
@@ -408,7 +409,7 @@ Note that we still able the use the replace approach to inject this code, such a
 log.Infof("adding reconcile implementation")
 err = utils.ReplaceInFile(filepath.Join(sc.Dir, "controllers", "memcached_controller.go"),
 		"// your logic here", reconcileFragment) // we are passing here the const
-samples.CheckError(err)
+samples.CheckError("adding reconcile implementation", err)
 ```
 
 ##### Using Boilerplates to build samples (e.g reconcile)
@@ -422,12 +423,12 @@ The same approach could be used to inject the code in the samples, such as:
 ```go
 log.Infof("building reconcile")
 reconcile, err := gosmaples.getReconcile(sc)
-samples.CheckError(err)
+samples.CheckError("building reconcile", err)
  
 log.Infof("adding reconcile implementation")
 err = utils.ReplaceInFile(filepath.Join(sc.Dir, "controllers", "memcached_controller.go"),
 	"// your logic here", reconcile )
-samples.CheckError(err)
+samples.CheckError("adding reconcile code", err)
 ```
 
 ```go
@@ -453,28 +454,14 @@ The following example that can be checked in the [POC - automate sample generati
 **Generating the Sample**
 
 ```go
-import (
-	"flag"
-	"os"
-	"path/filepath"
-
-	testutils "github.com/operator-framework/operator-sdk/test/utils"
-
-	"github.com/operator-framework/operator-sdk/hack/generate/samples/helm"
-	"github.com/operator-framework/operator-sdk/hack/generate/samples/pkg"
-	log "github.com/sirupsen/logrus"
-)
-
 func main() {
 	var (
 		binaryName string
 	)
-    
-    // Allow inform the path and binary that should be used. 
+
 	flag.StringVar(&binaryName, "bin", testutils.BinaryName, "Binary path that should be used")
 	flag.Parse()
-    
-    // Get the current path
+
 	current, err := os.Getwd()
 	if err != nil {
 		log.Error(err)
@@ -485,19 +472,16 @@ func main() {
 
 	log.Infof("starting to generate helm memcached sample")
 	ctx, err := pkg.NewSampleContext(binaryName, samplesPath, "GO111MODULE=on")
-	pkg.CheckError(err)
+	pkg.CheckError("error to generate helm memcached sample", err)
 
 	log.Infof("creating Memcached Sample")
-	memcached := helm.NewMemcachedHelm(&ctx)
-	memcached.Prepare() 
-	memcached.Run()
+	helm.GenerateMemcachedHelmSample(&ctx)
 }
 ```
 
 **Sample Implementation**
 
 ```go
-// MemcachedHelm define the Sample 
 type MemcachedHelm struct {
 	ctx *pkg.SampleContext
 }
@@ -507,16 +491,13 @@ func NewMemcachedHelm(ctx *pkg.SampleContext) MemcachedHelm {
 	return MemcachedHelm{ctx}
 }
 
-// Prepare will prepare the directory for the samples
-// The tests do not use this method since they create the test with 
-// other values which are defined in the TestContext.
 func (mh *MemcachedHelm) Prepare() {
 	log.Infof("destroying directory for memcached helm samples")
 	mh.ctx.Destroy()
 
 	log.Infof("creating directory for Helm Sample")
 	err := mh.ctx.Prepare()
-	pkg.CheckError(err)
+	pkg.CheckError("error to creating directory for Helm Sample", err)
 
 	log.Infof("setting domain and GKV")
 	mh.ctx.Domain = "example.com"
@@ -525,8 +506,6 @@ func (mh *MemcachedHelm) Prepare() {
 	mh.ctx.Kind = "Memcached"
 }
 
-// Run define the steps that shoul be execute for the Sample
-// Note: this is the method that is invoked in the e2e tests
 func (mh *MemcachedHelm) Run() {
 	current, err := os.Getwd()
 	if err != nil {
@@ -538,7 +517,7 @@ func (mh *MemcachedHelm) Run() {
 	err = mh.ctx.Init(
 		"--plugins", "helm",
 		"--domain", mh.ctx.Domain)
-	pkg.CheckError(err)
+	pkg.CheckError("creating the project", err)
 
 	log.Infof("handling work path to get helm chart mock data")
 	projectPath := strings.Split(current, "operator-sdk/")[0]
@@ -551,32 +530,40 @@ func (mh *MemcachedHelm) Run() {
 		"--version", mh.ctx.Version,
 		"--kind", mh.ctx.Kind,
 		"--helm-chart", helmChartPath)
-	pkg.CheckError(err)
+	pkg.CheckError("scaffolding apis", err)
 
 	err = mh.ctx.Make("kustomize")
-	pkg.CheckError(err)
+	pkg.CheckError("error to scaffold api", err)
 
 	log.Infof("customizing the sample")
 	log.Infof("enabling prometheus metrics")
 	err = utils.UncommentCode(
 		filepath.Join(mh.ctx.Dir, "config", "default", "kustomization.yaml"),
 		"#- ../prometheus", "#")
-	pkg.CheckError(err)
+	pkg.CheckError("enabling prometheus metrics", err)
 
 	log.Infof("adding customized roles")
 	err = utils.ReplaceInFile(filepath.Join(mh.ctx.Dir, "config", "rbac", "role.yaml"),
 		"# +kubebuilder:scaffold:rules", policyRolesFragment)
-	pkg.CheckError(err)
+	pkg.CheckError("adding customized roles", err)
 
 	log.Infof("generating OLM bundle")
-	err = utils.DisableOLMBundleInteractiveMode(mh.ctx.Dir)
-	pkg.CheckError(err)
+	err = mh.ctx.DisableOLMBundleInteractiveMode()
+	pkg.CheckError("generating OLM bundle", err)
 
 	err = mh.ctx.Make("bundle", "IMG="+mh.ctx.ImageName)
-	pkg.CheckError(err)
+	pkg.CheckError("running make bundle", err)
 
 	err = mh.ctx.Make("bundle-build", "BUNDLE_IMG="+mh.ctx.BundleImageName)
-	pkg.CheckError(err)
+	pkg.CheckError("running make bundle-build", err)
+}
+
+// GenerateMemcachedHelmSample will call all actions to create the directory and generate the sample
+// Note that it should NOT be called in the e2e tests.
+func GenerateMemcachedHelmSample(ctx *pkg.SampleContext) {
+	memcached := NewMemcachedHelm(ctx)
+	memcached.Prepare()
+	memcached.Run()
 }
 
 const policyRolesFragment = `
@@ -609,6 +596,7 @@ const policyRolesFragment = `
   - patch
   - update
   - watch
+
 # +kubebuilder:scaffold:rules
 `
 ```
