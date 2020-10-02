@@ -38,7 +38,7 @@ The e2e test also will be able to invoke the samples code implementation which w
 
 In this way, it is no longer required keep the repository [operator-sdk-samples](https://github.com/operator-framework/operator-sdk-samples) and it should be deprecated. 
 
-**NOTE** The test utils as what is proposed here can fit well in upstream. It is not a Goal push these implementations to upstream, however, it definitely could be an ultimate end goal to keep in mind. 
+**NOTE** The test utils as what is proposed here can fit well in upstream Kubebuilder. It is not a Goal push these implementations to Kubebuilder, however, it definitely could be an ultimate end goal to keep in mind. 
 
 ## Motivation
 
