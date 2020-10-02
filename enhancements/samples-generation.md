@@ -79,7 +79,7 @@ In this way, it is no longer required keep the repository [operator-sdk-samples]
 - I am a maintainer/contributor, I want to have the samples update with the code changes, so that I do not update the samples project after the release
 - I am a maintainer/contributor, I want to have the samples update with the code changes, so that I do not update the samples project after the release
 - I am an operator developer, I want check the examples of projects and features provided, so that I can easily know how to build my operator projects
-- I am an operator developer, I want to check the final result of the tutorial steps, so that I can easily check if what I miss when the things do not go well as expected
+- I am an operator developer, I want to check the final result of the tutorial steps, so that I can easily compare if when the process does not go as expected
 - I am an operator developer, I want to check the samples aligned with the tags release, so that I can check them accordingly to the version. 
 - I am an operator developer, I want to check the samples aligned with the tags release, so that I can easily compare the difference between the releases.
 - I am an operator developer, I want to check the samples aligned with the tags release, so that I can update easily my projects to use an upper version.
@@ -610,4 +610,3 @@ Use Shell script to automate the generation of the samples. However, via Shell i
 - Allow to the e2e tests and samples uses the same helpers and facilities 
 
 In this way, I'd like to advocate in favor to attend this need via Golang instead of shell scripts as proposed here.
-
