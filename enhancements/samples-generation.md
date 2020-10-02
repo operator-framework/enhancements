@@ -75,7 +75,7 @@ In this way, it is no longer required keep the repository [operator-sdk-samples]
 #### Building samples on SDK
 
 - I am a maintainer/contributor, I want to easily ensure that the changes made will not break the steps required to build the projects, so that we can reduce the chance to introduce critical bugs. 
-- I am a maintainer/contributor, I want to check the result of the changes made in the scaffold by verifying the samples changes , so that I do not need to pull the pull request locally and run the steps to review the code. 
+- I am a maintainer/contributor, I want to check the result of the changes made in the scaffolding by verifying the samples changes , so that I do not need to pull the pull request locally and run the steps to review the code. 
 - I am a maintainer/contributor, I want to have the samples update with the code changes, so that I do not update the samples project after the release
 - I am a maintainer/contributor, I want to have the samples update with the code changes, so that I do not update the samples project after the release
 - I am an operator developer, I want check the examples of projects and features provided, so that I can easily know how to build my operator projects
