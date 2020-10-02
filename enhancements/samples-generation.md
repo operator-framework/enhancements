@@ -55,7 +55,7 @@ In this way, it is no longer required keep the repository [operator-sdk-samples]
 
 - Link the samples in the docs or aligned then with the tutorials
 - Provide advanced helpers or Boilerplates to mock the data that could be used in the tests and/or in the samples generation
-- Push this implementation to upstream
+- Push this implementation to upstream Kubebuilder
 
 ## Proposal
 
