@@ -28,7 +28,7 @@ Answer: It should, since the memcached project is a sample for users to referenc
 
 ## Summary
 
-The [operator-sdk-samples](https://github.com/operator-framework/operator-sdk-samples) repo contains an example Go operator project for users to reference when building their own projects. These example becomes outdated quickly because it requires its own release process and manual updates.
+The [operator-sdk-samples](https://github.com/operator-framework/operator-sdk-samples) repo contains an example Go operator project for users to reference when building their own projects. These examples become outdated quickly because it requires its own release process and manual updates.
 
 Instead, this example project should be made generate-able via a code and (re)generated in a directory of the operator-sdk repo. Each PR to the operator-sdk repo that changes the scaffolds will require these samples be (re)generated via a makefile target and the CI should ensure that the samples are not outdated.
 
