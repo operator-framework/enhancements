@@ -70,7 +70,7 @@ In this way, it is no longer required keep the repository [operator-sdk-samples]
 #### Checking if samples are outdated via CI
 
 - I am a maintainer/contributor, I want to be able to check the samples update with the changes made, so that I do not need to spend effort on the samples after the release process
-- I am a maintainer/contributor, I want to able to check the samples updated in the diff of te github on the review process, so that I do not need to clone them locally
+- I am a maintainer/contributor, I want to able to check the samples updated in the diff of the github on the review process, so that I do not need to clone them locally
 
 #### Building samples on SDK
 
