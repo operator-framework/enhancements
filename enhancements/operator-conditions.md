@@ -68,9 +68,13 @@ As an operator author, I want operators managed by OLM to be able to communicate
 
 OLM will create a channel for operators to communicate complex conditions by introducing the `Condition` [CustomResourceDefinition](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/).
 
-When an operator is installed, OLM will create a `Condition` CustomResource (CR) for the operator. The operator should only be concerned with updating the status of the `Condition` that it owns and will have its RBAC scoped so it may only GET, LIST, or UPDATE the `Condition` CR it is associated with.
+When an operator is installed, OLM will create a `Condition` CustomResource (CR) for the operator. The operator's RBAC will be configured such that it is only able to get the `Condition` resource it owns and update the resource's [status subresource](https://book-v1.book.kubebuilder.io/basics/status_subresource.html).
 
-The `Condition` CR will be created with the [aggregation label](https://github.com/openshift/enhancements/blob/master/enhancements/olm/simplify-apis.md#component-selection) introduced for the `Operator` CRD that will associate it with a specific operator. When OLM deploys the operator, an additional environment variable will be appended to the deployment. Operators will then be able to use this label along with a library provided by the [operator-sdk](https://github.com/operator-framework/operator-sdk) team to set [conditions](https://github.com/kubernetes/enhancements/blob/3aa92e20bdfa2e60e3cb1a2b92cdca61847d7ad2/keps/sig-api-machinery/1623-standardize-conditions/README.md#kep-1623-standardize-conditions) on the CR to communicate complex states to OLM. For those unfamiliar with conditions, they are used by many Kubernetes Resources to provide users with additional insight into the state of the resource and typically adhere to the following format:
+When the `Condition` CR is created, OLM will update the deployments defined in the CSV with an addition environment variable:
+
+- *OperatorConditionName*: The name of the operator's `Condition` CR
+
+With the aid of a library provided by the [operator-sdk](https://github.com/operator-framework/operator-sdk), operators may set [conditions](https://github.com/kubernetes/enhancements/blob/3aa92e20bdfa2e60e3cb1a2b92cdca61847d7ad2/keps/sig-api-machinery/1623-standardize-conditions/README.md#kep-1623-standardize-conditions) on the operator's respective `Condition` CR to communicate complex states to OLM. For those unfamiliar with conditions, they are used by many Kubernetes Resources to provide users with additional insight into the state of the resource and typically adhere to the following format:
 
 | Field | Description |
 | ----- | ----------- |
@@ -85,7 +89,7 @@ OLM will define a set of "OLM Supported Conditions" which will influence how OLM
 
 ### OLM Supported Conditions
 
-All "OLM Supported Conditions" will be communicated by setting the conditions in the `status.conditions` array of the `Condition` CR associated with the operator. The name of each "OLM Supported Condition" will correspond to the `Type` field of the condition added to the array. Let's look at a fake "OLM Supported Condition" named `foo` that has been added to an `Condition` CR:
+All "OLM Supported Conditions" will be communicated by setting the conditions in the `status.conditions` array of the `Condition` CR associated with the operator. The name of each "OLM Supported Condition" will correspond to the `Type` field of the condition added to the array. Let's look at a fake "OLM Supported Condition" named `Foo` that has been added to an `Condition` CR:
 
 ```yaml
 apiVersion: operators.coreos.com/v1
@@ -94,8 +98,8 @@ metadata:
   name: foo-operator-zdgen-asdf # RandomGen Name
   namespace: operators
 status:
-   conditions:
-    type: Foo # The name of the `Foo` OLM Supported Condition.
+  conditions:
+  - type: Foo # The name of the `Foo` OLM Supported Condition.
     status: "True" # The "status" of the `foo` OLM Supported Condition.
     reason: "foo" # A camelCase reason that the operator is in this state
     message: "The operator is in the "foo" state." # A human readable message.
@@ -106,19 +110,19 @@ status:
 
 The `Upgradeable` "OLM Supported Condition" allows an operator to communicate when OLM should or should not upgrade the operator.
 
-When the `Upgradeable` condition is set to `False`, OLM will not:
+When the `Upgradeable` condition is set to `False`, OLM will:
 
-- Perform automatic or manual updates to the operator.
-- Update the operator as a part of [dependency resolution](./operator-dependency-resolution.md).
+- Not perform automatic or manual updates to the operator.
+- Not update the operator as a part of [dependency resolution](./operator-dependency-resolution.md).
 
-When the `Upgradeable` condition is set to `True`, OLM will not prevent upgrades to the operator.
+By default, OLM prevents upgrades to operators when the CSV is not in the `Succeeded` phase. When the `Upgradeable` condition is set to `True`, OLM will allow upgrades to the operator.
 
 The `Upgradeable` condition might be useful when:
 
 - An operator is about to start a critical process and should not be upgraded until after the process is completed.
 - The operator is performing a migration of CRs that must be completed before the operator is ready to be upgraded.
 
-##### Example Condition with the Upgradeable Condition
+##### Example Upgradeable Condition
 
 ```yaml
 apiVersion: operators.coreos.com/v1
@@ -127,8 +131,8 @@ metadata:
   name: foo-operator-zdgen-asdf # RandomGen Name
   namespace: operators
 status:
-   conditions:
-    type: Upgradeable # The name of the `foo` OLM Supported Condition.
+  conditions:
+  - type: Upgradeable # The name of the `foo` OLM Supported Condition.
     status: "False"   # The operator is not ready to be upgraded.
     reason: "migration"
     message: "The operator is performing a migration."
@@ -143,7 +147,7 @@ There may be instances where an Operator may want to communicate a condition to 
 
 ### Overriding an OLM Supported Condition
 
-There are times as a Cluster Admin that you may want to ignore an "OLM Supported Condition" reported by an Operator. For example, imagine that a known version of an operator always communicates that it is not upgradeable. In this instance, you may want to upgrade the operator despite the operator communicating that it is not upgradeable. This could be accomplished by overriding the `OLM Supported Condition` by adding the condition's name to the `spec.overrides` array in the `Condition` CR:
+There are times as a Cluster Admin that you may want to ignore an "OLM Supported Condition" reported by an Operator. For example, imagine that a known version of an operator always communicates that it is not upgradeable. In this instance, you may want to upgrade the operator despite the operator communicating that it is not upgradeable. This could be accomplished by overriding the `OLM Supported Condition` by adding the condition's type and status to the `spec.overrides` array in the `Condition` CR:
 
 ```yaml
 apiVersion: operators.coreos.com/v1
@@ -153,18 +157,20 @@ metadata:
   namespace: operators
 spec:
   overrides:
-    - Upgradeable # Informs OLM to ignore the Upgradeable "OLM Supported Condition".
-    - Foo # Informs OLM to ignore the foo "OLM Supported Condition".
+  - type: Upgradeable # Allows the cluster admin to change operator's Upgrade readiness to True
+    status: "True"
+    reason: "upgradeIsSafe" # optional
+    message: "The cluster admin wants to make the operator eligible for an upgrade." # optional
 status:
-   conditions:
-    type: Upgradeable
+  conditions:
+  - type: Upgradeable
     status: "False"
     reason: "migration"
     message: "The operator is performing a migration."
     lastTransitionTime: "2020-08-24T23:15:55Z"
 ```
 
-Since the `Upgradeable` condition is being overridden, OLM will allow the operator to be upgraded despite the `Upgradeable Condition`'s status being set to `False`.
+Since the `Upgradeable` condition is being overridden and set to `true`, OLM will allow the operator to be upgraded.
 
 ### Managing the Condition CR
 
