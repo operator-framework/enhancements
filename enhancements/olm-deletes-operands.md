@@ -62,6 +62,7 @@ So to facilitate automatically removing operator managed resources OLM can trigg
 - OLM should fire an alert event if the operator is stalled or taking too long on operand cleanup
 - The timeout for firing an alert event should be user configurable
 - Once [operator conditions][operator-conditions] are supported, there could be an OLM supported condition that the operator can use to indicate operand cleanup failure
+- The `operator-sdk` and `kubectl operator` can use OLM's operand cleanup feature instead of [deleting the CRDs][kb-operator-crd-delete] manually.
 
 ## Proposal
 
@@ -121,9 +122,13 @@ spec:
     enabled: false
 ```
 
-With `spec.cleanup.enabled: false` OLM will not perform cleanup or delete any CRs. The finalizer on the CSV will be cleared so the CSV and operator can be removed without any cleanup. This is also the default behavior if `spec.cleanup` is unspecified to make cleanup opt-in.
+With `spec.cleanup.enabled: true` OLM will first add the `olm/operand-cleanup` finalizer on the CSV. Now when the CSV is deleted by the user, OLM will delete all CRs for the operator's owned APIs, in the target namespaces of that operator. Once the CRs are successfully removed (after the operator clears its finalizers), OLM will clear the finalizer from the CSV to let the CSV and operator be uninstalled.
 
-With `cleanup.enabled: true` OLM will delete all CRs, for the operator's owned APIs, in the target namespaces of that operator. Once the CRs are successfully removed (after the operator clears its finalizers), OLM will clear the finalizer from the CSV to let the operator be uninstalled.
+With `spec.cleanup.enabled: false` OLM will remove the `olm/operand-cleanup` finalizer if it is already present on the CSV. This allows users to opt-out of cleanup and not have OLM delete any CRs.
+
+This is also the default behavior if `spec.cleanup` is unspecified. This ensures operator's that haven't opted-in are not subjected to the finalizer and have their CSV lifecycle remain unchanged.
+
+While toggling `spec.cleanup.enabled` does not result in a phase change, OLM could generate events to provide a history of when the cleanup behavior was toggled, and also events for when OLM begins and ends the cleanup process.
 
 #### Operand cleanup status
 
@@ -147,6 +152,14 @@ status:
 ```
 
 This information can be useful when debugging a stalled operator uninstall process to see the CRs whose removal is blocking operand cleanup.
+
+**NOTE:** The number of CRs that OLM has to list in the status is unbounded and could potentially cause the CSV size to exceed the [max request size][max-request-size] configured in etcd. For this reason there would have to be an upper limit on the number of CRs displayed in `status.cleanup.pendingDeletion`.
+
+#### Handling CSV deletion due to replacement
+
+A CSV can also be [deleted by OLM][csv-deletion-on-upgrade] during it's lifecycle when OLM detects a newer CSV that replaces it as part of an upgrade. For an operator that has already opted-in to operand cleanup, this would result in OLM cleaning up all the CRs before removing the old CSV.
+
+To prevent the cleanup of CRs on an upgrade, OLM should ensure that a CSV which has `spec.cleanup.enabled: true` and is marked for replacement (`phase: replacing`), should first be cleared of the `olm/operand-cleanup` finalizer and opted-out of cleanup before it is marked for deletion or deleted.
 
 #### CRD removal and caveats
 
@@ -191,3 +204,6 @@ Goes against OLM's conservative approach to not remove APIs in order to prevent 
 [owned-apiservices]: https://github.com/operator-framework/operator-lifecycle-manager/blob/master/doc/design/building-your-csv.md#owned-apiservices
 [required-apiservices]: https://github.com/operator-framework/operator-lifecycle-manager/blob/master/doc/design/building-your-csv.md#required-apiservices
 [finalizers-on-csvs]: https://github.com/operator-framework/enhancements/blob/master/enhancements/olm-deletes-operands.md#finalizers-on-csvs
+[max-request-size]: https://github.com/etcd-io/etcd/blob/master/Documentation/dev-guide/limit.md#request-size-limit
+[csv-deletion-on-upgrade]: https://github.com/operator-framework/operator-lifecycle-manager/blob/721fd858637579b894cfbe259a9e92f25b2e3f25/pkg/controller/operators/olm/operator.go#L1696-L1717
+[kb-operator-crd-delete]: https://github.com/operator-framework/kubectl-operator/blob/ff147ab7b4560c32e9881bd0676dc728f54ea2fa/internal/pkg/action/operator_uninstall.go#L91-L97
