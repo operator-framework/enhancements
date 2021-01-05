@@ -172,7 +172,36 @@ Only if `spec.cleanup.supported: true` will OLM act on `spec.cleanup.enabled` to
 
 This allows the operator author to signal cleanup capabilities while still letting the operator user be the one to explicitly opt-in.
 
-Ideally `spec.cleanup.supported` should be set by the operator author but if the user is aware that an operator requires no Finalizers and wants to leverage automatic cleanup then they can set both `spec.cleanup.supported: true` and `spec.cleanup.enabled: true` to force cleanup on uninstall.
+#### Override and force cleanup
+
+If an operator does not explicitly support cleanup, `spec.cleanup.supported: false`, but a user still wants OLM to initiate cleanup on operator uninstall, then OLM will require additional confirmation from the user. This ensures that OLM does not automatically take any destructive actions and that the user is aware of the operator's cleanup capability.
+
+When a user enables cleanup `spec.cleanup.enabled: true` while cleanup is unsupported `spec.cleanup.supported: false`, OLM will generate a random key string in the status block `status.cleanup.confirmationKey`. The user can then copy that key value, and set `spec.cleanup.confirmationKey` to the same value to confirm that OLM should proceed with cleanup. More formally OLM applies the following logic:
+
+- if `spec.cleanup.enabled: true` AND `spec.cleanup.supported: false`
+  - Generate the cleanup confirmation key `status.cleanup.confirmationKey`
+- if `spec.cleanup.confirmationKey` is unset AND `status.cleanup.confirmationKey` is set:
+  - No cleanup, but OLM adds a status condition message to indicate that it's waiting for user confirmation
+- if `spec.cleanup.confirmationKey` == `status.cleanup.confirmationKey`
+  - OLM initiates cleanup
+- if `spec.cleanup.confirmationKey` != `status.cleanup.confirmationKey`
+  - No cleanup, and OLM adds status condition message that the cleanup confirmation failed because the keys don't match
+
+```YAML
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+...
+spec:
+  ...
+  cleanup:
+    supported: false
+    enabled: true
+    confirmationKey: "yi7b1bC7z5"
+status:
+  ...
+  cleanup:
+    confirmationKey: "yi7b1bC7z5"
+```
 
 #### Operand cleanup status
 
