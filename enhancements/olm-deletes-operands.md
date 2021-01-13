@@ -46,7 +46,7 @@ If there are secondary resources that can't be owned by the primary CR, such as 
 
 ### OLM's role in assisting cleanup
 
-By design when OLM uninstalls an operator it does not remove any of the operator’s owned CustomResourceDefinitions (CRDs) and CRs in order to prevent data loss.
+By design when OLM uninstalls an operator it does not remove any CRs reconciled by the operator in order to prevent data loss.
 The operator user is expected to manually delete the CRs that they've created.
 
 However operators that do have cleanup logic implemented via Finalizers can benefit from an automatic cleanup of all their managed resources when the operator is uninstalled. This cleanup of CRs and resources would have to happen before the operator is removed so it can process the deletion events of its CRs.  
@@ -55,8 +55,8 @@ To facilitate an operator's cleanup logic, OLM can delete any CRs provided by an
 
 ## Goals
 
-- Cleanup includes removal of CRs and CRDs for provided APIs
-- Cleanup of CRs and CRDs is not enabled by default
+- Cleanup includes removal of CRs of the operator owned API types
+- Cleanup of CRs is not enabled by default
 - A user can opt-in to the clean up behavior before operator uninstall time
 
 ## Non-Goals
@@ -71,6 +71,7 @@ To facilitate an operator's cleanup logic, OLM can delete any CRs provided by an
 - Once [operator conditions][operator-conditions] are supported, there could be an OLM supported condition that the operator can use to indicate operand cleanup failure
 - The `operator-sdk` and `kubectl operator` can use OLM's operand cleanup feature instead of [deleting the CRDs][kb-operator-crd-delete] manually.
 - OLM handles cleanup of [Owned APIServices][owned-apiservices]
+- OLM can remove CRDs as part of cleanup once operators all operators are globally scoped
 
 ## Proposal
 
@@ -79,6 +80,10 @@ To facilitate an operator's cleanup logic, OLM can delete any CRs provided by an
 #### Story 1
 
 As an operator user I want my operator uninstall to also clean up operator-created resources so that I don't have to manually clean up any leftover resources.
+
+#### Story 2
+
+As an operator user I want a way to unblock my operator uninstall by aborting cleanup if it is blocked.
 
 ### Implementation Details/Notes/Constraints
 
@@ -98,7 +103,7 @@ From OLM's perspective these would be all CRs in the `OperatorGroup`'s [target n
 
 OLM should not delete CRs of the type [required CRDs][required-crds] as those are likely created by the operator, and whose cleanup should be handled by the operator's finalizer.
 
-The CRs must directly be deleted instead of only deleting the CRD and relying on garbage collection of CRs because of the complication that causes for namespace scoped operators. See the [CRD removal section][crd-removal-section] below for more details.  
+The CRs must directly be deleted instead of only deleting the CRD and relying on garbage collection of CRs because of the complications that causes for namespace scoped operators.
 
 #### Finalizers on CSVs
 
@@ -129,79 +134,58 @@ kind: ClusterServiceVersion
 spec:
   ...
   cleanup:
-    enabled: false
-```
-
-With `spec.cleanup.enabled: true` OLM will first add the `operatorframework.io/cleanup-apis` finalizer on the CSV. Now when the CSV is deleted by the user, OLM will delete all CRs for the operator's owned CRDs, in the target namespaces of that operator. Once the CRs are successfully removed (after the operator clears its finalizers), OLM will clear the finalizer from the CSV to let the CSV and operator be uninstalled.
-
-With `spec.cleanup.enabled: false` OLM will remove the `operatorframework.io/cleanup-apis` finalizer if it is already present on the CSV. This allows users to opt-out of cleanup and not have OLM delete any CRs.
-
-This is also the default behavior if `spec.cleanup` is unspecified. This ensures operator's that haven't opted-in are not subjected to the finalizer and have their CSV lifecycle remain unchanged.
-
-While toggling `spec.cleanup.enabled` does not result in a phase change, OLM could generate events to provide a history of when the cleanup behavior was toggled, and also events for when OLM begins and ends the cleanup process.
-
-#### Cleanup off by default
-
-OLM should not allow the cleanup behavior to be enabled by default when the operator is installed (and the CSV is first created). This is to prevent the case where the CSV author has enabled cleanup and the operator user is unaware of this feature (and expects OLM's current behavior) and suffers unexpected data loss on uninstalling the operator. The operator user will have to explicitly opt-in to cleanup by updating the CSV after operator installation.
-
-For this OLM should always overwrite and disable the CSV cleanup option to `spec.cleanup.enabled: false` regardless of what was configured in CSV initially packaged in the operator bundle.
-This can be done by overwriting the CSV during its initial `None` phase when it's first created, or alternatively when the CSV is first written out to the `InstallPlan` by the catalog operator.
-
-#### Opt-in only if cleanup is supported
-
-Since operator users can switch on the cleanup behavior for operators that don't actually implement Finalizers, OLM can end up deleting CRs for which there remain leftover secondary resources (off-cluster and cross-namespaced) that are now potentially untraceable because the root CR is deleted.
-
-To prevent this there should be a second field `spec.cleanup.supported` (default `false`).
-
-This field should be set to `true` by the operator/CSV author to convey if the operator has the capability to clean up all of its created resources via Finalizers.
-This field can also be `true` even if the operator has no finalizers but it is sufficient to rely on the garbage collector to cleanup on-cluster secondary resources on CR deletion.
-
-```YAML
-apiVersion: operators.coreos.com/v1alpha1
-kind: ClusterServiceVersion
-...
-spec:
-  ...
-  cleanup:
     supported: false
-    enabled: true
-```
-
-If cleanup is not supported by the operator `spec.cleanup.supported: false`, OLM will ignore the field `spec.cleanup.enabled` and default to no cleanup and not delete CRs.
-Only if `spec.cleanup.supported: true` will OLM act on `spec.cleanup.enabled` to enable/disable cleanup.
-
-This allows the operator author to signal cleanup capabilities while still letting the operator user be the one to explicitly opt-in.
-
-#### Override and force cleanup
-
-If an operator does not explicitly support cleanup, `spec.cleanup.supported: false`, but a user still wants OLM to initiate cleanup on operator uninstall, then OLM will require additional confirmation from the user. This ensures that OLM does not automatically take any destructive actions and that the user is aware of the operator's cleanup capability.
-
-When a user enables cleanup `spec.cleanup.enabled: true` while cleanup is unsupported `spec.cleanup.supported: false`, OLM will generate a random key string in the status block `status.cleanup.confirmationKey`. The user can then copy that key value, and set `spec.cleanup.confirmationKey` to the same value to confirm that OLM should proceed with cleanup. More formally OLM applies the following logic:
-
-- if `spec.cleanup.enabled: true` AND `spec.cleanup.supported: false`
-  - Generate the cleanup confirmation key `status.cleanup.confirmationKey`
-- if `spec.cleanup.confirmationKey` is unset AND `status.cleanup.confirmationKey` is set:
-  - No cleanup, but OLM adds a status condition message to indicate that it's waiting for user confirmation
-- if `spec.cleanup.confirmationKey` == `status.cleanup.confirmationKey`
-  - OLM initiates cleanup
-- if `spec.cleanup.confirmationKey` != `status.cleanup.confirmationKey`
-  - No cleanup, and OLM adds status condition message that the cleanup confirmation failed because the keys don't match
-
-```YAML
-apiVersion: operators.coreos.com/v1alpha1
-kind: ClusterServiceVersion
-...
-spec:
-  ...
-  cleanup:
-    supported: false
-    enabled: true
-    confirmationKey: "yi7b1bC7z5"
+    startKey: ""
 status:
   ...
   cleanup:
-    confirmationKey: "yi7b1bC7z5"
+    startKey: "yi7b1bC7z5"
 ```
+
+The following summarizes the cleanup workflow with more details on each case below.
+
+- if `spec.cleanup.supported` == `false`
+  - No cleanup on operator uninstall because the operator does not support cleanup
+- if `spec.cleanup.startKey` == `""` i.e is unset
+  - No cleanup on operator uninstall, and abort cleanup to unblock uninstall if uninstall is already in progress
+- if `spec.cleanup.startKey` == `status.cleanup.startKey`
+  - Opt-in to cleanup on operator uninstall
+- if `spec.cleanup.startKey` != `status.cleanup.startKey`
+  - Opt-in to cleanup but is blocked on operator uninstall. Adds a status condition message that the cleanup is blocked because the keys don't match.
+
+#### Opt-in to cleanup
+
+To opt-in to the cleanup feature the field `spec.cleanup.startKey` must be set to the value of `status.cleanup.startKey`. The status cleanup key value should already be populated as a random string by OLM when the CSV is first created.
+
+With `spec.cleanup.startKey` == `status.cleanup.startKey`, OLM will add the `operatorframework.io/cleanup-apis` finalizer on the CSV to block deletion. Now when the CSV is deleted by the user, OLM will delete all CRs for the operator's owned CRDs in the target namespaces of that operator. Once the CRs are successfully removed (after the operator clears its finalizers), OLM will clear the finalizer from the CSV to let the CSV and operator be uninstalled.
+
+#### Opt-out or abort cleanup
+
+If the cleanup key is unset `spec.cleanup.startKey: ""` OLM will not run cleanup on operator uninstall, and remove the `operatorframework.io/cleanup-apis` finalizer if it was already present on the CSV from a previous opt-in.
+
+This is also the default behavior since the user always has to set `spec.cleanup.startKey` at runtime which ensures operators cannot run cleanup without an explicit user opt-in.
+
+If the user clears `spec.cleanup.startKey` to try and opt-out while an operator uninstall process has already begun (CSV is pending deletion) then OLM will only be aborting cleanup and remove the `operatorframework.io/cleanup-apis` finalizer. This allows users to unblock an operator uninstall but provides no guarantees on whether OLM has already cleaned up the operator's CRs.
+
+#### Cleanup capability
+
+Since operator users can enable cleanup for operators that don't actually implement finalizers, OLM can end up deleting CRs that leaves behind leftover secondary resources (off-cluster and cross-namespaced) that are now potentially untraceable because the root CR is deleted.
+
+The field `spec.cleanup.supported` indicates whether the operator has the capability to cleanup all of its resources. This should be set to `true` by the operator/CSV author to convey if an operator has the capability to clean up all of its created resources via finalizers. This can also be `true` if the operator has no finalizers but it is sufficient to rely on the garbage collector to cleanup on-cluster secondary resources on CR deletion. By default this will be `false`.
+
+#### Override to force cleanup
+
+If a user opts-in to cleanup when the operator does not support it `spec.cleanup.supported: false`, OLM will block operator uninstall with the cleanup finalizer but not initiate cleanup of CRs.
+
+In this scenario the user is also required to set `spec.cleanup.force: true` to override and force cleanup. OLM can also generate a status condition to indicate that cleanup is blocked and the user can override via `spec.cleanup.force` to proceed.
+
+#### Handling CSV deletion due to replacement
+
+A CSV can also be [deleted by OLM][csv-deletion-on-upgrade] during its lifecycle when OLM detects a newer CSV that replaces it as part of an upgrade. For an operator that has already opted-in to operand cleanup, this would result in OLM cleaning up all the CRs before removing the old CSV.
+
+To prevent the cleanup of CRs on an upgrade, OLM should ensure that a CSV which has opted-in to cleanup and is also marked for replacement `phase: replacing`, should first be cleared of the `operatorframework.io/cleanup-apis` finalizer and opted-out of cleanup before it is marked for deletion or deleted.
+
+To preserve the user's choice of cleanup behavior from the old version to the new version, OLM can also set `spec.cleanup.startKey` on the new CSV to opt-in to cleanup.
 
 #### Operand cleanup status
 
@@ -228,6 +212,8 @@ This information can be useful when debugging a stalled operator uninstall proce
 
 **NOTE:** The number of CRs that OLM has to list in the status is unbounded and could potentially cause the CSV size to exceed the [max request size][max-request-size] configured in etcd. For this reason there would have to be an upper limit on the number of CRs displayed in `status.cleanup.pendingDeletion`.
 
+#### Status conditions
+
 The CSV can also be updated with a status condition to indicate that cleanup is in progress when the CSV is blocked on deletion.
 
 ```YAML
@@ -243,33 +229,20 @@ status:
 
 This CSV will transition to a new phase `Cleanup` with the reason `CleanupWaiting` when it is pending deletion with the finalizer `operatorframework.io/cleanup-apis` present.
 
-#### Handling CSV deletion due to replacement
-
-A CSV can also be [deleted by OLM][csv-deletion-on-upgrade] during it's lifecycle when OLM detects a newer CSV that replaces it as part of an upgrade. For an operator that has already opted-in to operand cleanup, this would result in OLM cleaning up all the CRs before removing the old CSV.
-
-To prevent the cleanup of CRs on an upgrade, OLM should ensure that a CSV which has `spec.cleanup.enabled: true` and is marked for replacement (`phase: replacing`), should first be cleared of the `operatorframework.io/cleanup-apis` finalizer and opted-out of cleanup before it is marked for deletion or deleted.
-
-#### CRD removal
-
-While not strictly necessary for the goal of cleaning up operator-created resources, the cleanup process can also include removing the CRDs after the CRs and operator have been removed. The CRD can't always be removed however.
-
-If there are two non-global operators installed of the same type (providing the same APIs), then removing the CRD during the cleanup of one operator would result in the deletion of CRs for the other operator as well.
-
-To avoid this case OLM would have to ensure that it only removes the CRD during cleanup if:
-
-- The operator installed is global
-- The non-global operator is the only installation for that operator type in the cluster, i.e no other CSVs provide the same owned APIs.
-
 ## Design Details
 
 ### Test Plan
 
 OLM's e2e testing suite should be upgraded to handle the following use cases:
 
-- An operator that is uninstalled with `spec.cleanup` unspecified or `spec.cleanup.enabled: false` preserves the CRs
-- An operator that is uninstalled with `spec.cleanup.enabled: true` removes all CRs
-- An operator that is uninstalled with `spec.cleanup.enabled: true` should display all CRs that are pending deletion in the CSV status.
-- An CSV with `spec.cleanup.enabled: true` when replaced/upgraded by a new CSV should trigger cleanup when the old CSV is deleted.
+- An operator that is uninstalled with `spec.cleanup` unspecified or `spec.cleanup.startKey: ""` unset does not cleanup and preserves all operator CRs
+- An operator that does not support cleanup `spec.cleanup.supported: false` blocks on cleanup and requires an override `spec.cleanup.force: true`.
+- An operator that is uninstalled with `spec.cleanup.startKey == status.cleanup.startKey` removes all CRs
+- An operator that is uninstalled with cleanup should display all CRs that are pending deletion in the CSV status.
+- A CSV with cleanup enabled, when replaced/upgraded by a new CSV version should not trigger cleanup when the old CSV is deleted.
+- A global operator (installMode `AllNamespaces`) with CRs in multiple namespaces should have all its CRs removed on cleanup
+- A single namespaced operator (installMode `SingleNamespace`) with CRs in multiple namespaces should only have the CR removed in the single targeted namespace
+- A multi-namespaced operator (installMode `MultiNamespace`) with CRs in multiple namespaces should only have CRs removed in the targeted namespaces
 
 ## Drawbacks
 
@@ -291,4 +264,3 @@ Goes against OLM's conservative approach to not remove APIs in order to prevent 
 [controller-guidelines]: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-api-machinery/controllers.md#guidelines
 [owned-crds]: https://github.com/operator-framework/operator-lifecycle-manager/blob/master/doc/design/building-your-csv.md#owned-crds
 [required-crds]: https://github.com/operator-framework/operator-lifecycle-manager/blob/master/doc/design/building-your-csv.md#required-crds
-[crd-removal-section]: https://github.com/operator-framework/enhancements/blob/master/enhancements/olm-deletes-operands.md#crd-removal
