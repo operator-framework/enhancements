@@ -1,7 +1,7 @@
 ---
 title: olm-deletes-operands
 authors:
-  - "@hasbro17"
+ - "@hasbro17"
 reviewers:
   - "@benluddy"
   - "@ecordell"
@@ -11,7 +11,7 @@ approvers:
   - "@kevinrizza"
   - "@dmesser"
   - "@ecordell"
-  - "@shawn-hurley"  
+  - "@shawn-hurley"
 creation-date: yyyy-mm-dd
 last-updated: yyyy-mm-dd
 status: provisional
@@ -40,7 +40,7 @@ The purpose of this enhancement is to outline how the [Operator Lifecycle Manage
 
 ### Resource model and cleanup
 
-Per the Kubernetes [controller guidelines][controller-guidelines] the typical resource heirarchy for an operator should be a primary resource (usually a CR) that is reconciled, and secondary resources (Pods, Deployments, other CRs) that the operator creates and manages for the primary resource. The secondary resources should have their [OwnerReference][owner-reference] set to the primary resource so that when the root CR is deleted, the cleanup of all its owned resources is automatically handled by the Kubernetes garbage collector.
+Per the Kubernetes [controller guidelines][controller-guidelines] the typical resource hierarchy for an operator should be a primary resource (usually a CR) that is reconciled, and secondary resources (Pods, Deployments, other CRs) that the operator creates and manages for the primary resource. The secondary resources should have their [OwnerReference][owner-reference] set to the primary resource so that when the root CR is deleted, the cleanup of all its owned resources is automatically handled by the Kubernetes garbage collector.
 
 If there are secondary resources that can't be owned by the primary CR, such as off-cluster or cross-namespaced resources, then the operator needs to handle cleanup of those resources by processing deletion events of the primary CR via Finalizers.
 
@@ -49,7 +49,7 @@ If there are secondary resources that can't be owned by the primary CR, such as 
 By design when OLM uninstalls an operator it does not remove any CRs reconciled by the operator in order to prevent data loss.
 The operator user is expected to manually delete the CRs that they've created.
 
-However operators that do have cleanup logic implemented via Finalizers or garbage collection owner references can benefit from an automatic cleanup of all their managed resources when the operator is uninstalled. This cleanup of CRs and resources would have to happen before the operator is removed so it can process the deletion events of its CRs.  
+However operators that do have cleanup logic implemented via Finalizers or garbage collection owner references can benefit from an automatic cleanup of all their managed resources when the operator is uninstalled. This cleanup of CRs and resources would have to happen before the operator is removed so it can process the deletion events of its CRs.
 
 To facilitate an operator's cleanup logic, OLM can delete any CRs provided by an operator before removing it.
 
