@@ -36,8 +36,8 @@ Canonically, `opm index add` is how a catalog is created and bundles are added t
 In fact, it is the only entrypoint into the world of managing catalogs, likely for adoption reasons and
 because these processes are largely opaque and complicated, even though the spec is not.
 While `opm` is intended for "power users" (read: those who need to manipulate catalog images),
-certain subcommands like `index` and its related libraries can be used fairly easily by anyone
-`operator-sdk` should expose functionality of `opm` in a limited and sanely-defaulted way
+certain subcommands like `index` and its related libraries can be used fairly easily by anyone.
+The `operator-sdk` should expose functionality of `opm` in a limited and sanely-defaulted way
 to enable building catalog images.
 
 ### Goals
@@ -130,7 +130,9 @@ The major risk, which has already been encountered, is an issue with an `opm` re
 In particular, problems with building a binary on a particular architecture may result
 in no binary being released for that architecture. `operator-sdk` supports
 amd64 (for linux and darwin platforms), arm64, ppc64le, and s390x; a binary targeting each
-platform must exist for every `opm` release. Mitigation involves
+platform must exist for every `opm` release.
+
+Mitigation involves
 1. Not upgrading `opm` versions scaffolded until an `opm` release is confirmed to support each platform.
 1. Improving `opm`'s release process with a host-agnostic multi-platform build system like `docker buildx`.
 
