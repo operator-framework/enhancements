@@ -9,7 +9,7 @@ approvers:
   - "@jmrordi"
   - "@tlwu2013"
 creation-date: 2021-01-20
-last-updated: 2021-01-20
+last-updated: 2021-02-01
 status: provisional
 ---
 
@@ -91,10 +91,13 @@ OPM = ./bin/opm
 opm:
   # Download `opm` from github.com/operator-framework/operator-registry/releases
 
-BUNDLE_IMGS ?= $(BUNDLE_IMG)
+ifneq ($(origin CATALOG_BASE_IMG), undefined)
+FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
+endif
 CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION)
+BUNDLE_IMGS ?= $(BUNDLE_IMG)
 catalog-build: opm
-	$(OPM) index add --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS)
+	$(OPM) index add --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
 
 catalog-push:
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
@@ -121,6 +124,23 @@ make bundle-build bundle-push catalog-build catalog-push
 
 Resulting in both `quay.io/example/my-operator-bundle:v0.1.0` and `quay.io/example/my-operator-catalog:v0.1.0`
 being built and pushed.
+
+If your operator has dependencies, to [jaeger-operator](https://github.com/jaegertracing/jaeger-operator)
+for example, you could build a catalog containing multiple operators by running:
+
+```sh
+export BUNDLE_IMG=quay.io/example/my-operator:v0.1.0
+make bundle-build bundle-push catalog-build catalog-push BUNDLE_IMGS=jaegertracing/jaeger-operator:1.21.2,$BUNDLE_IMG
+```
+
+Ideally an operator developer would create and push a catalog containing dependencies with pinned versions
+prior to running `make catalog-build` that can be used as a base image:
+
+```sh
+make catalog-build catalog-push BUNDLE_IMGS=jaegertracing/jaeger-operator:1.21.2 CATALOG_IMG=quay.io/example/my-operator-dependencies-catalog:v0.1.0
+export IMAGE_TAG_BASE=quay.io/example/my-operator
+make bundle-build bundle-push catalog-build catalog-push CATALOG_BASE_IMG=quay.io/example/my-operator-dependencies-catalog:v0.1.0
+```
 
 Check out this [PR](https://github.com/operator-framework/operator-sdk/pull/4406) for an implementation reference.
 
