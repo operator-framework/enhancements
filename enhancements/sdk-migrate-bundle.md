@@ -28,6 +28,10 @@ superseded-by:
 
 ## Open Questions [optional]
 
+1. The bundles we build today are done via `docker` from the project's
+   `Makefile` where users can adapt their image builder to whatever they want.
+   Do we want to allow this from the CLI?
+
 ## Summary
 
 Add a subcommand to the Operator SDK CLI that will allow users to migrate
@@ -74,11 +78,16 @@ More information about the different format can be found at the URLs below:
 - Operator bundles: https://github.com/operator-framework/operator-registry/blob/master/docs/design/operator-bundle.md
 - Package manifests format: https://github.com/operator-framework/operator-registry/tree/v1.5.3/#manifest-format
 
-The Operator Registry `opm` command has a command to build bundles,
-`alpha build`, that we would reuse. The command is pretty well segmented that we
-could easily reuse the `GenerateFunc` function to create the `bundle` as a
-directory. There is also support for building the bundle as an image which we
-could do using the `BuildBundleImage` function.
+The Operator SDK will traverse the given packagemanifest directory and for each
+of the versions create a new bundle.
+
+The Operator SDK will make use of the API available from the Operator
+Registry's `opm` command. The command is pretty well segmented that we could
+easily reuse the `GenerateFunc` function to create the `bundle` as a
+directory. There is also support for building the bundle as an image which
+we could do using the `BuildBundleImage` function.
+
+#### Generating bundle to disk
 
 The `GenerateFunc` takes in the following arguments:
 
@@ -101,6 +110,24 @@ listed *source*:
 | channels | ??? |
 | channelDefault | defaultChannel from `*.package.yaml` or `stable` |
 | overwrite | `--overwrite` parameter |
+
+#### Creating bundle image
+
+If we choose to build bundle images, then we can leverage the `BuildBundleImage`
+function from `opm`. This takes in two arguments:
+
+- imageTag string - tag to use for your container image
+- imageBuilder string - the container image builder i.e. `docker`, `podman`, etc
+
+This would output a new bundle image.
+
+In order to use this function, we will obtain the required parameters from the
+listed *source*:
+
+| parameter | source |
+| --------- | ------ |
+| imageTag | version of packagemanifest |
+| imageBuilder | `docker` |
 
 #### Command Line Interface
 
@@ -126,6 +153,51 @@ operator-sdk migrate bundle <packagemanifestdir> [--build-image=] \
 - Existing packagemanifest directory
 
 #### Example UX Scenarios
+
+For each of the scenarios below, assume we have a packagemanifest dir with the
+following layout.
+
+```
+manifests
+└── etcd
+    ├── 0.6.1
+    │   ├── etcdcluster.crd.yaml
+    │   └── etcdoperator.clusterserviceversion.yaml
+    ├── 0.9.0
+    │   ├── etcdbackup.crd.yaml
+    │   ├── etcdcluster.crd.yaml
+    │   ├── etcdoperator.v0.9.0.clusterserviceversion.yaml
+    │   └── etcdrestore.crd.yaml
+    ├── 0.9.2
+    │   ├── etcdbackup.crd.yaml
+    │   ├── etcdcluster.crd.yaml
+    │   ├── etcdoperator.v0.9.2.clusterserviceversion.yaml
+    │   └── etcdrestore.crd.yaml
+    └── etcd.package.yaml
+```
+
+#### Simple Example
+
+Assuming the packagemanifest above, let's take the simplest example:
+
+```
+operator-sdk migrate bundle manifests
+```
+
+The command will generate 3 bundles in the default `bundle` directory:
+
+- `etcd-bundle:0.6.1`
+- `etcd-bundle:0.9.1`
+- `etcd-bundle:0.9.2`
+
+1. Since `--build-image`  and `--bundle-dir` were not passed in we will write
+   the bundle to the default `bundle` directory.
+
+#### Complex Example
+
+```
+operator-sdk migrate bundle manifests --bundle-dir=my-bundle --overwrite
+```
 
 ### Risks and Mitigations
 
@@ -160,10 +232,19 @@ N/A
 
 ## Alternatives
 
-Similar to the `Drawbacks` section the `Alternatives` section is used to
-highlight and record other possible approaches to delivering the value proposed
-by an enhancement.
+There are 2 alternatives that I can come up with:
+
+1. Use a different command name `convert packagemanifest` which would take the
+   same arguments and flags as the `migrate bundle`. The idea is that we are
+   converting a packagemanifest into a bundle.
+
+1. Second alternative would be shell script that could migrate packagemanifests
+   instead of a subcommand. This would mean distributing a new script which
+   isn't really something we have in place today. It would probably get out of
+   sync since it isn't part of the main codebase.
 
 ## Infrastructure Needed [optional]
 
-N/A
+- `GenerateFunc` will need a way to write the `bundle.Dockerfile` to a different
+  directory. Today it writes it to the current working directory with no
+  overrides.
