@@ -186,12 +186,40 @@ operator-sdk migrate bundle manifests
 
 The command will generate 3 bundles in the default `bundle` directory:
 
-- `etcd-bundle:0.6.1`
-- `etcd-bundle:0.9.1`
-- `etcd-bundle:0.9.2`
-
-1. Since `--build-image`  and `--bundle-dir` were not passed in we will write
-   the bundle to the default `bundle` directory.
+```
+bundle
+├── bundle-0.6.1
+│   ├── manifests
+│   │   ├── etcdoperator.clusterserviceversion.yaml
+│   │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
+│   │   ├── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
+│   │   └── etcdcluster.crd.yaml
+│   └── metadata
+│       └── annotations.yaml
+├── bundle-0.6.1.Dockerfile
+├── bundle-0.9.1
+│   ├── manifests
+│   │   ├── etcdoperator.clusterserviceversion.yaml
+│   │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
+│   │   ├── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
+│   │   ├── etcdbackup.crd.yaml
+│   │   ├── etcdcluster.crd.yaml
+│   │   └── etcdrestore.crd.yaml
+│   └── metadata
+│       └── annotations.yaml
+├── bundle-0.9.1.Dockerfile
+├── bundle-0.9.2
+│   ├── manifests
+│   │   ├── etcdoperator.clusterserviceversion.yaml
+│   │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
+│   │   ├── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
+│   │   ├── etcdbackup.crd.yaml
+│   │   ├── etcdcluster.crd.yaml
+│   │   └── etcdrestore.crd.yaml
+│   └── metadata
+│       └── annotations.yaml
+└── bundle-0.9.2.Dockerfile
+```
 
 #### Complex Example
 
@@ -199,7 +227,54 @@ The command will generate 3 bundles in the default `bundle` directory:
 operator-sdk migrate bundle manifests --bundle-dir=my-bundle --overwrite
 ```
 
+This will generate the bundles in a `my-bundle` directory. If there was an
+existing `my-bundle` the `--overwrite` will delete that directory before writing
+the new bundles.
+
+```
+my-bundle
+├── my-bundle-0.6.1
+│   ├── manifests
+│   │   ├── etcdoperator.clusterserviceversion.yaml
+│   │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
+│   │   ├── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
+│   │   └── etcdcluster.crd.yaml
+│   └── metadata
+│       └── annotations.yaml
+├── my-bundle-0.6.1.Dockerfile
+├── my-bundle-0.9.1
+│   ├── manifests
+│   │   ├── etcdoperator.clusterserviceversion.yaml
+│   │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
+│   │   ├── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
+│   │   ├── etcdbackup.crd.yaml
+│   │   ├── etcdcluster.crd.yaml
+│   │   └── etcdrestore.crd.yaml
+│   └── metadata
+│       └── annotations.yaml
+├── my-bundle-0.9.1.Dockerfile
+├── my-bundle-0.9.2
+│   ├── manifests
+│   │   ├── etcdoperator.clusterserviceversion.yaml
+│   │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
+│   │   ├── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
+│   │   ├── etcdbackup.crd.yaml
+│   │   ├── etcdcluster.crd.yaml
+│   │   └── etcdrestore.crd.yaml
+│   └── metadata
+│       └── annotations.yaml
+└── my-bundle-0.9.2.Dockerfile
+```
+
+#### Prototype Links
+
+- migrate-prototype: to see what `GenerateFunc` can do:
+  https://github.com/jmrodri/migrate-prototype/blob/master/main.go
+
 ### Risks and Mitigations
+If we can not change the behavior of `GenerateFunc` to write the
+`bundle.Dockerfile` in a particular location this could make this process
+difficult.
 
 ## Design Details
 
@@ -224,6 +299,8 @@ N/A
 
 ## Implementation History
 
+20210210 - Add prototype and more explicit details.
+20210209 - Generate 2 bundles
 20210208 - Initial proposal to migrate bundle
 
 ## Drawbacks
