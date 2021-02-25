@@ -49,6 +49,9 @@ bundles which is the preferred OLM packaging format.
 ### Goals
 
 - Provide a subcommand to migrate one packagemanifest to a set of bundles.
+- Deprecate `packagemanifests` features:
+  - Deprecate `run packagemanifests`
+  - Deprecate `generate packagemanifests`
 
 ### Non-Goals
 
@@ -90,7 +93,7 @@ easily reuse the `GenerateFunc` function to create the `bundle` as a
 directory. There is also support for building the bundle as an image which
 we could do using the `BuildBundleImage` function.
 
-#### Generating bundle to disk
+#### Generating bundle on disk
 
 The `GenerateFunc` takes in the following arguments:
 
@@ -100,7 +103,6 @@ The `GenerateFunc` takes in the following arguments:
 - packageName string - the name of the package that bundle image belongs to
 - channels string - the list of channels that bundle image belongs to
 - channelDefault string - the default channel for the bundle image
-- overwrite bool - flag to enable overwriting annotations.yaml
 
 In order to use this function, we will obtain the required parameters from the
 listed *source*:
@@ -108,11 +110,10 @@ listed *source*:
 | parameter | source |
 | --------- | ------ |
 | directory | packagemanifest directory |
-| outputDir | default `bundle` dir or flag `--bundle-dir` |
+| outputDir | default `bundle` dir or flag `--output-dir` |
 | packageName | packageName from `*.package.yaml` |
-| channels | ??? |
+| channels | Any channel where `channels[].currentCSV == packagedCSV.Name` from `*.package.yaml` |
 | channelDefault | defaultChannel from `*.package.yaml` or `stable` |
-| overwrite | `--overwrite` parameter |
 
 #### Creating bundle image
 
@@ -138,7 +139,7 @@ The new command line will look as follows:
 
 ```
 operator-sdk migrate bundle <packagemanifestdir> [--build-image=] \
-    [--bundle-dir=] [--overwrite]
+    [--output-dir=]
 ```
 
 - `<packagemanifestdir>` is a positional argument that specifies the
@@ -146,10 +147,8 @@ operator-sdk migrate bundle <packagemanifestdir> [--build-image=] \
 - `[--build-image=]` is an optional flag that indicates whether we want to build
   the bundle as an image or just output to a directory, defaults to `bundle`
   directory.
-- `[--bundle-dir=]` is an optional flag that indicates the directory to write the
+- `[--output-dir=]` is an optional flag that indicates the directory to write the
   bundle to, defaults to `bundle` directory.
-- `[--overwrite]` is an optional flag that indicates whether we should overwrite
-  the `bundle`.
 
 #### Assumptions
 
@@ -227,11 +226,11 @@ bundle
 #### Complex Example
 
 ```
-operator-sdk migrate bundle manifests --bundle-dir=my-bundle --overwrite
+operator-sdk migrate bundle manifests --output-dir=my-bundle
 ```
 
 This will generate the bundles in a `my-bundle` directory. If there was an
-existing `my-bundle` the `--overwrite` will delete that directory before writing
+existing `my-bundle` the command will *delete* that directory before writing
 the new bundles.
 
 ```
@@ -302,6 +301,8 @@ N/A
 
 ## Implementation History
 
+20210224 - deprecated packagemanifests features
+20210224 - Fix typos; Remove overwrite flag; change bundle-dir to output-dir;
 20210210 - Add prototype and more explicit details.
 20210209 - Generate 2 bundles
 20210208 - Initial proposal to migrate bundle
@@ -322,6 +323,9 @@ There are 2 alternatives that I can come up with:
    instead of a subcommand. This would mean distributing a new script which
    isn't really something we have in place today. It would probably get out of
    sync since it isn't part of the main codebase.
+
+1. Third option is `bundle migrate` which would take the same arguments and
+   flags as `migrate bundle`.
 
 ## Infrastructure Needed [optional]
 
