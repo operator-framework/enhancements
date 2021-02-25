@@ -31,6 +31,9 @@ superseded-by:
 1. The bundles we build today are done via `docker` from the project's
    `Makefile` where users can adapt their image builder to whatever they want.
    Do we want to allow this from the CLI?
+   - if we do build images, we should add image builder flag
+1. What will happen to the existing command in SDK for deploying an operator
+   packagemanifests using OLM? Do we still want to support that and will it stay intact?
 
 ## Summary
 
@@ -59,7 +62,7 @@ bundles which is the preferred OLM packaging format.
 #### Story 1
 
 As an operator developer, I would like to migrate my operator which uses
-the package manifest format to the new bundle format.
+the packagemanifest format to the new bundle format.
 
 #### Story 2
 
@@ -104,7 +107,7 @@ listed *source*:
 
 | parameter | source |
 | --------- | ------ |
-| directory | package manifest directory |
+| directory | packagemanifest directory |
 | outputDir | default `bundle` dir or flag `--bundle-dir` |
 | packageName | packageName from `*.package.yaml` |
 | channels | ??? |
@@ -272,7 +275,7 @@ my-bundle
   https://github.com/jmrodri/migrate-prototype/blob/master/main.go
 
 ### Risks and Mitigations
-If we can not change the behavior of `GenerateFunc` to write the
+If we cannot change the behavior of `GenerateFunc` to write the
 `bundle.Dockerfile` in a particular location this could make this process
 difficult.
 
