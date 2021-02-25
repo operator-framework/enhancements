@@ -138,7 +138,7 @@ listed *source*:
 The new command line will look as follows:
 
 ```
-operator-sdk migrate bundle <packagemanifestdir> [--build-image=] \
+operator-sdk pkgman-to-bundle <packagemanifestdir> [--build-image=] \
     [--output-dir=]
 ```
 
@@ -183,7 +183,7 @@ manifests
 Assuming the packagemanifest above, let's take the simplest example:
 
 ```
-operator-sdk migrate bundle manifests
+operator-sdk pkgman-to-bundle manifests
 ```
 
 The command will generate 3 bundles in the default `bundle` directory:
@@ -226,7 +226,7 @@ bundle
 #### Complex Example
 
 ```
-operator-sdk migrate bundle manifests --output-dir=my-bundle
+operator-sdk pkgman-to-bundle manifests --output-dir=my-bundle
 ```
 
 This will generate the bundles in a `my-bundle` directory. If there was an
@@ -268,6 +268,19 @@ my-bundle
 └── my-bundle-0.9.2.Dockerfile
 ```
 
+#### Deprecating packagemanifests commands
+
+As part of this enhancement proposal, we will deprecate the following commands:
+
+- `run packagemanifests`
+- `generate packagemanifests`
+
+To accomplish this we need to fill in the [`Deprecated string`][deprecated-cobra]
+field of both [`run packagemanifests`][deprecate-run-pkgman] and [`generate
+packagemanifests`][deprecate-gen-pkgman].
+
+The exact wording for the message will be determined later.
+
 #### Prototype Links
 
 - migrate-prototype: to see what `GenerateFunc` can do:
@@ -284,11 +297,11 @@ difficult.
 
 - add unit tests for migration code
 - add e2e tests to migrate packagemanifests to bundles
-- manual testing of `migrate bundle` will be done as well
+- manual testing of `pkgman-to-bundle` will be done as well
 
 ### Graduation Criteria
 
-The `migrate bundle` command will come in as non-alpha and be ready to
+The `pkgman-to-bundle` command will come in as non-alpha and be ready to
 use once merged.
 
 ### Upgrade / Downgrade Strategy
@@ -301,11 +314,12 @@ N/A
 
 ## Implementation History
 
-20210224 - deprecated packagemanifests features
+20210225 - Add details about deprecated run|generate packagemanifests
+20210224 - Deprecated packagemanifests features
 20210224 - Fix typos; Remove overwrite flag; change bundle-dir to output-dir;
 20210210 - Add prototype and more explicit details.
 20210209 - Generate 2 bundles
-20210208 - Initial proposal to migrate bundle
+20210208 - Initial proposal to migrate bundle aka pkgman-to-bundle
 
 ## Drawbacks
 
@@ -313,22 +327,36 @@ N/A
 
 ## Alternatives
 
-There are 2 alternatives that I can come up with:
+There are 4 alternatives that I can come up with:
 
 1. Use a different command name `convert packagemanifest` which would take the
-   same arguments and flags as the `migrate bundle`. The idea is that we are
-   converting a packagemanifest into a bundle.
+   same arguments and flags as the `pkgman-to-bundle`. The idea is that we are
+   converting a packagemanifest into a bundle. Because this is a short lived
+   command it seems bad to waste the `convert` subcommand on this when that
+   could be used for some other more useful purpose in the future.
 
 1. Second alternative would be shell script that could migrate packagemanifests
    instead of a subcommand. This would mean distributing a new script which
    isn't really something we have in place today. It would probably get out of
    sync since it isn't part of the main codebase.
 
-1. Third option is `bundle migrate` which would take the same arguments and
-   flags as `migrate bundle`.
+1. Another option is `migrate bundle` which would take the same arguments and
+   flags as `pkgman-to-bundle`. Because this is a short lived command it seems
+   like a bad idea to waste the `migrate` subcommand on this when that could be
+   used for some other more useful purpose in the future.
+
+1. Yet another option is `bundle migrate` which would take the same arguments and
+   flags as `pkgman-to-bundle`. This command would fit with the existing
+   `bundle` command but break the paradigm of the other commands which is
+   `<verb> <noun>`.
 
 ## Infrastructure Needed [optional]
 
-- `GenerateFunc` will need a way to write the `bundle.Dockerfile` to a different
-  directory. Today it writes it to the current working directory with no
-  overrides.
+- [`GenerateFunc`][generatefunc] will need a way to write the `bundle.Dockerfile`
+  to a different directory. Today it writes it to the current working directory
+  with no overrides.
+
+[generatefunc]: https://github.com/operator-framework/operator-registry/blob/master/pkg/lib/bundle/generate.go#L50
+[deprecated-cobra]: https://github.com/spf13/cobra/blob/master/command.go#L85
+[deprecate-gen-pkgman]: https://github.com/operator-framework/operator-sdk/blob/master/internal/cmd/operator-sdk/generate/packagemanifests/cmd.go#L57-L80
+[deprecate-run-pkgman]: https://github.com/operator-framework/operator-sdk/blob/master/internal/cmd/operator-sdk/run/packagemanifests/packagemanifests.go#L32-L57
