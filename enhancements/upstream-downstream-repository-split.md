@@ -13,7 +13,7 @@ approvers:
   - "@krizza"
   - "@njhale"
 creation-date: 2020-11-20
-last-updated: 2020-11-20
+last-updated: 2020-03-01
 status: implementable
 ---
 
@@ -28,7 +28,7 @@ status: implementable
 
 ## Summary
 
-OLM currently follows the Openshift release cycle, due to which there are periods where feature development has to be put on hold. This presents a barrier to OLM as a CNCF project, where it is expected for feature development to continue irrespective of any one sponsor. The purpose of this enhancement is to enable collaborators to propose and make changes without being blocked by the downstream requirements or issues and vice versa.
+OLM currently follows the OpenShift release cycle, due to which there are periods where feature development has to be put on hold. This presents a barrier to OLM as a CNCF project, where it is expected for feature development to continue irrespective of any one sponsor. The purpose of this enhancement is to enable collaborators to propose and make changes without being blocked by the downstream requirements or issues and vice versa.
 
 ## Motivation
 
@@ -40,7 +40,7 @@ This proposal describes a way to support both upstream and downstream developmen
 - Enable unblocked development for downstream regardless of state of upstream repositories
 - Detail the tooling around the upstream/downstream syncing process
 - Detail building and testing for upstream and downstream, ensuring that downstream remains compatible with existing OpenShift release process and tooling
-- Support backport for previous [n-2] openshift releases
+- Support backport for previous [n-2] OpenShift releases
 - Minimize disruption to regular development during migration period
 
 ### Non-Goals
@@ -54,9 +54,9 @@ This proposal describes a way to support both upstream and downstream developmen
 
 ## Proposal
 
-We propose to have a single downstream monorepo which will vendor the upstream repositories under a top level `/staging` directory. The downstream repository will also contain shared depencies, Makefiles and other build files at the root level. The downstream artifacts will be built from this repository, ensuring that we have a common commit for different OLM build artifacts of the same openshift release version.
+We propose to have a single downstream monorepo which will vendor the upstream repositories under a top level `/staging` directory. The downstream repository will also contain shared dependencies, Makefiles and other build files at the root level. The downstream artifacts will be built from this repository, ensuring that we have a common commit for different OLM build artifacts of the same OpenShift release version.
 
-The manual upstreaming and downstreaming process will be assisted by a set of helper scripts in the `scripts` directory. The OpenShift relase build pipeline will be updated to use the downstream monorepo as a source for OLM artifacts.
+The manual upstreaming and downstreaming process will be assisted by a set of helper scripts in the `scripts` directory. The OpenShift release build pipeline will be updated to use the downstream monorepo as a source for OLM artifacts.
 
 ### User Stories
 
@@ -76,7 +76,7 @@ As an OLM developer, I want to bring specific downstream changes to upstream for
 As an OLM developer, I want to backport specific changes to the previous [n-2] downstream release branches.
 
 #### Build from downstream
-As an OLM developer, I want to build release artifacts for downstream
+As an OLM developer, I want to build release artifacts for downstream.
 
 ### Implementation Details
 
@@ -84,7 +84,7 @@ The OLM code base will be split into upstream and downstream repositories. Downs
 
 #### Upstream repositories
 
-The upstream codebase will continue to live in the [operator framework](https://github.com/operator-framework/) github org. The repositories chosen for the split will have the openshift based tests disabled once the downstream repo builds are healthy. These are the current list of repositories in the split:
+The upstream codebase will continue to live in the [operator framework](https://github.com/operator-framework/) github org. The repositories chosen for the split will have the OpenShift based tests disabled once the downstream repo builds are healthy. These are the current list of repositories in the split:
 - [operator-framework/api](https://github.com/operator-framework/api)
 - [operator-framework/operator-registry](https://github.com/operator-framework/operator-registry)
 - [operator-framework/operator-lifecycle-manager](https://github.com/operator-framework/operator-lifecycle-manager)
@@ -127,9 +127,9 @@ The downstream monorepo will live at a new repo openshift/operator-lifecycle-man
 The main components of the repository are as follows:
 - staging: The upstream repositories are vendored into subdirectories using `git subtree`. These contain the upstream code, along with downstream specific changes.
 - pkg: Any downstream only changes that do not need to be upstreamed or backported reside in this directory.
-- downstream build files: The downstream repository will have common build dependencies, including a unified `Makefile`, `go.mod`, `go.sum` and `vendor` directory present at the repo root. This also includes multiple `Dockerfiles` that will be used for building downstream artifacts
+- downstream build files: The downstream repository will have common build dependencies, including a unified `Makefile`, `go.mod`, `go.sum` and `vendor` directory present at the repo root. This also includes multiple `Dockerfiles` that will be used for building downstream artifacts.
 - scripts: This will contain helper scripts for maintaining the upstream and downstream repos.
-    - add\_repo.sh: This is used to add a new upstream project to be tracked. It also ensures the remotes are added to the local git repository. To track the [operator-framework/api](github.com/operator-framework/api), the `add_repo.sh` script can be called as shown. This also adds a new remote `api` to the the local git repository and adds `operator-framework/api` to the list of tracked remotes.
+    - add\_repo.sh: This is used to add a new upstream project to be tracked. It also ensures the remotes are added to the local git repository. To track the [operator-framework/api](github.com/operator-framework/api), the `add_repo.sh` script can be called as shown. This also adds a new remote `api` to the local git repository and adds `operator-framework/api` to the list of tracked remotes.
       ```
       $ ./scripts/add_repo.sh operator-framework/api
       ```
@@ -139,16 +139,16 @@ The main components of the repository are as follows:
       ```
        This will create a PR against `operator-framework/api:master` from a new branch `api-b548a7-1605884019`.
 
-  - pull\_upstream.sh: When run, this pulls all changes from an upstream repository. The specific subtree meant to be pulled can be provided as an argument, along with an upstream branch to pull from. The changes will be merged to a new local branch from which a PR will be opened to downstream/master. If no arguments are passed, the script will sync all the vendored repositories in the `staging` directory
+  - pull\_upstream.sh: When run, this pulls all changes from an upstream repository. The specific subtree meant to be pulled can be provided as an argument, along with an upstream branch to pull from. The changes will be merged to a new local branch from which a PR will be opened to downstream/master. If no arguments are passed, the script will sync all the vendored repositories in the `staging` directory.
     ```
     $ ./scripts/pull_upstream.sh api
     ```
     During the upstream merge process, any conflicts will require human intervention to resolve.
-  - manifests: 
+  - manifests:
 
 ### Downstreaming
-1. Change PRs merge to upstream/master
-2. Upstream sync run manually for the vendored subtrees. This will create a PR against downstream/master. Except when downstream/master is closed for development, sync will be run daily to decrease the changes being merged at once.
+1. Change PRs merge to upstream/master.
+2. The upstream sync runs manually for the vendored subtrees. This will create a PR against downstream/master except when downstream/master is closed for development, sync will be run daily to decrease the changes being merged at once.
   ```
   $ ./scripts/pull_upstream.sh
   ```
@@ -158,20 +158,20 @@ The main components of the repository are as follows:
 
 ### Upstreaming
 Ideally, all changes should be made upstream. However, in case of a critical feature or fix needs to be added to downstream while upstream is not in a good state, the change can be brought back upstream as follows:
-1. PR merges to downstream into one of the repositories in `/staging`
-2. PR cherry-picked to upstream using the `push_upstream.sh` script by commit range. This creates a PR against upstream/master
+1. PR merges to downstream into one of the repositories in `/staging`.
+2. PR cherry-picked to upstream using the `push_upstream.sh` script by commit range. This creates a PR against upstream/master.
    ```
-   $ ./scripts/push_upstream.sh api b548a718f..85784b751 
+   $ ./scripts/push_upstream.sh api b548a718f..85784b751
    ```
-3. Upstream tests run against PR. Once tests pass, fix is merged to upstream
+3. Upstream tests run against PR. Once tests pass, fix is merged to upstream.
 
 ### Testing
 
 #### Downstream testing
-To have the openshift specific tests running against the downstream repo, the [`ci-operator`](github.com/openshift/release/tree/master/ci-operator/jobs/operator-framework/operator-lifecycle-manager) will be updated to use use the new downstream repo as its source. The unit tests will continue to use github actions.
+To have the OpenShift specific tests running against the downstream repo, the [`ci-operator`](github.com/openshift/release/tree/master/ci-operator/jobs/operator-framework/operator-lifecycle-manager) will be updated to use use the new downstream repo as its source. The unit tests will continue to use github actions.
 
 #### Upstream testing
-The upstream repositories will continue to use github actions for tests, with the openshift specific tests being removed.
+The upstream repositories will continue to use github actions for tests, with the OpenShift specific tests being removed.
 
 #### Testing for upstream/downstream sync
 The upstream sync creates a PR against downstream master before merging, so it undergoes the same tests as any other downstream PR.
@@ -186,14 +186,14 @@ Pre-4.6 releases will continue to live as branches on the upstream repositories.
 
 #### 4.7 and later
 The backport workflow is as follows
-1. Change gets accepted to upstream/master 
+1. Change gets accepted to upstream/master
 2. Sync runs for downstream/master, a sync PR is opened against it
 3. Sync PR merges, downstream/master has the fix. Fix is cherry-picked to the latest release branch
 4. Repeat for [n-2] release branches
 
 ### Risks and Mitigations
 
-Backports to older versions of openshift may be blocked if the corresponding upstream/master is in a bad state. This can be solved by using `git subtree split` to create a downstream branch specifically for a single vendored upstream repository. The required commit range and then be cherry-picked to the old release branch on the upstream repository
+Backports to older versions of OpenShift may be blocked if the corresponding upstream/master is in a bad state. This can be solved by using `git subtree split` to create a downstream branch specifically for a single vendored upstream repository. The required commit range and then be cherry-picked to the old release branch on the upstream repository.
 
 ## Design Details
 
@@ -214,7 +214,7 @@ For performing the migration:
 - Set up build and test pipelines
     - Downstream
         - Configure [downstream release automation]((https://github.com/openshift/release/tree/master/ci-operator/jobs/operator-framework)) for required versions to point to new downstream repository.
-        - Add [Openshift-bot](https://github.com/openshift/release/blob/0eba3f6cfdc76c9b710af19cf004918859cba3d0/ci-operator/jobs/infra-periodics.yaml) to manage downstream repository state
+        - Add [OpenShift-bot](https://github.com/openshift/release/blob/0eba3f6cfdc76c9b710af19cf004918859cba3d0/ci-operator/jobs/infra-periodics.yaml) to manage downstream repository state
 - Phase out downstream content from upstream repositories as older releases reach EOL
 
 To revert the upstream/downstream split:
@@ -236,4 +236,4 @@ The downstream product may also be a set of forks of corresponding upstream proj
 
 ## Infrastructure Needed
 
-- New downstream repository, `openshift/operator-lifecycle-manager`
+- New downstream repository, `openshift/operator-lifecycle-manager`.
