@@ -336,7 +336,7 @@ As an index author(with push permission to the namespace my index is hosted in),
 $ cd community-operators 
 $ //edit etcd.json to add etcdoperator.v0.9.0 to a the channel `alpha`, and add an upgrade edge from etcdoperator-community.v0.6.1 to etcdoperator.v0.9.0 in channel `alpha`
 $ cd ..
-$ opm index update community-operators --tag=docker.io/my-namespace/community-operators:latest
+$ opm index build --configs=community-operators --tag=docker.io/my-namespace/community-operators:latest
 $ rm -rf community-operators
 $ opm index inspect --image=docker.io/my-namespace/community-operators --output=json
 $ cat community-operators/etcd.json
@@ -451,8 +451,8 @@ $ git status
 $ cd ..
 $ opm index validate community-operators
 marshal error: etcd.defaultchannel: cannot convert incomplete value "string" to JSON
-$ opm index update community-operator --tag=docker.io/mynamespace/community-operators:latest
-$ opm index validate docker.io/mynamespace/community-operators:latest 
+$ opm index build --configs=community-operator --tag=docker.io/my-namespace/community-operators:latest
+$ opm index validate --image=docker.io/my-namespace/community-operators:latest 
 marshal error: etcd.defaultchannel: cannot convert incomplete value "string" to JSON
 $ cd community-operators 
 $ git checkout etcd.json
@@ -472,7 +472,7 @@ community-operators
 └── etcd.json
 └── servicemesh.json
 $ rm community-operators/servicemesh.json
-$ opm index create --from=community-operators --tag=docker.io/someothernamespace/new-community-operators:latest
+$ opm index build --configs=community-operators --tag=docker.io/someothernamespace/new-community-operators:latest
 ```
 ## Implementation Details
 ### Representing a package using json/yaml 
@@ -865,34 +865,24 @@ $ tree
 ├── etcd.json
 ├── amqstreams.json
 ```
-#### Editing a package inside an index
+#### Creating new indexes using the config files/Editing a package inside an existing index
 
-A new sub-command `update` will be introduced under `opm index`, which will take a folder containing json representations of packages as it's input along with an existing index image tag, and will replace the edited config files in the index container. 
+A new sub-command `build` will be introduced under `opm index`, which will take a folder containing json representations of packages as it's input, and will build a container image with the folder and the `opm` binary in it. The `build` sub-command will contain a flag `--image-builder` that will take one of "docker", "podman" or "buildah" as it's input, and will use one of these clients to build the image(absence of the `--image-builder` flag will result in one of the clients being used as default).
 
 ```bash
 $ opm index inspect --image=quay.io/some-namespace/my-index 
 $ // edit a my-index/package-config.json 
-$ opm index update my-index --tag=docker.io/some-namespace/my-index:latest
-``` 
-
-> Note: For a seamless UX, the following things should be consider during implementation when the `opm index update` command is summoned: 
-> 1. Validate the files inside the folder given as input to the command to ensure they are valid json representation of packages (and not random files with random content, which could be potential security risks) 
-> 2. If the files are valid, take a git diff between the present content of the index (i.e the existing json representations) and the content of the folder given as input. Display the diff as an output of the command with the following message 
-> "The following changes will be updated in the index:"
-> If there is no diff between the content in the container image and the content of the local folder, throw an error with the message "No diff found between index and local content to update."    
-
-
-#### Creating new indexes using the config files from an existing index
-
-A new sub-command `create` will be introduced under `opm index`, that will take a folder containing json/yaml representation of packages, and a container image tag as input. The sub-command will create a new index container, walk the tree of files to find the json representations and store them in the container. 
-
-```bash
+$ opm index build --configs=my-index --tag=docker.io/some-namespace/my-index:latest
 $ tree community-operators 
 community-operators
 ├── amqstreams.json
 └── etcd.json
-$ opm index create --from=community-operators --tag=docker.io/some-namespace/community-operators
-```   
+$ opm index build --from=community-operators --tag=docker.io/some-namespace/community-operators
+```
+
+> Note: The `build` command should also validate the files inside the folder given as input to the command to ensure they are valid json representation of packages (and not random files with random content, which could be potential security risks) before building the index image.      
+
+The `build` command will also have a `--generate` flag that can be used to generate the Dockerfile that can be used to build the index image instead of using `opm index build` to generate the image directly. 
 
 #### Validating a package inside the index
 
@@ -934,13 +924,13 @@ ENTRYPOINT ["/bin/opm"]
 CMD ["registry", "serve", "--config", "config.json"]
 ```
 
-To migrate existing index images built with the old configuration, all existing `opm index` commands that alter the index (i,e `opm index add --from-index`, `opm index prune`, `opm index prune-stranded` and `opm index rm`) will be enhanced to first let the corresponding operation through, and then check if the sqllite database exists in the index. If it does, the sqllite database will be converted over to package representations instead, the sqllite database will be deleted, and the new altered image will be built using the new configuration. `prune`, `prune-stranded` and `rm` sub-commands under the `opm index` command will also be marked for deprecation. If these sub-commands are used on an index that has already been migrated over to package representations, the operations will still be supported on these indexes with package representations for the period of time these sub-commands are marked as deprecated, until they are removed.      
+To migrate existing index images built with the old configuration using `opm index` commands, all existing `opm index` commands that alter the index (i,e `opm index add --from-index`, `opm index prune`, `opm index prune-stranded` and `opm index rm`) will be enhanced to first let the corresponding operation through, and then check if the sqllite database exists in the index. If it does, the sqllite database will be converted over to package representations instead, the sqllite database will be deleted, and the new altered image will be built using the new configuration. `prune`, `prune-stranded` and `rm` sub-commands under the `opm index` command will also be marked for deprecation. If these sub-commands are used on an index that has already been migrated over to package representations, the operations will still be supported on these indexes with package representations for the period of time these sub-commands are marked as deprecated, until they are removed.      
  
-The `opm registry` command contains the same sub-commands as that of `opm index` (`add`, `prune`, `prune-stranded` and `rm`), but accepts a database file with the `--database` flag that it operators on (instead of a container image like the `opm index` command). A new flag `configs` will be introduced under `opm registry` that will accept a directory which contains the declarative representation of all the packages inside the index. All existing sub-commands of `opm registry` will be continued to be supported for performing operations on the declarative representations using the new `config` flag. The ability to perform `add`, `prune`, `prune-stranded` and `rm` using the `--database` flag will be removed. The only `opm registry` command that will continue to be supported using the `--database` flag is the `serve` command, which will also be marked for deprecation.     
+The `opm registry` command contains the same sub-commands as that of `opm index` (`add`, `prune`, `prune-stranded` and `rm`), but accepts a database file with the `--database` flag that it operators on (instead of a container image like the `opm index` command). A new flag `configs` will be introduced under `opm registry` that will accept a directory which contains the declarative representation of all the packages inside the index. All existing sub-commands of `opm registry` will be continued to be supported for performing operations on the declarative representations using the new `config` flag. The ability to perform `add`, `prune`, `prune-stranded`, `rm` and `serve` using the `--database` flag will be deprecated. 
 
 ## Test plan
 
-* New tests that test the behavior of the `add`, `update`, `create`, `validate` sub-commands for `opm index` will be added to `opm`. 
+* New tests that test the behavior of the `add`, `build`, `validate` sub-commands for `opm index` will be added to `opm`. 
 
 * Since the configs will be used to serve content of the index over the gRPC api instead of the sqllite database, passing of the existing portfolio of tests for the api endpoints listed above will serve as proof that the configs provide the same data as the sqllite database used to, once the switch is made to serve content with the configs. 
 
