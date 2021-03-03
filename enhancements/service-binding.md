@@ -7,7 +7,7 @@ reviewers:
 approvers:
   - TBD
 creation-date: 2020-03-19
-last-updated: 2019-05-08
+last-updated: 2021-03-03
 status: proposed
 ---
 
@@ -75,130 +75,120 @@ spec:
 
 ## Adding binding guidance to Services
 
-The Service Binding machinery respects binding-related guidance which backing service operators choose to 
-provide. 
+
+The Service Binding machinery respects binding-related guidance which backing service operators choose to provide. 
 
 
-### Operator Providing Metadata in CRD Annotations
+### Backing Service providing binding metadata
 
-In this method,
-the binding information is provided as annotations in the CRD of the operator
-that manages the backing service. The Service Binding Operator extracts the
-annotations to bind the application together with the backing service.
 
-For example, this is a *bind-able* operator's annotations in its CRD for a
-PostgreSQL database backing operator.
+If the backing service author has provided binding metadata in the corresponding CRD,
+then Service Binding acknowledges it and automatically creates a binding secret with
+the information relevant for binding.
+
+The backing service may provide binding information as
+* Metadata in the CRD as annotations
+* Metadata in the OLM bunde manifest file as Descriptors
+* Secret or ConfigMap
+
+If the backing service provides binding metadata, you may use the resource as is
+to express an intent to bind your workload with one or more service resources, by creating a `ServiceBinding`.
+
+### Backing Service not providing binding metadata
+
+
+If the backing service hasn't provided any binding metadata, the application author may annotate the Kubernetes resource representing the backing service such that the managed binding secret generated has the necessary binding information.
+
+As an application author, you have a couple of options to extract binding information
+from the backing service:
+
+* Decorate the backing service resource using annotations.
+* Define custom binding variables.
+
+In the following section, details of the above methods to make a backing service consumable for your application workload, is explained.
+
+### Annotate Service Resources
+
+
+The application author may consider specific elements of the backing service resource interesting for binding
+
+* A specific attribute in the `spec` section of the Kubernetes resource.
+* A specific attribute in the `status` section of the Kubernetes resource.
+* A specific attribute in the `data` section of the Kubernetes resource.
+* A specific attribute in a `Secret` referenced in the Kubernetes resource.
+* A specific attribute in a `ConfigMap` referenced in the Kubernetes resource.
+
+As an example, if the Cockroachdb authors do not provide any binding metadata in the CRD, you, as an application author may annotate the CR/kubernetes resource that manages the backing service ( cockroach DB ).
+
+The backing service could be represented as any one of the following:
+* Custom Resources.
+* Kubernetes Resources, such as `Ingress`, `ConfigMap` and `Secret`.
+* OpenShift Resources, such as `Routes`.
+
+A detailed list of implemented annotations could be found in the Service Binding Operator [User Guide](https://github.com/redhat-developer/service-binding-operator/blob/master/docs/User_Guide.md#binding-metadata-in-annotations).
+
+
+## Compose custom binding variables
+
+If the backing service doesn't expose binding metadata or the values exposed are not easily consumable, then an application author may compose custom binding variables using attributes in the Kubernetes resource representing the backing service.
+
+The *custom binding variables* feature enables application authors to request customized binding secrets using a combination of Go and jsonpath templating.
+
+Example, the backing service CR may expose the host, port and database user in separate variables, but the application may need to consume this information as a connection string.
+
+
+
+
 ``` yaml
----
-[...]
-kind: CustomResourceDefinition
-apiVersion: apiextensions.k8s.io/v1beta1
-metadata:
-  name: databases.postgresql.baiju.dev
-  annotations:
-    servicebinding.dev/username: "path={.status.data.dbConfiguration},objectType=ConfigMap"
-    servicebinding.dev/password: "path={.status.data.dbConfiguration},objectType=ConfigMap"
-    service.binding/uri: "path={.status.data.url}"
-spec:
-  group: postgresql.baiju.dev
-  version: v1alpha1
-```
-
-### Operator Providing Metadata in OLM
-
-This guidance enables operator providers to specify binding information an
-operator's OLM (Operator Lifecycle Manager) descriptor. The Service Binding
-Operator extracts to bind the application together with the backing service.
-The information may be specified in the "status" and/or "spec" section of the
-OLM in plaintext or as a reference to a Secret or a ConfigMap.
-
-For example, this is a *bind-able* operator OLM Descriptor for a
-PostgreSQL database backing operator.
-``` yaml
----
-[...]
-statusDescriptors:
-
-  description: Name of the Secret to hold the DB user and password
-    displayName: DB Password Credentials
-    path: dbCredentials
-    x-descriptors:
-      - urn:alm:descriptor:io.kubernetes:Secret
-      - servicebinding:user
-      - servicebinding:password
-
-  description: Database connection IP address
-    displayName: DB IP address
-    path: dbConnectionIP
-    x-descriptors:
-      - servicebinding
-```
-
-### User Providing Metadata in the CR or the Kubernetes resource
-
-```yaml
----
-[...]
-
-kind: Route
-apiVersion: route.openshift.io/v1
-metadata:
-  name: foo
-  namespace: bar
-  annotations:
-    service.binding/uri: "path={.spec.host}"
-spec:
-  host: example-sbose.apps.ci-ln-smyggvb-d5d6b.origin-ci-int-aws.dev.rhcloud.com
-  path: /
-  to:
-    kind: Service
-    name: example
-    weight: 100
-  port:
-    targetPort: 80
-  wildcardPolicy: None
-```
-
-A detailed guide to decorating backing services to make them binding friendly has been documented [here](https://github.com/application-stacks/service-binding-specification/blob/master/annotations.md).
-
-
-## Advanced Configuration
-
-### Custom Environment variables
-
-
-To make binding applications (e.g., legacy Java applications that depend on JDBC connectioon strings)  together with backing services more flexible, the Service Binding Operator supports the optional use of custom environment variables. To use custom environment variables, an application developer creates a ServiceBinding that looks like the one shown 
-
-```yaml
-apiVersion: service.binding/v1alpha1
+apiVersion: binding.operators.coreos.com/v1alpha1
 kind: ServiceBinding
-
 metadata:
-  name: binding-ecommerce
-  namespace: foo
-
+  name: multi-service-binding
+  namespace: service-binding-demo
 spec:
 
-  applications:
-  - resourceRef: payments-app
-    group: ""
+  application:
+    name: java-app
+    group: apps
     version: v1
     resource: deployments
 
-  services:
+ services:
   - group: postgresql.baiju.dev
     version: v1alpha1
     kind: Database
-    resourceRef: db-demo
+    name: db-demo   <--- Database service
+    id: postgresDB <--- Optional "id" field
+  - group: ibmcloud.ibm.com
+    version: v1alpha1
+    kind: Binding
+    name: mytranslator-binding <--- Translation service
+    id: translationService
 
-  dataMapping:
+  mappings:
+    ## From the database service
     - name: JDBC_URL
-      value: 'jdbc:postgresql://{{ .status.dbConnectionIP }}:{{ .status.dbConnectionPort }}/{{ .status.dbName }}'
+      value: 'jdbc:postgresql://{{ .postgresDB.status.dbConnectionIP }}:{{ .postgresDB.status.dbConnectionPort }}/{{ .postgresDB.status.dbName }}'
     - name: DB_USER
-      value: '{{ index .status.dbConfigMap "db.username" }}'
-    - name: DB_PASSWORD
-      value: '{{ index .status.dbConfigMap "db.password" }}'
+      value: '{{ .postgresDB.status.dbCredentials.user }}'
+
+    ## From the translator service
+    - name: LANGUAGE_TRANSLATOR_URL
+      value: '{{ index translationService.status.secretName "url" }}'
+    - name: LANGUAGE_TRANSLATOR_IAM_APIKEY
+      value: '{{ index translationService.status.secretName "apikey" }}'
+
+    ## From both the services!
+    - name: EXAMPLE_VARIABLE
+      value: '{{ .postgresDB.status.dbName }}{{ translationService.status.secretName}}'
+
+    ## Generate JSON.
+    - name: DB_JSON
+      value: {{ json .postgresDB.status }}
+
 ```
+
+This has been adopted in [IBM CodeEngine](https://cloud.ibm.com/docs/codeengine?topic=codeengine-kn-service-binding).
 
 ## Example
 
@@ -206,7 +196,7 @@ spec:
 
 The following is a summary of the [scenario](examples/knative_postgresql_customvar/README.md).
 
-  * Create a 'Service' which is this case is a Database
+  * Create a 'Service', which in this case is a Database
 
       ```yaml
       apiVersion: postgresql.baiju.dev/v1alpha1
@@ -222,7 +212,7 @@ The following is a summary of the [scenario](examples/knative_postgresql_customv
 
   * Deploy a `Knative` `Service` called `knative-app` 
 
-  * Create a binding
+  * Create a `ServiceBinding`
 
       ```
       apiVersion: service.binding/v1alpha1
@@ -236,13 +226,13 @@ The following is a summary of the [scenario](examples/knative_postgresql_customv
           - group: serving.knative.dev
             version: v1beta1
             resource: services
-            resourceRef: knative-app
+            name: knative-app
         services:
           - group: postgresql.baiju.dev
             version: v1alpha1
             kind: Database
-            resourceRef: db-demo
-        dataMapping:
+            name: db-demo
+        mapping:
           - name: JDBC_URL
             value: 'jdbc:postgresql://{{ .status.dbConnectionIP }}:{{ .status.dbConnectionPort }}/{{ .status.dbName }}'
           - name: DB_USER
@@ -257,19 +247,13 @@ The following is a summary of the [scenario](examples/knative_postgresql_customv
 ## Permissions
 
 
-### Read and Watch Resources which provide binding metadata
-* CSVs
-* CRDs
-* All CRs, which is effecively implies all resources! This is because we don't know the Group and Resource of CRs in advance.
-
 ### Read Resources which contain binding information
 * ConfigMaps 
-* Secrets
-* Routes
+* Secrets 
 * Services
-* All CRs, which is effecively implies all resources! This is because we don't know the Group and Resource of CRs in advance.
+* Custom resource types which may participate in binding.
 
-### Read and Update popular podSpec-based workloads
+### Read and Update popular podSpec-based workloads.
 * deployments
 * deploymentconfigs
 * daemonsets
@@ -277,11 +261,11 @@ The following is a summary of the [scenario](examples/knative_postgresql_customv
 * statefulsets
 * services ( Knative )
 
-We may want to disallow daemonsets, replicasets and statefulsets as they aren't very commonly used without deployments/deploymentconfigs.
+We may want to disallow daemonsets, replicasets and statefulsets out of the box as they aren't very commonly used without deployments/deploymentconfigs.
 
 ## Security
 
-#### Why
+### Why
 Assuming the user gets to create a ServiceBinding CR, how do we avoid letting the user execute an escalation of privilege.
 
 * John doesn't have view on Secrets.
@@ -290,7 +274,7 @@ Assuming the user gets to create a ServiceBinding CR, how do we avoid letting th
 * If John has the privileges to print the environment variables in the Deployment's container, John gets access to secret's contents which were otherwise not visible to John.( aka escalation of privilege)
 * If John was otherwise not allowed to modify a Deployment, John gets to do that as well (aka escalation of privilege)
 
-#### How
+### How
 To avoid an escalation of privilege, we plan to implement a validating webhook to verify the following:
 
 * Does John have reasonable access to the backing services ( and it's sub-resources )?
