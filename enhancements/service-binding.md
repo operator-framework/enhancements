@@ -125,9 +125,6 @@ The backing service could be represented as any one of the following:
 * Kubernetes Resources, such as `Ingress`, `ConfigMap` and `Secret`.
 * OpenShift Resources, such as `Routes`.
 
-A detailed list of implemented annotations could be found in the Service Binding Operator [User Guide](https://github.com/redhat-developer/service-binding-operator/blob/master/docs/User_Guide.md#binding-metadata-in-annotations).
-
-
 ## Compose custom binding variables
 
 If the backing service doesn't expose binding metadata or the values exposed are not easily consumable, then an application author may compose custom binding variables using attributes in the Kubernetes resource representing the backing service.
