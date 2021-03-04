@@ -873,12 +873,12 @@ Since the new `opm` binary will create configs on `add`, the new images will be 
 
 ```Dockerfile
 ENTRYPOINT ["/bin/opm"]
-CMD ["registry", "serve", "--config", "config.json"]
+CMD ["registry", "serve", "config.json"]
 ```
 
 To migrate existing index images built with the old configuration, all existing `opm index` commands that alter the index (i,e `opm index add --from-index`, `opm index prune`, `opm index prune-stranded` and `opm index rm`) will be enhanced to first let the corresponding operation through, and then check if the sqllite database exists in the index. If it does, the sqllite database will be converted over to package representations instead, the sqllite database will be deleted, and the new altered image will be built using the new configuration. `prune`, `prune-stranded` and `rm` sub-commands under the `opm index` command will also be marked for deprecation. If these sub-commands are used on an index that has already been migrated over to package representations, the operations will still be supported on these indexes with package representations for the period of time these sub-commands are marked as deprecated, until they are removed.      
  
-The `opm registry` command contains the same sub-commands as that of `opm index` (`add`, `prune`, `prune-stranded` and `rm`), but accepts a database file with the `--database` flag that it operators on (instead of a container image like the `opm index` command). A new flag `configs` will be introduced under `opm registry` that will accept a directory which contains the declarative representation of all the packages inside the index. All existing sub-commands of `opm registry` will be continued to be supported for performing operations on the declarative representations using the new `config` flag. The ability to perform `add`, `prune`, `prune-stranded` and `rm` using the `--database` flag will be removed. The only `opm registry` command that will continue to be supported using the `--database` flag is the `serve` command, which will also be marked for deprecation.     
+The `opm registry` command contains the same sub-commands as that of `opm index` (`add`, `prune`, `prune-stranded` and `rm`), but accepts a database file with the `--database` flag that it operators on (instead of a container image like the `opm index` command). The `opm registry` commands that accept a database flag will deprecate the `--database` flag and expect a positional argument that contains the path to the config directory or a specific config file. All existing sub-commands of `opm registry` will be continued to be supported for performing operations on the declarative config representation. The ability to perform `add`, `prune`, `prune-stranded` and `rm` using the `--database` flag will be removed. The only `opm registry` command that will continue to be supported for databases is the `serve` command. Using databases with `serve` will be deprecated.
 
 ## Test plan
 
