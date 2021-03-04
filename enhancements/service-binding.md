@@ -24,14 +24,15 @@ The Service Binding Controller enables applications to use external services by 
 
 Note that in addition to the initial sharing of binding information, the binding is also “managed” by the Service Binding Operator. This statement means that, if credentials or URLs undergo modification by the backing service operator, those changes are automatically reflected in the application.
 
+This enhancement proposal provides a background on the current state of the implementation of the [Service Binding Operator project](https://github.com/redhat-developer/service-binding-operator/), makes a case for onboarding the project into the Operator Framework organization and eventually have the controllers shipped as part of OLM.
+
 
 
 ## Motivation
 
-
 Connecting applications to the services that support them—for example, establishing the exchange of credentials between a Java application and a database that it requires—is referred to as binding. The configuration and maintenance of this binding together of applications and backing services can be a tedious and inefficient process. Manually editing YAML files to define binding information is error-prone and can introduce difficult-to-debug failures.
 
-The goal of the Service Binding Operator is to solve this binding problem. By making it easier for application developers to bind applications with needed backing services, the Service Binding Operator also assists operator providers in promoting and expanding the adoption of their operators
+The goal of the Service Binding Operator is to solve this binding problem. By making it easier for application developers to bind applications with needed backing services, the Service Binding Operator also assists operator providers in promoting and expanding the adoption of their operators.
 
 
 ## The ServiceBinding custom resource
@@ -88,7 +89,7 @@ the information relevant for binding.
 
 The backing service may provide binding information as
 * Metadata in the CRD as annotations
-* Metadata in the OLM bunde manifest file as Descriptors
+* Metadata in the OLM bundle manifest file as Descriptors
 * Secret or ConfigMap
 
 If the backing service provides binding metadata, you may use the resource as is
@@ -277,6 +278,14 @@ To avoid an escalation of privilege, we plan to implement a validating webhook t
 * Does John have reasonable access to the backing services ( and it's sub-resources )?
 * Does John have reasonable access to the application ?
 * A validating webhook "validates" conditions before an object is accepted. In this case, subject access reviews (SARs) could be made use of, to validate user privileges.
+
+## Organization & Delivery
+
+* It is thereby proposed that the project currently hosted at https://github.com/redhat-developer/service-binding-operator/ be onboarded into operator-framework/operator-lifecycle-manager organization.
+* The project would be governed by the processes and guidelines of the Operator Framework community.
+* The controller and associated resources as specified in the following section would be a part of the OLM installation based on an evaluation of the maturity of the project. Details on the implementation of the same is not in scope of this enhancement proposal.
+* The Service Binding project would continue shipping standalone releases.
+
 
 ## Bill of materials
 
