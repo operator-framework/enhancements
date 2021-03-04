@@ -281,10 +281,10 @@ To avoid an escalation of privilege, we plan to implement a validating webhook t
 
 ## Organization & Delivery
 
-* It is thereby proposed that the project currently hosted at https://github.com/redhat-developer/service-binding-operator/ be onboarded into operator-framework/operator-lifecycle-manager organization.
-* The project would be governed by the processes and guidelines of the Operator Framework community.
-* The controller and associated resources as specified in the following section would be a part of the OLM installation based on an evaluation of the maturity of the project. Details on the implementation of the same is not in scope of this enhancement proposal.
-* The Service Binding project would continue shipping standalone releases.
+1. It is thereby proposed that the project currently hosted at [redhat-developer/service-binding-operator](https://github.com/redhat-developer/service-binding-operator/) be onboarded into [operator-framework/operator-lifecycle-manager](https://github.com) organization.
+2. The project would be governed by the processes Operator Framework community.
+3. The controller and associated resources as specified in the following section would be shipped with OLM. Details on the implementation of the same is not in scope of this enhancement proposal.
+4. The Service Binding project would continue shipping standalone releases.
 
 
 ## Bill of materials
