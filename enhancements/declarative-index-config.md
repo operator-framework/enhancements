@@ -597,79 +597,77 @@ $ opm index add --bundles quay.io/operatorhubio/etcd:v0.9.0 --mode replaces --ta
 $ docker push docker.io/my-namespace/community-operators:latest
 $ opm index inspect --image=docker.io/my-namespace/community-operators:latest --output=json
 $ cat community-operators/etcd.json
-[
-    {
-        "schema": "olm.package",
-        "name": "etcd",
-        "defaultChannel": "singlenamespace-alpha",
-        "icon": {
-            "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
-            "mediatype":"image/png"
+{
+    "schema": "olm.package",
+    "name": "etcd",
+    "defaultChannel": "singlenamespace-alpha",
+    "icon": {
+        "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
+        "mediatype":"image/png"
+    },
+    "channels": ["alpha", "singlenamespace-alpha"],
+    "description": "A message about etcd operator, a description of channels"
+}
+{
+    "schema": "olm.bundle", 
+    "name": "etcdoperator-community.v0.6.1",
+    "package": "etcd",
+    "image": "quay.io/operatorhubio/etcd:v0.6.1",
+    "version": "0.6.1",
+    "properties":[
+        {
+            "name":"olm.gvk",
+            "type": "provided",
+            "values":{
+                "group": "etcd.database.coreos.com", 
+                "kind": "EtcdCluster", 
+                "version": "v1beta2"
+            }
         },
-        "channels": ["alpha", "singlenamespace-alpha"],
-        "description": "A message about etcd operator, a description of channels"
-    },
-    {
-        "schema": "olm.bundle", 
-        "name": "etcdoperator-community.v0.6.1",
-        "package": "etcd",
-        "image": "quay.io/operatorhubio/etcd:v0.6.1",
-        "version": "0.6.1",
-        "properties":[
-            {
-                "name":"olm.gvk",
-                "type": "provided",
-                "values":{
-                    "group": "etcd.database.coreos.com", 
-                    "kind": "EtcdCluster", 
-                    "version": "v1beta2"
-                }
-            },
-            {
-                "name": "olm.channel",
-                "values": {
-                    "name": "alpha"
-                }
+        {
+            "name": "olm.channel",
+            "values": {
+                "name": "alpha"
             }
-        ],
-        "relatedImages": [
-            {
-            "name": "etcdv0.6.1",
-            "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
+        }
+    ],
+    "relatedImages": [
+        {
+        "name": "etcdv0.6.1",
+        "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
+        }
+    ]
+}
+{
+    "schema": "olm.bundle",
+    "name": "etcdoperator.v0.9.0",
+    "package": "etcd",
+    "image": "quay.io/operatorhubio/etcd:v0.9.0",
+    "version": "0.9.0",
+    "properties":[
+        {
+            "name":"olm.gvk",
+            "type": "provided",
+            "values":{
+                "group": "etcd.database.coreos.com", 
+                "kind": "EtcdBackup", 
+                "version": "v1beta2"
             }
-        ]
-    },
-    {
-        "schema": "olm.bundle",
-        "name": "etcdoperator.v0.9.0",
-        "package": "etcd",
-        "image": "quay.io/operatorhubio/etcd:v0.9.0",
-        "version": "0.9.0",
-        "properties":[
-            {
-                "name":"olm.gvk",
-                "type": "provided",
-                "values":{
-                    "group": "etcd.database.coreos.com", 
-                    "kind": "EtcdBackup", 
-                    "version": "v1beta2"
-                }
-            },
-            {
-                "name": "olm.channel",
-                "values": {
-                    "name": "singlenamespace-alpha"
-                }
+        },
+        {
+            "name": "olm.channel",
+            "values": {
+                "name": "singlenamespace-alpha"
             }
-        ],
-        "relatedImages" : [
-            {
-                "name": "etcdv0.9.0",
-                "image": "quay.io/coreos/etcd-operator@sha256:db563baa8194fcfe39d1df744ed70024b0f1f9e9b55b5923c2f3a413c44dc6b8"
-            }
-        ]
-    }
-]
+        }
+    ],
+    "relatedImages" : [
+        {
+            "name": "etcdv0.9.0",
+            "image": "quay.io/coreos/etcd-operator@sha256:db563baa8194fcfe39d1df744ed70024b0f1f9e9b55b5923c2f3a413c44dc6b8"
+        }
+    ]
+}
 ```
 
 The `opm index add` command will also be enhanced to create `olm.bundle` json blobs for bundles passed onto the command along with a package config file, and append them to the config file.
