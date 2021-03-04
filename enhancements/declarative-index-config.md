@@ -90,9 +90,9 @@ $ cat etcd.json
     },
     "channels": ["alpha", "singlenamespace-alpha", "clusterwide-alpha"],
     "description": "A message about etcd operator, a description of channels"
-},
+}
 {
-    "schema": "olm.bundle", 
+    "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
@@ -100,6 +100,7 @@ $ cat etcd.json
     "properties":[
         {
             "name": "olm.package",
+            "type": "provided",
             "values": {
                 "packageName": "etcd",
                 "version": "0.6.1"
@@ -109,14 +110,16 @@ $ cat etcd.json
             "name":"olm.gvk",
             "type": "provided",
             "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdCluster", 
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
                 "version": "v1beta2"
             }
         },
         {
             "name": "olm.channel",
-            "value": "alpha"
+            "values": {
+                "name": "alpha"
+            }
         }
     ],
     "relatedImages": [
@@ -125,7 +128,7 @@ $ cat etcd.json
             "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
@@ -135,27 +138,40 @@ $ cat etcd.json
     "properties":[
         {
             "name": "olm.package",
+            "type": "provided",
             "values": {
                 "packageName": "etcd",
                 "version": "0.9.0"
             }
         },
         {
+            "name": "olm.package",
+            "type": "required",
+            "values": {
+                "packageName": "other-operator",
+                "version": ">=1.2.0 <2.0.0-0"
+            }
+        },
+        {
             "name":"olm.gvk",
             "type": "provided",
             "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdBackup", 
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
                 "version": "v1beta2"
             }
         },
         {
             "name": "olm.channel",
-            "value": "singlenamespace-alpha"
-        }
+            "values": {
+                "name": "singlenamespace-alpha"
+            }
+        },
         {
             "name": "olm.channel",
-            "value": "clusterwide-alpha"
+            "values": {
+                "name": "clusterwide-alpha"
+            }
         }
     ],
     "relatedImages" : [
@@ -164,7 +180,7 @@ $ cat etcd.json
             "image": "quay.io/coreos/etcd-operator@sha256:db563baa8194fcfe39d1df744ed70024b0f1f9e9b55b5923c2f3a413c44dc6b8"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.2",
@@ -174,6 +190,7 @@ $ cat etcd.json
     "properties":[
         {
             "name": "olm.package",
+            "type": "provided",
             "values": {
                 "packageName": "etcd",
                 "version": "0.9.2"
@@ -183,15 +200,17 @@ $ cat etcd.json
             "name":"olm.gvk",
             "type": "provided",
             "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdRestore", 
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdRestore",
                 "version": "v1beta2"
             }
         },
         {
             "name": "olm.channel",
-            "value": "singlenamespace-alpha",
-            "replaces": "etcdoperator.v0.9.0"
+            "values": {
+                "name": "singlenamespace-alpha",
+                "replaces": "etcdoperator.v0.9.0"
+            }
         }
     ],
     "relatedImages":[
@@ -200,16 +219,17 @@ $ cat etcd.json
             "image": "quay.io/coreos/etcd-operator@sha256:c0301e4686c3ed4206e370b42de5a3bd2229b9fb4906cf85f3f30650424abec2"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
-    "name": "etcdoperator.v0.9.2-clusterwide", 
+    "name": "etcdoperator.v0.9.2-clusterwide",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.2-clusterwide",
     "version": "0.9.2-clusterwide",
     "properties":[
         {
             "name": "olm.package",
+            "type": "provided",
             "values": {
                 "packageName": "etcd",
                 "version": "0.9.2-clusterwide"
@@ -219,14 +239,14 @@ $ cat etcd.json
             "name":"olm.gvk",
             "type": "provided",
             "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdBackup", 
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
                 "version": "v1beta2"
             }
         },
         {
             "name": "skipRange",
-            "value": ">=0.9.0 <0.9.2"
+            "value": ">=0.9.0 <0.9.2-0"
         },
         {
             "name": "skips",
@@ -234,9 +254,11 @@ $ cat etcd.json
         },
         {
             "name": "olm.channel",
-            "value": "clusterwide-alpha",
-            "replaces": "etcdoperator.v0.9.0"
-        }  
+            "values": {
+                "name":"clusterwide-alpha",
+                "replaces": "etcdoperator.v0.9.0"
+            }
+        }
     ],
     "relatedImages":[
         {
@@ -244,7 +266,7 @@ $ cat etcd.json
             "image":"quay.io/coreos/etcd-operator@sha256:c0301e4686c3ed4206e370b42de5a3bd2229b9fb4906cf85f3f30650424abec2"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
     "name" : "etcdoperator.v0.9.4",
@@ -254,6 +276,7 @@ $ cat etcd.json
     "properties":[
         {
             "name": "olm.package",
+            "type": "provided",
             "values": {
                 "packageName": "etcd",
                 "version": "0.9.2-clusterwide"
@@ -263,8 +286,8 @@ $ cat etcd.json
             "name":"olm.gvk",
             "type": "provided",
             "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdBackup", 
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
                 "version": "v1beta2"
             }
         },
@@ -272,15 +295,17 @@ $ cat etcd.json
             "name":"olm.gvk",
             "type": "required",
             "values":{
-                "group": "testapi.coreos.com", 
-                "kind": "testapi", 
+                "group": "testapi.coreos.com",
+                "kind": "Testapi",
                 "version": "v1"
             }
         },
         {
             "name": "olm.channel",
-            "value": "singlenamespace-alpha",
-            "replaces": "etcdopertor.v0.9.2"
+            "values": {
+                "name": "singlenamespace-alpha",
+                "replaces": "etcdoperator.v0.9.2"
+            }
         }
     ],
     "relatedImages":[
@@ -289,7 +314,7 @@ $ cat etcd.json
             "image": "quay.io/coreos/etcd-operator@sha256:66a37fd61a06a43969854ee6d3e21087a98b93838e284a6086b13917f96b0d9b"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.4-clusterwide",
@@ -299,6 +324,7 @@ $ cat etcd.json
     "properties":[
         {
             "name": "olm.package",
+            "type": "provided",
             "values": {
                 "packageName": "etcd",
                 "version": "0.9.4-clusterwide"
@@ -308,15 +334,17 @@ $ cat etcd.json
             "name":"olm.gvk",
             "type": "provided",
             "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdBackup", 
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
                 "version": "v1beta2"
             }
         },
         {
             "name": "olm.channel",
-            "value": "clusterwide-alpha",
-            "replaces": "etcdoperator.v0.9.2-clusterwide"
+            "values": {
+                "name": "clusterwide-alpha",
+                "replaces": "etcdoperator.v0.9.2-clusterwide"
+            }
         }
     ],
     "relatedImages":[
@@ -350,7 +378,7 @@ $ cat community-operators/etcd.json
     },
     "channels": ["alpha", "singlenamespace-alpha", "clusterwide-alpha"],
     "description": "A message about etcd operator, a description of channels"
-},
+}
 {
     "schema": "olm.bundle", 
     "name": "etcdoperator-community.v0.6.1",
@@ -360,6 +388,7 @@ $ cat community-operators/etcd.json
     "properties":[
         {
             "name": "olm.package",
+            "type": "provided",
             "values": {
                 "packageName": "etcd",
                 "version": "0.6.1"
@@ -375,8 +404,10 @@ $ cat community-operators/etcd.json
             }
         },
         {
-        "name": "olm.channel",
-        "value": "alpha"
+            "name": "olm.channel",
+            "values": {
+                "name": "alpha"
+            }
         }
     ],
     "relatedImages": [
@@ -385,7 +416,7 @@ $ cat community-operators/etcd.json
             "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
@@ -395,6 +426,7 @@ $ cat community-operators/etcd.json
     "properties":[
         {
             "name": "olm.package",
+            "type": "provided",
             "values": {
                 "packageName": "etcd",
                 "version": "0.9.0"
@@ -411,16 +443,22 @@ $ cat community-operators/etcd.json
         },
         {
             "name": "olm.channel",
-            "value": "alpha",
-            "replaces":"etcdoperator-community.v0.6.1"
+            "values": {
+                "name": "alpha",
+                "replaces":"etcdoperator-community.v0.6.1"
+            }
         },
         {
             "name": "olm.channel",
-            "value": "singlenamespace-alpha"
+            "values": {
+                "name": "singlenamespace-alpha"
+            }
         },
         {
             "name": "olm.channel",
-            "value": "clusterwide-alpha"
+            "values": {
+                "name": "clusterwide-alpha"
+            }
         }
     ],
     "relatedImages" : [
@@ -429,7 +467,7 @@ $ cat community-operators/etcd.json
             "image": "quay.io/coreos/etcd-operator@sha256:db563baa8194fcfe39d1df744ed70024b0f1f9e9b55b5923c2f3a413c44dc6b8"
         }
     ]
-},
+}
 .
 .
 .
@@ -563,7 +601,7 @@ etcdoperator.v0.9.4-clusterwide  quay.io/operatorhubio/etcd:v0.9.4-clusterwide  
 etcdoperator.v0.9.4              quay.io/operatorhubio/etcd:v0.9.4              0.9.4                                etcdoperator.v0.9.2   
 ```
 
-This information will be captured in the `properties.<"olm.channel">.replaces`, `properties.skips` and `properties.skipRange` of the `olm.bundle` blob. In the `properties.<"olm.channel">` object for each channel, the bundle that replaces a previous bundle is captured in the `replaces` field. An upgrade edge in a channel is represented by: bundle.properties<"olm.channel">.replaces <- bundle name. 
+This information will be captured in the `properties.<"olm.channel">.values.replaces`, `properties.skips` and `properties.skipRange` of the `olm.bundle` blob. In the `properties.<"olm.channel">` object for each channel, the bundle that replaces a previous bundle is captured in the `values.replaces` field. An upgrade edge in a channel is represented by: `bundle.properties.<"olm.channel">.values.replaces` <- `bundle.name`.
 
 #### Creating the json/yaml config file to represent a package
 
@@ -597,6 +635,7 @@ $ cat community-operators/etcd.json
         "properties":[
             {
                 "name": "olm.package",
+                "type": "provided",
                 "values": {
                     "packageName": "etcd",
                     "version": "0.6.1"
@@ -613,7 +652,9 @@ $ cat community-operators/etcd.json
             }, 
             {
                 "name": "olm.channel",
-                "value": "alpha",
+                "values": {
+                    "name": "alpha"
+                }
             }
         ],
         "relatedImages": [
@@ -649,6 +690,7 @@ $ cat community-operators/etcd.json
         "properties":[
             {
                 "name": "olm.package",
+                "type": "provided",
                 "values": {
                     "packageName": "etcd",
                     "version": "0.6.1"
@@ -665,7 +707,9 @@ $ cat community-operators/etcd.json
             },
             {
                 "name": "olm.channel",
-                "value": "alpha",
+                "values": {
+                    "name": "alpha"
+                }
             }
         ],
         "relatedImages": [
@@ -684,6 +728,7 @@ $ cat community-operators/etcd.json
         "properties":[
             {
                 "name": "olm.package",
+                "type": "provided",
                 "values": {
                     "packageName": "etcd",
                     "version": "0.9.0"
@@ -698,9 +743,11 @@ $ cat community-operators/etcd.json
                     "version": "v1beta2"
                 }
             },
-             {
+            {
                 "name": "olm.channel",
-                "value": "singlenamespace-alpha",
+                "values": {
+                    "name": "singlenamespace-alpha"
+                }
             }
         ],
         "relatedImages" : [
@@ -727,7 +774,7 @@ $ cat community-operators/etcd.json
     },
     "channels": ["alpha"],
     "description": "A message about etcd operator, a description of channels"
-},
+}
 {
     "schema": "olm.bundle", 
     "name": "etcdoperator-community.v0.6.1",
@@ -737,6 +784,7 @@ $ cat community-operators/etcd.json
     "properties":[
         {
             "name": "olm.package",
+            "type": "provided",
             "values": {
                 "packageName": "etcd",
                 "version": "0.6.1"
@@ -753,7 +801,9 @@ $ cat community-operators/etcd.json
         },
         {
             "name":"olm.channel",
-            "value": "alpha"
+            "values": {
+                "name": "alpha"
+            }
         }
     ],
     "relatedImages": [
@@ -775,7 +825,7 @@ $ cat community-operators/etcd.json
     },
     "channels": ["alpha", "singlenamespace-alpha"],
     "description": "A message about etcd operator, a description of channels"
-},
+}
 {
     "schema": "olm.bundle", 
     "name": "etcdoperator-community.v0.6.1",
@@ -785,6 +835,7 @@ $ cat community-operators/etcd.json
     "properties":[
         {
             "name": "olm.package",
+            "type": "provided",
             "values": {
                 "packageName": "etcd",
                 "version": "0.6.1"
@@ -801,7 +852,9 @@ $ cat community-operators/etcd.json
         },
         {
             "name":"olm.channel",
-            "value": "alpha"
+            "values": {
+                "name": "alpha"
+            }
         }
     ],
     "relatedImages": [
@@ -810,7 +863,7 @@ $ cat community-operators/etcd.json
         "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
@@ -820,6 +873,7 @@ $ cat community-operators/etcd.json
     "properties":[
         {
             "name": "olm.package",
+            "type": "provided",
             "values": {
                 "packageName": "etcd",
                 "version": "0.9.0"
@@ -836,7 +890,9 @@ $ cat community-operators/etcd.json
         },
         {
             "name":"olm.channel",
-            "value": "singlenamespace-alpha"
+            "values": {
+                "name": "singlenamespace-alpha"
+            }
         }
     ],
     "relatedImages" : [
