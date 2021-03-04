@@ -3,7 +3,7 @@ title: service-binding
 authors:
   - "@sbose78"
 reviewers:
-  - TBD
+  - "@bparees"
 approvers:
   - TBD
 creation-date: 2020-03-19
@@ -89,7 +89,7 @@ the information relevant for binding.
 
 The backing service may provide binding information as
 * Metadata in the CRD as annotations
-* Metadata in the OLM bundle manifest file as Descriptors
+* Metadata in the OLM bundle manifest file as CSV Descriptors
 * Secret or ConfigMap
 
 If the backing service provides binding metadata, you may use the resource as is
@@ -279,12 +279,17 @@ To avoid an escalation of privilege, we plan to implement a validating webhook t
 * Does John have reasonable access to the application ?
 * A validating webhook "validates" conditions before an object is accepted. In this case, subject access reviews (SARs) could be made use of, to validate user privileges.
 
-## Organization & Delivery
+## Organization
 
-1. It is thereby proposed that the project currently hosted at [redhat-developer/service-binding-operator](https://github.com/redhat-developer/service-binding-operator/) be onboarded into [operator-framework/operator-lifecycle-manager](https://github.com) organization.
-2. The project would be governed by the processes Operator Framework community.
-3. The controller and associated resources as specified in the following section would be shipped with OLM. Details on the implementation of the same is not in scope of this enhancement proposal.
-4. The Service Binding project would continue shipping standalone releases.
+* It is hereby proposed that the project currently hosted at [redhat-developer/service-binding-operator](https://github.com/redhat-developer/service-binding-operator/) be onboarded into [operator-framework/operator-lifecycle-manager](https://github.com) organization.
+
+* The project would be governed by the processes of the Operator Framework community.
+
+
+## Delivery
+
+* The controller and associated resources as specified in the following section would be shipped with OLM. Details on the implementation of the same is not in scope of this enhancement proposal.
+* The Service Binding project would continue shipping standalone releases.
 
 
 ## Bill of materials
