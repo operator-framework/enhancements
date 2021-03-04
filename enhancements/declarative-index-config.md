@@ -99,14 +99,6 @@ $ cat etcd.json
     "version": "0.6.1",
     "properties":[
         {
-            "name": "olm.package",
-            "type": "provided",
-            "values": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "name":"olm.gvk",
             "type": "provided",
             "values":{
@@ -136,14 +128,6 @@ $ cat etcd.json
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
     "version": "0.9.0",
     "properties":[
-        {
-            "name": "olm.package",
-            "type": "provided",
-            "values": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
         {
             "name": "olm.package",
             "type": "required",
@@ -189,14 +173,6 @@ $ cat etcd.json
     "version": "0.9.2",
     "properties":[
         {
-            "name": "olm.package",
-            "type": "provided",
-            "values": {
-                "packageName": "etcd",
-                "version": "0.9.2"
-            }
-        },
-        {
             "name":"olm.gvk",
             "type": "provided",
             "values":{
@@ -227,14 +203,6 @@ $ cat etcd.json
     "image": "quay.io/operatorhubio/etcd:v0.9.2-clusterwide",
     "version": "0.9.2-clusterwide",
     "properties":[
-        {
-            "name": "olm.package",
-            "type": "provided",
-            "values": {
-                "packageName": "etcd",
-                "version": "0.9.2-clusterwide"
-            }
-        },
         {
             "name":"olm.gvk",
             "type": "provided",
@@ -275,14 +243,6 @@ $ cat etcd.json
     "version": "0.9.4",
     "properties":[
         {
-            "name": "olm.package",
-            "type": "provided",
-            "values": {
-                "packageName": "etcd",
-                "version": "0.9.2-clusterwide"
-            }
-        },
-        {
             "name":"olm.gvk",
             "type": "provided",
             "values":{
@@ -322,14 +282,6 @@ $ cat etcd.json
     "image": "quay.io/operatorhubio/etcd:v0.9.4-clusterwide",
     "version": "0.9.4-clusterwide",
     "properties":[
-        {
-            "name": "olm.package",
-            "type": "provided",
-            "values": {
-                "packageName": "etcd",
-                "version": "0.9.4-clusterwide"
-            }
-        },
         {
             "name":"olm.gvk",
             "type": "provided",
@@ -387,14 +339,6 @@ $ cat community-operators/etcd.json
     "version": "0.6.1",
     "properties":[
         {
-            "name": "olm.package",
-            "type": "provided",
-            "values": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "name":"olm.gvk",
             "type": "provided",
             "values":{
@@ -424,14 +368,6 @@ $ cat community-operators/etcd.json
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
     "version": "0.9.0",
     "properties":[
-        {
-            "name": "olm.package",
-            "type": "provided",
-            "values": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
         {
             "name":"olm.gvk",
             "type": "provided",
@@ -634,14 +570,6 @@ $ cat community-operators/etcd.json
         "version": "0.6.1",
         "properties":[
             {
-                "name": "olm.package",
-                "type": "provided",
-                "values": {
-                    "packageName": "etcd",
-                    "version": "0.6.1"
-                }
-            },
-            {
                 "name":"olm.gvk",
                 "type": "provided",
                 "values":{
@@ -689,14 +617,6 @@ $ cat community-operators/etcd.json
         "version": "0.6.1",
         "properties":[
             {
-                "name": "olm.package",
-                "type": "provided",
-                "values": {
-                    "packageName": "etcd",
-                    "version": "0.6.1"
-                }
-            },
-            {
                 "name":"olm.gvk",
                 "type": "provided",
                 "values":{
@@ -726,14 +646,6 @@ $ cat community-operators/etcd.json
         "image": "quay.io/operatorhubio/etcd:v0.9.0",
         "version": "0.9.0",
         "properties":[
-            {
-                "name": "olm.package",
-                "type": "provided",
-                "values": {
-                    "packageName": "etcd",
-                    "version": "0.9.0"
-                }
-            },
             {
                 "name":"olm.gvk",
                 "type": "provided",
@@ -783,14 +695,6 @@ $ cat community-operators/etcd.json
     "version": "0.6.1",
     "properties":[
         {
-            "name": "olm.package",
-            "type": "provided",
-            "values": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "name":"olm.gvk",
             "type": "provided",
             "values":{
@@ -834,14 +738,6 @@ $ cat community-operators/etcd.json
     "version": "0.6.1",
     "properties":[
         {
-            "name": "olm.package",
-            "type": "provided",
-            "values": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "name":"olm.gvk",
             "type": "provided",
             "values":{
@@ -871,14 +767,6 @@ $ cat community-operators/etcd.json
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
     "version": "0.9.0",
     "properties":[
-        {
-            "name": "olm.package",
-            "type": "provided",
-            "values": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
         {
             "name":"olm.gvk",
             "type": "provided",
