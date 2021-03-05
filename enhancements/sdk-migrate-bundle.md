@@ -22,9 +22,9 @@ superseded-by:
 ## Release Signoff Checklist
 
 - [X] Enhancement is `implementable`
-- [ ] Design details are appropriately documented from clear requirements
-- [ ] Test plan is defined
-- [ ] Graduation criteria for dev preview, tech preview, GA
+- [X] Design details are appropriately documented from clear requirements
+- [X] Test plan is defined
+- [X] Graduation criteria for dev preview, tech preview, GA
 
 ## Open Questions [optional]
 
@@ -34,6 +34,7 @@ superseded-by:
    - if we do build images, we should add image builder flag
 1. What will happen to the existing command in SDK for deploying an operator
    packagemanifests using OLM? Do we still want to support that and will it stay intact?
+   - we will deprecate the `run packagemanifests` command and remove in SDK 2.0
 
 ## Summary
 
@@ -87,59 +88,13 @@ More information about the different format can be found at the URLs below:
 The Operator SDK will traverse the given packagemanifest directory and for each
 of the versions create a new bundle.
 
-The Operator SDK will make use of the API available from the Operator
-Registry's `opm` command. The command is pretty well segmented that we could
-easily reuse the `GenerateFunc` function to create the `bundle` as a
-directory. There is also support for building the bundle as an image which
-we could do using the `BuildBundleImage` function.
-
-#### Generating bundle on disk
-
-The `GenerateFunc` takes in the following arguments:
-
-- directory string - local directory where the manifests and metadata are
-  located
-- outputDir string - where manifests and metadata are copied
-- packageName string - the name of the package that bundle image belongs to
-- channels string - the list of channels that bundle image belongs to
-- channelDefault string - the default channel for the bundle image
-
-In order to use this function, we will obtain the required parameters from the
-listed *source*:
-
-| parameter | source |
-| --------- | ------ |
-| directory | packagemanifest directory |
-| outputDir | default `bundle` dir or flag `--output-dir` |
-| packageName | packageName from `*.package.yaml` |
-| channels | Any channel where `channels[].currentCSV == packagedCSV.Name` from `*.package.yaml` |
-| channelDefault | defaultChannel from `*.package.yaml` or `stable` |
-
-#### Creating bundle image
-
-If we choose to build bundle images, then we can leverage the `BuildBundleImage`
-function from `opm`. This takes in two arguments:
-
-- imageTag string - tag to use for your container image
-- imageBuilder string - the container image builder i.e. `docker`, `podman`, etc
-
-This would output a new bundle image.
-
-In order to use this function, we will obtain the required parameters from the
-listed *source*:
-
-| parameter | source |
-| --------- | ------ |
-| imageTag | version of packagemanifest |
-| imageBuilder | `docker` |
-
 #### Command Line Interface
 
 The new command line will look as follows:
 
 ```
 operator-sdk pkgman-to-bundle <packagemanifestdir> [--build-image=] \
-    [--output-dir=]
+    [--output-dir=] [--image-base=] [--build-cmd=]
 ```
 
 - `<packagemanifestdir>` is a positional argument that specifies the
@@ -149,6 +104,47 @@ operator-sdk pkgman-to-bundle <packagemanifestdir> [--build-image=] \
   directory.
 - `[--output-dir=]` is an optional flag that indicates the directory to write the
   bundle to, defaults to `bundle` directory.
+- `[--image-base]` optional flag that indicates the base container name for
+  the bundles; e.g. `quay.io/example/memcached-operator-bundle`
+- `[--build-cmd]` optional flag that indicates the fully qualified build command;
+
+For more information about the `image-base` and `build-cmd` see the
+[creating bundle image](#creating-bundle-image) section.
+
+#### Generating bundle on disk
+
+In order to generate bundles to disk, we will refactor the `generate bundle`
+logic to be reusable in generating the bundles.
+
+Today the logic lives in `cmd/operator-sdk/generate/bundle/bundle.go`, this
+would likely need to move to a shared location so that this new subcommand can
+reuse it. The `pkgman-to-bundle` subcommand will have logic to read the
+packagemanifests and supply the above bundle generate with the appropriate
+input. This input will be TBD depending on how the refactoring goes.
+
+#### Creating bundle image
+
+If we choose to build bundle images, we will likely need a sane default build
+command but also offer an override.
+
+This would add 2 more flags to the CLI:
+
+- `[--image-base]` optional flag that indicates the base container name for
+  the bundles; e.g. `quay.io/example/memcached-operator-bundle`
+- `[--build-cmd]` optional flag that indicates the fully qualified build command;
+
+These flags would output a bundle image for each bundle created. We would use
+the `<dirname>` for the tags.
+
+The `--image-base` needs to be valid docker image name without the tag. We will
+use the bundle directory for the imagetag.
+
+Since we can't always anticipate what folks want to do with their builds, we'll
+have an escape hatch flag, `--build-cmd`, which will take in the full build
+command to run. This will include the builder i.e. `podman`, `docker`, etc. This
+command will need to be in the `PATH` or they must supply the fully qualified
+path name. For example, `podman build -t quay.io/example/bundle ...` or
+`/usr/bin/docker build -t ...` .
 
 #### Assumptions
 
@@ -158,6 +154,7 @@ operator-sdk pkgman-to-bundle <packagemanifestdir> [--build-image=] \
 
 For each of the scenarios below, assume we have a packagemanifest dir with the
 following layout.
+
 
 ```
 manifests
@@ -191,36 +188,36 @@ The command will generate 3 bundles in the default `bundle` directory:
 ```
 bundle
 ├── bundle-0.6.1
+│   ├── bundle.Dockerfile
 │   ├── manifests
+│   │   ├── etcdcluster.crd.yaml
 │   │   ├── etcdoperator.clusterserviceversion.yaml
 │   │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
-│   │   ├── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
-│   │   └── etcdcluster.crd.yaml
+│   │   └── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
 │   └── metadata
 │       └── annotations.yaml
-├── bundle-0.6.1.Dockerfile
 ├── bundle-0.9.1
+│   ├── bundle.Dockerfile
 │   ├── manifests
+│   │   ├── etcdbackup.crd.yaml
+│   │   ├── etcdcluster.crd.yaml
 │   │   ├── etcdoperator.clusterserviceversion.yaml
 │   │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
 │   │   ├── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
-│   │   ├── etcdbackup.crd.yaml
-│   │   ├── etcdcluster.crd.yaml
 │   │   └── etcdrestore.crd.yaml
 │   └── metadata
 │       └── annotations.yaml
-├── bundle-0.9.1.Dockerfile
-├── bundle-0.9.2
-│   ├── manifests
-│   │   ├── etcdoperator.clusterserviceversion.yaml
-│   │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
-│   │   ├── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
-│   │   ├── etcdbackup.crd.yaml
-│   │   ├── etcdcluster.crd.yaml
-│   │   └── etcdrestore.crd.yaml
-│   └── metadata
-│       └── annotations.yaml
-└── bundle-0.9.2.Dockerfile
+└── bundle-0.9.2
+    ├── bundle.Dockerfile
+    ├── manifests
+    │   ├── etcdbackup.crd.yaml
+    │   ├── etcdcluster.crd.yaml
+    │   ├── etcdoperator.clusterserviceversion.yaml
+    │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
+    │   ├── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
+    │   └── etcdrestore.crd.yaml
+    └── metadata
+        └── annotations.yaml
 ```
 
 #### Complex Example
@@ -236,6 +233,7 @@ the new bundles.
 ```
 my-bundle
 ├── my-bundle-0.6.1
+│   ├── bundle.Dockerfile
 │   ├── manifests
 │   │   ├── etcdoperator.clusterserviceversion.yaml
 │   │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
@@ -243,8 +241,8 @@ my-bundle
 │   │   └── etcdcluster.crd.yaml
 │   └── metadata
 │       └── annotations.yaml
-├── my-bundle-0.6.1.Dockerfile
 ├── my-bundle-0.9.1
+│   ├── bundle.Dockerfile
 │   ├── manifests
 │   │   ├── etcdoperator.clusterserviceversion.yaml
 │   │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
@@ -254,18 +252,17 @@ my-bundle
 │   │   └── etcdrestore.crd.yaml
 │   └── metadata
 │       └── annotations.yaml
-├── my-bundle-0.9.1.Dockerfile
-├── my-bundle-0.9.2
-│   ├── manifests
-│   │   ├── etcdoperator.clusterserviceversion.yaml
-│   │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
-│   │   ├── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
-│   │   ├── etcdbackup.crd.yaml
-│   │   ├── etcdcluster.crd.yaml
-│   │   └── etcdrestore.crd.yaml
-│   └── metadata
-│       └── annotations.yaml
-└── my-bundle-0.9.2.Dockerfile
+└── my-bundle-0.9.2
+    ├── bundle.Dockerfile
+    ├── manifests
+    │   ├── etcdoperator.clusterserviceversion.yaml
+    │   ├── etcdoperator-controller-manager-metrics-service_v1_service.yaml
+    │   ├── etcdoperator-metrics-reader_rbac.authorization.k8s.io_v1beta1_clusterrole.yaml
+    │   ├── etcdbackup.crd.yaml
+    │   ├── etcdcluster.crd.yaml
+    │   └── etcdrestore.crd.yaml
+    └── metadata
+        └── annotations.yaml
 ```
 
 #### Deprecating packagemanifests commands
@@ -297,6 +294,8 @@ difficult.
 
 - add unit tests for migration code
 - add e2e tests to migrate packagemanifests to bundles
+  - using a sample packagemanifest, run `operator-sdk pkgman-to-bundle`,
+    then validate the bundle with `bundle validate`
 - manual testing of `pkgman-to-bundle` will be done as well
 
 ### Graduation Criteria
@@ -314,6 +313,7 @@ N/A
 
 ## Implementation History
 
+20210306 - Remove usage of `GenerateFunc` and `BuildBundleImage`
 20210225 - Add details about deprecated run|generate packagemanifests
 20210224 - Deprecated packagemanifests features
 20210224 - Fix typos; Remove overwrite flag; change bundle-dir to output-dir;
