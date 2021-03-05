@@ -59,7 +59,8 @@ A human consumable representation of packages in an index in the form of json/ya
 ## Non-goals 
 
 1. Enumerate/implement tooling to allow different operations to be performed on the package representations. Numerous tooling(eg those that allow operation on files) that already exists can be leveraged to perform various operations on package representations. 
-2. Advanced tooling to verify dependency satisfiability for individual bundles, channel upgrade graph validity for each channel in a package etc. This will be considered in a separate enhancement.      
+2. Advanced tooling to verify dependency satisfiability for individual bundles, channel upgrade graph validity for each channel in a package etc. This will be considered in a separate enhancement.
+3. Define an exhaustive or authoritative set of bundle properties. This proposal will document only the properties necessary to maintain backwards-compatibility with the existing GRPC API.
 
 ## User Stories 
 
@@ -99,16 +100,15 @@ $ cat etcd.json
     "version": "0.6.1",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
             }
         },
         {
-            "type":"olm.gvk",
+            "type":"olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdCluster",
                 "version": "v1beta2"
@@ -136,16 +136,15 @@ $ cat etcd.json
     "version": "0.9.0",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
                 "version": "v1beta2"
@@ -179,16 +178,15 @@ $ cat etcd.json
     "version": "0.9.2",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.2"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdRestore",
                 "version": "v1beta2"
@@ -217,16 +215,15 @@ $ cat etcd.json
     "version": "0.9.2-clusterwide",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.2-clusterwide"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
                 "version": "v1beta2"
@@ -238,7 +235,7 @@ $ cat etcd.json
         },
         {
             "type": "olm.skips",
-            "value" : "v0.12.2, v0.14.1"
+            "value" : ["etcdoperator.v0.6.0", "etcdoperator.v0.6.1"]
         },
         {
             "type": "olm.channel",
@@ -263,32 +260,30 @@ $ cat etcd.json
     "version": "0.9.4",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.2-clusterwide"
             }
         },
         {
-            "type": "olm.requiredPackage",
+            "type": "olm.package.required",
             "value": {
                 "packageName": "test",
                 "versionRange": ">=1.2.3 <2.0.0-0"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
                 "version": "v1beta2"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.required",
             "value": {
-                "type": "required",
                 "group": "testapi.coreos.com",
                 "kind": "Testapi",
                 "version": "v1"
@@ -317,16 +312,15 @@ $ cat etcd.json
     "version": "0.9.4-clusterwide",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.4-clusterwide"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
                 "version": "v1beta2"
@@ -380,16 +374,15 @@ $ cat community-operators/etcd.json
     "version": "0.6.1",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdCluster",
                 "version": "v1beta2"
@@ -417,16 +410,15 @@ $ cat community-operators/etcd.json
     "version": "0.9.0",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
                 "version": "v1beta2"
@@ -516,7 +508,7 @@ Since each bundle in the index belongs to a channel in a package, the index itse
 
 The config file for each package will have a stream of json objects, representing the package and bundle information for that package. Currently, this information is stored in a sql database inside the index. To capture all the information previously stored in this database but in a normalized way, the config file will have two kinds of json blob: 
 
-1. The json blob capturing package information. 
+##### Declarative Package Format
 ```json
 {
     "schema": "olm.package",
@@ -529,7 +521,7 @@ The config file for each package will have a stream of json objects, representin
 ```
 This information is currently captured in the `package` table.
 
-2. The json blob capturing the bundle information.
+##### Declarative Bundle Format
 ```json
 {
     "schema": "olm.bundle",
@@ -540,10 +532,26 @@ This information is currently captured in the `package` table.
     "properties":["<list of properties of bundle that encode bundle dependencies(provided and required apis) upgrade graph info(skips/skipRange), and bundle channel/s info>"],
     "relatedImages" : ["<list-of-related-images>"]
 }
-
 ```
 
 This information is currently captured in the `operatorbundle`, `properties`, `channel`, `channel_entry`, `api`, `api_provider`, `api_requirer` and `related_image` tables in the sql database.  
+
+###### A note on properties
+
+Defining bundle properties is not within the scope of this proposal. For the purposes of the declarative configuration format, properties are opaque JSON blobs that can convey arbitrary metadata about a particular bundle.
+
+However, for backwards compatibility reasons, a subset of well-defined properties will be understood by `opm` so that declarative config representations can be transparently swapped in for the deprecated database backend while still serving the same GRPC API.
+These properties are:
+
+| Type                   | Value Schema                           | Example                                                                                                                   |
+|------------------------|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| `olm.package.provided` | `{ packageName, version string }`      | `{"type":"olm.package.provided", "value": {"packageName":"etcd", "version":"0.9.4"}}`                                     |
+| `olm.package.required` | `{ packageName, versionRange string }` | `{"type":"olm.package.required", "value": {"packageName":"test", "versionRange":">=1.2.3 <2.0.0-0"}}`                     |
+| `olm.gvk.provided`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.provided", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}` |
+| `olm.gvk.required`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.required", "value": {"group": "test.coreos.com", "version": "v1", "kind": "Testapi"}}`                  |
+| `olm.skips`            | `[]string`                             | `{"type":"olm.skips", "value": ["etcdoperator.v0.9.0","etcdoperator.v0.9.2"]}`                                            |
+| `olm.skipRange`        | `string`                               | `{"type":"olm.skipRange", "value": "<0.9.4"}`                                                                             |
+| `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}`         |
 
 #### Representing the upgrade graph in the channel json blob
 
@@ -629,16 +637,15 @@ $ cat community-operators/etcd.json
     "version": "0.6.1",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdCluster",
                 "version": "v1beta2"
@@ -681,16 +688,15 @@ $ cat community-operators/etcd.json
     "version": "0.6.1",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdCluster",
                 "version": "v1beta2"
@@ -718,16 +724,15 @@ $ cat community-operators/etcd.json
     "version": "0.9.0",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
                 "version": "v1beta2"
@@ -772,16 +777,15 @@ $ cat community-operators/etcd.json
     "version": "0.6.1",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdCluster",
                 "version": "v1beta2"
@@ -822,16 +826,15 @@ $ cat community-operators/etcd.json
     "version": "0.6.1",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdCluster",
                 "version": "v1beta2"
@@ -859,16 +862,15 @@ $ cat community-operators/etcd.json
     "version": "0.9.0",
     "properties":[
         {
-            "type": "olm.package",
+            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
             }
         },
         {
-            "type": "olm.gvk",
+            "type": "olm.gvk.provided",
             "value": {
-                "type": "provided",
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
                 "version": "v1beta2"
@@ -958,7 +960,6 @@ rpc ListBundles(ListBundlesRequest) returns (stream Bundle) {}
 ```
 
 Once the declarative package configs are available inside an index, these configs will be used to serve the content for these api endpoints instead of the sqllite database. A new flag `configs` will be introduced under `opm registry serve` that will accept a directory of config files as input, and use that directory to serve the grpc endpoints (instead of `registry serve --database index.db`).
-
 
 ## Migration Plan
 
