@@ -89,7 +89,7 @@ $ cat etcd.json
         "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
         "mediatype":"image/png"
     },
-    "channels": ["alpha", "singlenamespace-alpha", "clusterwide-alpha"],
+    "validChannelNames": ["alpha", "singlenamespace-alpha", "clusterwide-alpha"],
     "description": "A message about etcd operator, a description of channels"
 }
 {
@@ -367,7 +367,7 @@ $ cat community-operators/etcd.json
         "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
         "mediatype":"image/png"
     },
-    "channels": ["alpha", "singlenamespace-alpha", "clusterwide-alpha"],
+    "validChannelNames": ["alpha", "singlenamespace-alpha", "clusterwide-alpha"],
     "description": "A message about etcd operator, a description of channels"
 }
 {
@@ -519,10 +519,16 @@ The config file for each package will have a stream of json objects, representin
     "name": "<package-name>",
     "defaultChannel": "<channel-name>",
     "icon": "embedded or remote",
-    "channels": ["<list-of-channels-in-package>"],
+    "validChannelNames": ["<optional-list-of-channels-in-package>"],
     "description": "A message about the operator, a description of channels..."
 }
 ```
+
+If `validChannelNames` is non-empty, it will be used to validate channel entries defined by bundles.
+This can help index maintainers ensure that bundles do not accidentally mis-name their channels,
+which could lead to the inadvertent creation of new channels
+(e.g. adding a new `stable-v1.0` channel to a bundle when the intention is to add it to the existing `stable-1.0` channel).
+
 This information is currently captured in the `package` table.
 
 ##### Declarative Bundle Format
@@ -630,7 +636,7 @@ $ cat community-operators/etcd.json
         "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
         "mediatype":"image/png"
     },
-    "channels": ["alpha"],
+    "validChannelNames": ["alpha"],
     "description": "A message about etcd operator, a description of channels"
 }
 {
@@ -681,7 +687,7 @@ $ cat community-operators/etcd.json
         "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
         "mediatype":"image/png"
     },
-    "channels": ["alpha", "singlenamespace-alpha"],
+    "validChannelNames": ["alpha", "singlenamespace-alpha"],
     "description": "A message about etcd operator, a description of channels"
 }
 {
@@ -770,7 +776,7 @@ $ cat community-operators/etcd.json
         "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
         "mediatype":"image/png"
     },
-    "channels": ["alpha"],
+    "validChannelNames": ["alpha"],
     "description": "A message about etcd operator, a description of channels"
 }
 {
@@ -819,7 +825,7 @@ $ cat community-operators/etcd.json
         "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
         "mediatype":"image/png"
     },
-    "channels": ["alpha", "singlenamespace-alpha"],
+    "validChannelNames": ["alpha", "singlenamespace-alpha"],
     "description": "A message about etcd operator, a description of channels"
 }
 {
