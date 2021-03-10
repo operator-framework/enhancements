@@ -563,6 +563,10 @@ These properties are:
 | `olm.skipRange`        | `string`                               | `{"type":"olm.skipRange", "value": "<0.9.4"}`                                                                             |
 | `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}`         |
 
+When serving bundles via the registry GRPC server, the `olm.package.provided` and `olm.gvk.provided` properties
+will also be served as `olm.package` and `olm.gvk` respectively, so that existing clients expecting the old names
+will continue to as expected.
+
 #### Representing the upgrade graph in the channel json blob
 
 Currently, a bundle can be added into the index using `opm index add --bundles <list-of-bundle-paths> --mode replaces|semver|semver-skippatch --tag=<index-image-tag>` where the bundle images (like `quay.io/operatorhubio/etcd:v0.9.0`) are included in `<list-of-bundle-path>`. The bundle can also mention bundles it can be upgrade from using the `skips` or `skipRange` fields in the bundle ClusterServiceVersion. With all of these information provided, the upgrade graph of the bundles in the package is calculated and stored in the `channel_entry` table of the sql database that is built inside the index, while the `skips`/`skipRange` information is persisted in the `operatorbundle` table. The `channel_entry` table is always authoritative in terms of calculating the upgrade graph in a package. The operatorbundle table persists the values of `skips`/`skipRange`/`replaces` when the bundle was first unpacked/added to the index, and other index operations could have changed the real graph in `channel_entry`.  
