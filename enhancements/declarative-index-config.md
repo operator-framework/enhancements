@@ -235,7 +235,11 @@ $ cat etcd.json
         },
         {
             "type": "olm.skips",
-            "value" : ["etcdoperator.v0.6.0", "etcdoperator.v0.6.1"]
+            "value" : "etcdoperator.v0.6.0"
+        },
+        {
+            "type": "olm.skips",
+            "value" : "etcdoperator.v0.6.1"
         },
         {
             "type": "olm.channel",
@@ -549,7 +553,7 @@ These properties are:
 | `olm.package.required` | `{ packageName, versionRange string }` | `{"type":"olm.package.required", "value": {"packageName":"test", "versionRange":">=1.2.3 <2.0.0-0"}}`                     |
 | `olm.gvk.provided`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.provided", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}` |
 | `olm.gvk.required`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.required", "value": {"group": "test.coreos.com", "version": "v1", "kind": "Testapi"}}`                  |
-| `olm.skips`            | `[]string`                             | `{"type":"olm.skips", "value": ["etcdoperator.v0.9.0","etcdoperator.v0.9.2"]}`                                            |
+| `olm.skips`            | `string`                               | `{"type":"olm.skips", "value": "etcdoperator.v0.9.0"}`<br>`{"type":"olm.skips", "value": "etcdoperator.v0.9.2"}`          |
 | `olm.skipRange`        | `string`                               | `{"type":"olm.skipRange", "value": "<0.9.4"}`                                                                             |
 | `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}`         |
 
