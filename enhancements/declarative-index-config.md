@@ -554,9 +554,7 @@ These properties are:
 | `olm.skipRange`        | `string`                               | `{"type":"olm.skipRange", "value": "<0.9.4"}`                                                                             |
 | `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}`         |
 
-When serving bundles via the registry GRPC server, the `olm.package.provided` and `olm.gvk.provided` properties
-will also be served as `olm.package` and `olm.gvk` respectively, so that existing clients expecting the old names
-will continue to as expected.
+To support both old and new clients, `opm` will ensure that there are matching `olm.gvk`/`olm.gvk.provided` and `olm.package`/`olm.package.provided` properties present in bundle properties during build time and during validation. When all supported clients have been transitioned to understand the new property names, `olm.gvk` and `olm.package` will be retired.
 
 #### Representing the upgrade graph in the channel json blob
 
