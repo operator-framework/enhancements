@@ -913,7 +913,7 @@ A new sub-command `validate` will be introduced under `opm index`, that will val
 
 #### Usage of the json representation of packages by olm components
 
-The sqllite database that is currently created inside the index is used to serve contents of the index over a gRPC api.
+The sqlite database that is currently created inside the index is used to serve contents of the index over a gRPC api.
 
 ```go
 rpc ListPackages(ListPackageRequest) returns (stream PackageName) {}
@@ -928,27 +928,31 @@ rpc GetDefaultBundleThatProvides(GetDefaultProviderRequest) returns (Bundle) {}
 rpc ListBundles(ListBundlesRequest) returns (stream Bundle) {}
 ```
 
-Once the declarative package configs are available inside an index, these configs will be used to serve the content for these api endpoints instead of the sqllite database. A new flag `configs` will be introduced under `opm registry serve` that will accept a directory of config files as input, and use that directory to serve the grpc endpoints (instead of `registry serve --database index.db`).
+Once the declarative package configs are available inside an index, these configs will be used to serve the content for these api endpoints instead of the sqlite database.
+The `opm registry serve` will auto-detect the filetype of the `--database` flag and transparently handle both sqlite database files and a JSON-formatted declarative config file or directory.
 
 ## Migration Plan
 
-The index images that exists today have the sqllite database in them, and have been built with the following Docker configuration: 
+To migrate existing index images built with the old configuration, all existing `opm index` commands that alter the index (i,e `opm index add --from-index`, `opm index prune`, `opm index prune-stranded` and `opm index rm`) will be enhanced to first let the corresponding operation through, and then check if the sqllite database exists in the index. If it does, the sqllite database will be converted over to package representations instead, the sqllite database will be deleted, and the new altered image will be built using the new configuration. `prune`, `prune-stranded` and `rm` sub-commands under the `opm index` command will also be marked for deprecation. If these sub-commands are used on an index that has already been migrated over to package representations, the operations will still be supported on these indexes with package representations for the period of time these sub-commands are marked as deprecated, until they are removed.
+
+The `opm registry` command contains the same sub-commands as that of `opm index` (`add`, `prune`, `prune-stranded` and `rm`), but accepts a database file with the `--database` flag that it operates on (instead of a container image like the `opm index` commands).
+The `opm registry` commands that accept a database flag will automatically detect the file/directory type of the path provided via the `--database` flag. If it is an SQLite file, it will automatically migrate it in-place to the declarative config file format prior to performing any further operations.
+Clients of `opm registry` commands should treat the contents of the "database" as opaque. They should not expect to be able to perform SQL operations on the "database" file since it could be either an SQLite database of a stream of declarative config JSON blobs.
+
+The index images that exists today have the sqlite database in them, and have been built with the following Docker configuration: 
 
 ```Dockerfile
 ENTRYPOINT ["/bin/opm"]
 CMD ["registry", "serve", "--database", "/database/index.db"]
 ```
 
-Since the new `opm` binary will create configs on `add`, the new images will be built with the new configuration: 
+Since the new `opm` binary will migrate the database in-place to the declarative config format, no change is required in the index image entrypoint.
+After migration, `/database/index.db` will be a single declarative-config formatted file containing all packages and bundles.
 
 ```Dockerfile
 ENTRYPOINT ["/bin/opm"]
-CMD ["registry", "serve", "config.json"]
+CMD ["registry", "serve", "--database", "/database/index.db"]
 ```
-
-To migrate existing index images built with the old configuration, all existing `opm index` commands that alter the index (i,e `opm index add --from-index`, `opm index prune`, `opm index prune-stranded` and `opm index rm`) will be enhanced to first let the corresponding operation through, and then check if the sqllite database exists in the index. If it does, the sqllite database will be converted over to package representations instead, the sqllite database will be deleted, and the new altered image will be built using the new configuration. `prune`, `prune-stranded` and `rm` sub-commands under the `opm index` command will also be marked for deprecation. If these sub-commands are used on an index that has already been migrated over to package representations, the operations will still be supported on these indexes with package representations for the period of time these sub-commands are marked as deprecated, until they are removed.      
- 
-The `opm registry` command contains the same sub-commands as that of `opm index` (`add`, `prune`, `prune-stranded` and `rm`), but accepts a database file with the `--database` flag that it operators on (instead of a container image like the `opm index` command). The `opm registry` commands that accept a database flag will deprecate the `--database` flag and expect a positional argument that contains the path to the config directory or a specific config file. All existing sub-commands of `opm registry` will be continued to be supported for performing operations on the declarative config representation. The ability to perform `add`, `prune`, `prune-stranded` and `rm` using the `--database` flag will be removed. The only `opm registry` command that will continue to be supported for databases is the `serve` command. Using databases with `serve` will be deprecated.
 
 ## Test plan
 
