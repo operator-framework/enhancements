@@ -94,9 +94,7 @@ $ cat etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -130,9 +128,7 @@ $ cat etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "version": "0.9.0",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -172,9 +168,7 @@ $ cat etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.2",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.2",
-    "version": "0.9.2",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -209,9 +203,7 @@ $ cat etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.2-clusterwide",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.2-clusterwide",
-    "version": "0.9.2-clusterwide",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -258,9 +250,7 @@ $ cat etcd.json
 {
     "schema": "olm.bundle",
     "name" : "etcdoperator.v0.9.4",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.4",
-    "version": "0.9.4",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -310,9 +300,7 @@ $ cat etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.4-clusterwide",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.4-clusterwide",
-    "version": "0.9.4-clusterwide",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -371,9 +359,7 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -407,9 +393,7 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "version": "0.9.0",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -527,9 +511,7 @@ This information is currently captured in the `package` table.
 {
     "schema": "olm.bundle",
     "name": "<operatorbundle_name>",
-    "package": "<package_name>",
     "image": "<operatorbundle_path>",
-    "version": "<version>",
     "properties":["<list of properties of bundle that encode bundle dependencies(provided and required apis) upgrade graph info(skips/skipRange), and bundle channel/s info>"],
     "relatedImages" : ["<list-of-related-images>"]
 }
@@ -634,9 +616,7 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -684,9 +664,7 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -720,9 +698,7 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "version": "0.9.0",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -772,9 +748,7 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -820,9 +794,7 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -856,9 +828,7 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
-    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "version": "0.9.0",
     "properties":[
         {
             "type": "olm.package.provided",
