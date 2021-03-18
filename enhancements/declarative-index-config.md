@@ -31,7 +31,7 @@ status: implementable
 
 ## Summary 
 
-This enhancement proposes the representation of packages in an index in a standard declarative way(using json/yaml), so that index authors and operator authors can communicate with each other about the content of an index using json/yaml files, without needing to communicate with each other using containers(index images, operator bundle images etc). Using the declarative representation of the packages in the index, it also proposes allowing index authors and individual package owners to alter the properties of the packages(package name, channel information etc) as well as the structure of the packages (upgrade graphs of channels etc) of the index without having to rebuild bundles+republish the index. Finally, it discusses using the representations as source of truth for serving data from the index over a gRPC api, instead of the sqllite database that is used currently, along with migration strategy for existing indexes from the sqllite databases to the package representations.   
+This enhancement proposes the representation of packages in an index in a standard declarative way(using json/yaml), so that index authors and operator authors can communicate with each other about the content of an index using json/yaml files, without needing to communicate with each other using containers(index images, operator bundle images etc). Using the declarative representation of the packages in the index, it also proposes allowing index authors and individual package owners to alter the properties of the packages(package name, channel information etc) as well as the structure of the packages (upgrade graphs of channels etc) of the index without having to rebuild bundles+republish the index. Finally, it discusses using the representations as source of truth for serving data from the index over a gRPC api, instead of the sqlite database that is used currently, along with migration strategy for existing indexes from the sqlite databases to the package representations.
 
 ## Motivation
 
@@ -94,7 +94,9 @@ $ cat etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
+    "version": "0.6.1",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -128,7 +130,9 @@ $ cat etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
+    "version": "0.9.0",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -168,7 +172,9 @@ $ cat etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.2",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.2",
+    "version": "0.9.2",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -203,7 +209,9 @@ $ cat etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.2-clusterwide",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.2-clusterwide",
+    "version": "0.9.2-clusterwide",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -222,7 +230,7 @@ $ cat etcd.json
         },
         {
             "type": "olm.skipRange",
-            "value": ">=0.9.0 <=0.9.2-0"
+            "value": ">=0.9.0 <0.9.2-0"
         },
         {
             "type": "olm.skips",
@@ -250,13 +258,15 @@ $ cat etcd.json
 {
     "schema": "olm.bundle",
     "name" : "etcdoperator.v0.9.4",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.4",
+    "version": "0.9.4",
     "properties":[
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
-                "version": "0.9.2-clusterwide"
+                "version": "0.9.4"
             }
         },
         {
@@ -300,7 +310,9 @@ $ cat etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.4-clusterwide",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.4-clusterwide",
+    "version": "0.9.4-clusterwide",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -359,7 +371,9 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
+    "version": "0.6.1",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -393,7 +407,9 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
+    "version": "0.9.0",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -488,7 +504,7 @@ The representation of the content of an index using json/yaml provides a unique 
 
 ![Alt text](assets/new-community-operators.png?raw=true "community-operators")
 
-Since each bundle in the index belongs to a channel in a package, the index itself can be represented as a collection of packages. Each package is then represented as a json/yaml, a config file that will live inside the index container image alongside the individual bundle metadata. 
+Since each bundle in the index belongs to a channel in a package, the index itself can be represented as a collection of packages. Each package is then represented as a json/yaml, a config file that will live inside the index container image alongside the individual bundle metadata.
 
 #### Contents of the config file
 
@@ -511,13 +527,32 @@ This information is currently captured in the `package` table.
 {
     "schema": "olm.bundle",
     "name": "<operatorbundle_name>",
+    "package": "<package_name>",
     "image": "<operatorbundle_path>",
+    "version": "<version>",
     "properties":["<list of properties of bundle that encode bundle dependencies(provided and required apis) upgrade graph info(skips/skipRange), and bundle channel/s info>"],
     "relatedImages" : ["<list-of-related-images>"]
 }
 ```
 
-This information is currently captured in the `operatorbundle`, `properties`, `channel`, `channel_entry`, `api`, `api_provider`, `api_requirer` and `related_image` tables in the sql database.  
+This information is currently captured in the `operatorbundle`, `properties`, `channel`, `channel_entry`, `api`, `api_provider`, `api_requirer` and `related_image` tables in the sql database.
+
+##### Extension formats
+
+While this enhancement proposal does not specify any schemas other than `olm.package` and `olm.bundle`, it does not preclude them either. When reading/writing blobs, `opm` will search for a minimal set of fields to determine validity and associations:
+
+```json
+{
+  "schema": "<string>", /* required: "olm." prefix is reserved; blobs without schemas will be ignored. */
+  "package": "<string>", /* optional: blobs that define a their associated package will be stored in `<packageName>.json`, others will be stored in `__global.json` */
+  "properties": [
+    {
+      "type": "<string>", /* required: "olm." prefix is reserved */
+      "value": <arbitrary_json_defined_by_type> /* required */
+    }
+  ] /* optional: list of 0..n properties; not every schema is required to have properties, but if properties are present, they must follow the property spec */
+}
+```
 
 ###### A note on properties
 
@@ -536,7 +571,50 @@ These properties are:
 | `olm.skipRange`        | `string`                               | `{"type":"olm.skipRange", "value": "<0.9.4"}`                                                                             |
 | `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}`         |
 
-To support both old and new clients, `opm` will ensure that there are matching `olm.gvk`/`olm.gvk.provided` and `olm.package`/`olm.package.provided` properties present in bundle properties during build time and during validation. When all supported clients have been transitioned to understand the new property names, `olm.gvk` and `olm.package` will be retired.
+To support both old and new clients, `opm` will ensure that there are matching `olm.gvk`/`olm.gvk.provided` and `olm.package`/`olm.package.provided` properties present in bundle properties when migrating from the sqlite database representation and also during build time and validation. When all supported clients have been transitioned to understand the new property names, `olm.gvk` and `olm.package` will be retired.
+
+#### Filesystem structure
+
+Declarative configs are expected to exist in a directory structure. When reading a declarative config index, `opm` will
+traverse the file tree and load valid blobs from each file it finds. When writing a declarative config, package-specific
+blobs are concatenated into a single `<packageName>.json` file, and non-package-specific blobs are concatenated into
+`__global.json`.
+
+The output directory structure will be:
+```bash
+$ tree <index_name>
+<index_name>
+├── amqstreams.json
+├── etcd.json
+├── __global.json
+└── servicemesh.json
+```
+
+When stored in a tarball, the output structure will be:
+```bash
+$ tar tvf <index_name>.db
+drwxr-xr-x nobody/nobody     0 2021-03-17 17:18 index/
+-rw-r--r-- nobody/nobody     0 2021-03-17 15:44 index/servicemesh.json
+-rw-r--r-- nobody/nobody     0 2021-03-17 17:18 index/__global.json
+-rw-r--r-- nobody/nobody     0 2021-03-17 15:39 index/amqstreams.json
+-rw-r--r-- nobody/nobody     0 2021-03-17 15:38 index/etcd.json
+```
+
+When migrating an sqlite file to a tarball, `opm` will create the tarball with the declarative directory structure
+(described above) with the root directory always called `index`.
+
+For example, if `my-index.db` is an sqlite file `opm registry add --database /path/to/my-index.db --bundle my-bundle:v0.1.0`
+will replace the input `/path/to/my-index.db` file with a tarball, also called `/path/to/my-index.db`. The tarball
+`my-index.db` file will have an `index` directory in its root, which contains global and package JSON files.
+
+```bash
+$ tar tvf my-index.db
+drwxr-xr-x nobody/nobody     0 2021-03-17 17:18 index/
+-rw-r--r-- nobody/nobody     0 2021-03-17 15:44 index/servicemesh.json
+-rw-r--r-- nobody/nobody     0 2021-03-17 17:18 index/__global.json
+-rw-r--r-- nobody/nobody     0 2021-03-17 15:39 index/amqstreams.json
+-rw-r--r-- nobody/nobody     0 2021-03-17 15:38 index/etcd.json
+```
 
 #### Representing the upgrade graph in the channel json blob
 
@@ -616,7 +694,9 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
+    "version": "0.6.1",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -664,7 +744,9 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
+    "version": "0.6.1",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -698,7 +780,9 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
+    "version": "0.9.0",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -748,7 +832,9 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
+    "version": "0.6.1",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -779,7 +865,7 @@ $ cat community-operators/etcd.json
         }
     ]
 }
-$ opm index add --bundles quay.io/operatorhubio/etcd:v0.9.0 --mode replaces --config community-operators/etcd
+$ opm index add --bundles quay.io/operatorhubio/etcd:v0.9.0 --mode replaces
 $ cat community-operators/etcd.json
 {
     "schema": "olm.package",
@@ -794,7 +880,9 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
+    "version": "0.6.1",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -828,7 +916,9 @@ $ cat community-operators/etcd.json
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
+    "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
+    "version": "0.9.0",
     "properties":[
         {
             "type": "olm.package.provided",
@@ -929,25 +1019,32 @@ rpc ListBundles(ListBundlesRequest) returns (stream Bundle) {}
 ```
 
 Once the declarative package configs are available inside an index, these configs will be used to serve the content for these api endpoints instead of the sqlite database.
-The `opm registry serve` will auto-detect the filetype of the `--database` flag and transparently handle both sqlite database files and a JSON-formatted declarative config file or directory.
+The `opm registry serve` will auto-detect the filetype of the `--database` flag and transparently handle both sqlite database files and declarative configs. If the database is formatted as sqlite, `opm registry serve` will internally migrate it to its declarative config representation prior to serving the GRPC API. When `opm registry serve` exits, the sqlite database will be preserved, and any temporary declarative config files will be cleaned up.
+
+## Deprecations
+
+Support for databases in the sqlite format will be marked for deprecation. All `opm` commands that interact with the database will print a deprecation warning on the
+command line when they detect an sqlite database is present. Users should plan to explicitly migrate their index images to the declarative config format because support for sqlite will be removed in a future release.
+
+Additionally, `prune`, `prune-stranded` and `rm` sub-commands under the `opm index` command will also be marked for deprecation.
+
 
 ## Migration Plan
 
-To migrate existing index images built with the old configuration, all existing `opm index` commands that alter the index (i,e `opm index add --from-index`, `opm index prune`, `opm index prune-stranded` and `opm index rm`) will be enhanced to first let the corresponding operation through, and then check if the sqllite database exists in the index. If it does, the sqllite database will be converted over to package representations instead, the sqllite database will be deleted, and the new altered image will be built using the new configuration. `prune`, `prune-stranded` and `rm` sub-commands under the `opm index` command will also be marked for deprecation. If these sub-commands are used on an index that has already been migrated over to package representations, the operations will still be supported on these indexes with package representations for the period of time these sub-commands are marked as deprecated, until they are removed.
+The `opm` command will automatically migrate an sqlite-based database to a declarative config-based database according to the following rules:
+1. Existing `opm index` commands will support images containing the deprecated sqlite representation or the declarative config-based tar or directory representation. All `opm index` subcommands will automatically migrate the input database to the declarative config directory representation, and then perform the desired underlying registry action against the declarative config representation.
+2. Existing `opm registry` commands will support input databases with the deprecated sqlite representation or the declarative config-based tar or directory representation. If the input database is a file (e.g. sqlite or declarative config tar), `opm registry` commands that modify the database will always output the declarative config tar format. This ensures that existing clients of `opm registry` who have not explicitly migrated can continue treating the database as an opaque file. If the input database is a declarative config directory, `opm registry` preserves the fact that it is a directory. `opm registry serve` does not have any permanent filesystem side effects.
+3. For existing commands, no new flags are being introduced to distinguish sqlite input from declarative config input. All input database formats can be provided via the `--database` flag.
 
-The `opm registry` command contains the same sub-commands as that of `opm index` (`add`, `prune`, `prune-stranded` and `rm`), but accepts a database file with the `--database` flag that it operates on (instead of a container image like the `opm index` commands).
-The `opm registry` commands that accept a database flag will automatically detect the file/directory type of the path provided via the `--database` flag. If it is an SQLite file, it will automatically migrate it in-place to the declarative config file format prior to performing any further operations.
-Clients of `opm registry` commands should treat the contents of the "database" as opaque. They should not expect to be able to perform SQL operations on the "database" file since it could be either an SQLite database of a stream of declarative config JSON blobs.
 
-The index images that exists today have the sqlite database in them, and have been built with the following Docker configuration: 
+The index images that exist today have the sqlite database in them, and have been built with the following Docker configuration:
 
 ```Dockerfile
 ENTRYPOINT ["/bin/opm"]
 CMD ["registry", "serve", "--database", "/database/index.db"]
 ```
 
-Since the new `opm` binary will migrate the database in-place to the declarative config format, no change is required in the index image entrypoint.
-After migration, `/database/index.db` will be a single declarative-config formatted file containing all packages and bundles.
+Since the new `opm` binary will implicitly migrate the database in-place to the declarative config format, no change is required in the index image entrypoint.
 
 ```Dockerfile
 ENTRYPOINT ["/bin/opm"]
