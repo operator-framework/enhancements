@@ -96,13 +96,27 @@ $ cat etcd.json
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
+            }
+        },
+        {
+            "type":"olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
             }
         },
         {
@@ -132,13 +146,27 @@ $ cat etcd.json
     "name": "etcdoperator.v0.9.0",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "version": "0.9.0",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.0"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
             }
         },
         {
@@ -174,13 +202,27 @@ $ cat etcd.json
     "name": "etcdoperator.v0.9.2",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.2",
-    "version": "0.9.2",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.2"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.2"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdRestore",
+                "version": "v1beta2"
             }
         },
         {
@@ -211,13 +253,27 @@ $ cat etcd.json
     "name": "etcdoperator.v0.9.2-clusterwide",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.2-clusterwide",
-    "version": "0.9.2-clusterwide",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.2-clusterwide"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.2-clusterwide"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
             }
         },
         {
@@ -260,8 +316,14 @@ $ cat etcd.json
     "name" : "etcdoperator.v0.9.4",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.4",
-    "version": "0.9.4",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.4"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
@@ -274,6 +336,14 @@ $ cat etcd.json
             "value": {
                 "packageName": "test",
                 "versionRange": ">=1.2.3 <2.0.0-0"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
             }
         },
         {
@@ -312,13 +382,27 @@ $ cat etcd.json
     "name": "etcdoperator.v0.9.4-clusterwide",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.4-clusterwide",
-    "version": "0.9.4-clusterwide",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.4-clusterwide"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.4-clusterwide"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
             }
         },
         {
@@ -373,13 +457,27 @@ $ cat community-operators/etcd.json
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
             }
         },
         {
@@ -409,13 +507,27 @@ $ cat community-operators/etcd.json
     "name": "etcdoperator.v0.9.0",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "version": "0.9.0",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.0"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
             }
         },
         {
@@ -529,7 +641,6 @@ This information is currently captured in the `package` table.
     "name": "<operatorbundle_name>",
     "package": "<package_name>",
     "image": "<operatorbundle_path>",
-    "version": "<version>",
     "properties":["<list of properties of bundle that encode bundle dependencies(provided and required apis) upgrade graph info(skips/skipRange), and bundle channel/s info>"],
     "relatedImages" : ["<list-of-related-images>"]
 }
@@ -563,8 +674,10 @@ These properties are:
 
 | Type                   | Value Schema                           | Example                                                                                                                   |
 |------------------------|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| `olm.package`          | `{ packageName, version string }`      | `{"type":"olm.package", "value": {"packageName":"etcd", "version":"0.9.4"}}`                                              |
 | `olm.package.provided` | `{ packageName, version string }`      | `{"type":"olm.package.provided", "value": {"packageName":"etcd", "version":"0.9.4"}}`                                     |
 | `olm.package.required` | `{ packageName, versionRange string }` | `{"type":"olm.package.required", "value": {"packageName":"test", "versionRange":">=1.2.3 <2.0.0-0"}}`                     |
+| `olm.gvk`              | `{ group, version, kind string }`      | `{"type":"olm.gvk", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}`          |
 | `olm.gvk.provided`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.provided", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}` |
 | `olm.gvk.required`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.required", "value": {"group": "test.coreos.com", "version": "v1", "kind": "Testapi"}}`                  |
 | `olm.skips`            | `string`                               | `{"type":"olm.skips", "value": "etcdoperator.v0.9.0"}`<br>`{"type":"olm.skips", "value": "etcdoperator.v0.9.2"}`          |
@@ -572,6 +685,7 @@ These properties are:
 | `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}`         |
 
 To support both old and new clients, `opm` will ensure that there are matching `olm.gvk`/`olm.gvk.provided` and `olm.package`/`olm.package.provided` properties present in bundle properties when migrating from the sqlite database representation and also during build time and validation. When all supported clients have been transitioned to understand the new property names, `olm.gvk` and `olm.package` will be retired.
+Since the `olm.bundle` schema also has a top-level field for `package`, `opm` will verify that it aligns with the `olm.package`/`olm.package.provided` properties.
 
 #### Filesystem structure
 
@@ -696,13 +810,27 @@ $ cat community-operators/etcd.json
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
             }
         },
         {
@@ -746,13 +874,27 @@ $ cat community-operators/etcd.json
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
             }
         },
         {
@@ -782,13 +924,27 @@ $ cat community-operators/etcd.json
     "name": "etcdoperator.v0.9.0",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "version": "0.9.0",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.0"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
             }
         },
         {
@@ -834,13 +990,27 @@ $ cat community-operators/etcd.json
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
             }
         },
         {
@@ -882,13 +1052,27 @@ $ cat community-operators/etcd.json
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
             }
         },
         {
@@ -918,13 +1102,27 @@ $ cat community-operators/etcd.json
     "name": "etcdoperator.v0.9.0",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "version": "0.9.0",
     "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.0"
+            }
+        },
         {
             "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
             }
         },
         {
