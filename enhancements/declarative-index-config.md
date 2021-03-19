@@ -31,7 +31,7 @@ status: implementable
 
 ## Summary 
 
-This enhancement proposes the representation of packages in an index in a standard declarative way(using json/yaml), so that index authors and operator authors can communicate with each other about the content of an index using json/yaml files, without needing to communicate with each other using containers(index images, operator bundle images etc). Using the declarative representation of the packages in the index, it also proposes allowing index authors and individual package owners to alter the properties of the packages(package name, channel information etc) as well as the structure of the packages (upgrade graphs of channels etc) of the index without having to rebuild bundles+republish the index. Finally, it discusses using the representations as source of truth for serving data from the index over a gRPC api, instead of the sqllite database that is used currently, along with migration strategy for existing indexes from the sqllite databases to the package representations.   
+This enhancement proposes the representation of packages in an index in a standard declarative way(using json/yaml), so that index authors and operator authors can communicate with each other about the content of an index using json/yaml files, without needing to communicate with each other using containers(index images, operator bundle images etc). Using the declarative representation of the packages in the index, it also proposes allowing index authors and individual package owners to alter the properties of the packages(package name, channel information etc) as well as the structure of the packages (upgrade graphs of channels etc) of the index without having to rebuild bundles+republish the index. Finally, it discusses using the representations as source of truth for serving data from the index over a gRPC api, instead of the sqlite database that is used currently, along with migration strategy for existing indexes from the sqlite databases to the package representations.
 
 ## Motivation
 
@@ -59,7 +59,8 @@ A human consumable representation of packages in an index in the form of json/ya
 ## Non-goals 
 
 1. Enumerate/implement tooling to allow different operations to be performed on the package representations. Numerous tooling(eg those that allow operation on files) that already exists can be leveraged to perform various operations on package representations. 
-2. Advanced tooling to verify dependency satisfiability for individual bundles, channel upgrade graph validity for each channel in a package etc. This will be considered in a separate enhancement.      
+2. Advanced tooling to verify dependency satisfiability for individual bundles, channel upgrade graph validity for each channel in a package etc. This will be considered in a separate enhancement.
+3. Define an exhaustive or authoritative set of bundle properties. This proposal will document only the properties necessary to maintain backwards-compatibility with the existing GRPC API.
 
 ## User Stories 
 
@@ -88,35 +89,49 @@ $ cat etcd.json
         "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
         "mediatype":"image/png"
     },
-    "channels": ["alpha", "singlenamespace-alpha", "clusterwide-alpha"],
     "description": "A message about etcd operator, a description of channels"
-},
+}
 {
-    "schema": "olm.bundle", 
+    "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
         {
-            "name": "olm.package",
-            "values": {
+            "type": "olm.package",
+            "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
             }
         },
         {
-            "name":"olm.gvk",
-            "type": "provided",
-            "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdCluster", 
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
+        {
+            "type":"olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
                 "version": "v1beta2"
             }
         },
         {
-            "name": "olm.channel",
-            "value": "alpha"
+            "type":"olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "alpha"
+            }
         }
     ],
     "relatedImages": [
@@ -125,37 +140,54 @@ $ cat etcd.json
             "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "version": "0.9.0",
     "properties":[
         {
-            "name": "olm.package",
-            "values": {
+            "type": "olm.package",
+            "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
             }
         },
         {
-            "name":"olm.gvk",
-            "type": "provided",
-            "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdBackup", 
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.0"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
                 "version": "v1beta2"
             }
         },
         {
-            "name": "olm.channel",
-            "value": "singlenamespace-alpha"
-        }
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
+            }
+        },
         {
-            "name": "olm.channel",
-            "value": "clusterwide-alpha"
+            "type": "olm.channel",
+            "value": {
+                "name": "singlenamespace-alpha"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "clusterwide-alpha"
+            }
         }
     ],
     "relatedImages" : [
@@ -164,34 +196,49 @@ $ cat etcd.json
             "image": "quay.io/coreos/etcd-operator@sha256:db563baa8194fcfe39d1df744ed70024b0f1f9e9b55b5923c2f3a413c44dc6b8"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.2",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.2",
-    "version": "0.9.2",
     "properties":[
         {
-            "name": "olm.package",
-            "values": {
+            "type": "olm.package",
+            "value": {
                 "packageName": "etcd",
                 "version": "0.9.2"
             }
         },
         {
-            "name":"olm.gvk",
-            "type": "provided",
-            "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdRestore", 
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.2"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdRestore",
                 "version": "v1beta2"
             }
         },
         {
-            "name": "olm.channel",
-            "value": "singlenamespace-alpha",
-            "replaces": "etcdoperator.v0.9.0"
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdRestore",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "singlenamespace-alpha",
+                "replaces": "etcdoperator.v0.9.0"
+            }
         }
     ],
     "relatedImages":[
@@ -200,43 +247,62 @@ $ cat etcd.json
             "image": "quay.io/coreos/etcd-operator@sha256:c0301e4686c3ed4206e370b42de5a3bd2229b9fb4906cf85f3f30650424abec2"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
-    "name": "etcdoperator.v0.9.2-clusterwide", 
+    "name": "etcdoperator.v0.9.2-clusterwide",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.2-clusterwide",
-    "version": "0.9.2-clusterwide",
     "properties":[
         {
-            "name": "olm.package",
-            "values": {
+            "type": "olm.package",
+            "value": {
                 "packageName": "etcd",
                 "version": "0.9.2-clusterwide"
             }
         },
         {
-            "name":"olm.gvk",
-            "type": "provided",
-            "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdBackup", 
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.2-clusterwide"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
                 "version": "v1beta2"
             }
         },
         {
-            "name": "skipRange",
-            "value": ">=0.9.0 <0.9.2"
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
+            }
         },
         {
-            "name": "skips",
-            "value" : "v0.12.2, v0.14.1"
+            "type": "olm.skipRange",
+            "value": ">=0.9.0 <0.9.2-0"
         },
         {
-            "name": "olm.channel",
-            "value": "clusterwide-alpha",
-            "replaces": "etcdoperator.v0.9.0"
-        }  
+            "type": "olm.skips",
+            "value" : "etcdoperator.v0.6.0"
+        },
+        {
+            "type": "olm.skips",
+            "value" : "etcdoperator.v0.6.1"
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "clusterwide-alpha",
+                "replaces": "etcdoperator.v0.9.0"
+            }
+        }
     ],
     "relatedImages":[
         {
@@ -244,43 +310,64 @@ $ cat etcd.json
             "image":"quay.io/coreos/etcd-operator@sha256:c0301e4686c3ed4206e370b42de5a3bd2229b9fb4906cf85f3f30650424abec2"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
     "name" : "etcdoperator.v0.9.4",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.4",
-    "version": "0.9.4",
     "properties":[
         {
-            "name": "olm.package",
-            "values": {
+            "type": "olm.package",
+            "value": {
                 "packageName": "etcd",
-                "version": "0.9.2-clusterwide"
+                "version": "0.9.4"
             }
         },
         {
-            "name":"olm.gvk",
-            "type": "provided",
-            "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdBackup", 
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.4"
+            }
+        },
+        {
+            "type": "olm.package.required",
+            "value": {
+                "packageName": "test",
+                "versionRange": ">=1.2.3 <2.0.0-0"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
                 "version": "v1beta2"
             }
         },
         {
-            "name":"olm.gvk",
-            "type": "required",
-            "values":{
-                "group": "testapi.coreos.com", 
-                "kind": "testapi", 
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.gvk.required",
+            "value": {
+                "group": "testapi.coreos.com",
+                "kind": "Testapi",
                 "version": "v1"
             }
         },
         {
-            "name": "olm.channel",
-            "value": "singlenamespace-alpha",
-            "replaces": "etcdopertor.v0.9.2"
+            "type": "olm.channel",
+            "value": {
+                "name": "singlenamespace-alpha",
+                "replaces": "etcdoperator.v0.9.2"
+            }
         }
     ],
     "relatedImages":[
@@ -289,34 +376,49 @@ $ cat etcd.json
             "image": "quay.io/coreos/etcd-operator@sha256:66a37fd61a06a43969854ee6d3e21087a98b93838e284a6086b13917f96b0d9b"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.4-clusterwide",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.4-clusterwide",
-    "version": "0.9.4-clusterwide",
     "properties":[
         {
-            "name": "olm.package",
-            "values": {
+            "type": "olm.package",
+            "value": {
                 "packageName": "etcd",
                 "version": "0.9.4-clusterwide"
             }
         },
         {
-            "name":"olm.gvk",
-            "type": "provided",
-            "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdBackup", 
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.4-clusterwide"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
                 "version": "v1beta2"
             }
         },
         {
-            "name": "olm.channel",
-            "value": "clusterwide-alpha",
-            "replaces": "etcdoperator.v0.9.2-clusterwide"
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "clusterwide-alpha",
+                "replaces": "etcdoperator.v0.9.2-clusterwide"
+            }
         }
     ],
     "relatedImages":[
@@ -348,35 +450,49 @@ $ cat community-operators/etcd.json
         "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
         "mediatype":"image/png"
     },
-    "channels": ["alpha", "singlenamespace-alpha", "clusterwide-alpha"],
     "description": "A message about etcd operator, a description of channels"
-},
+}
 {
-    "schema": "olm.bundle", 
+    "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
         {
-            "name": "olm.package",
-            "values": {
+            "type": "olm.package",
+            "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
             }
         },
         {
-            "name":"olm.gvk",
-            "type": "provided",
-            "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdCluster", 
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
                 "version": "v1beta2"
             }
         },
         {
-        "name": "olm.channel",
-        "value": "alpha"
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "alpha"
+            }
         }
     ],
     "relatedImages": [
@@ -385,42 +501,61 @@ $ cat community-operators/etcd.json
             "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "version": "0.9.0",
     "properties":[
         {
-            "name": "olm.package",
-            "values": {
+            "type": "olm.package",
+            "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
             }
         },
         {
-            "name":"olm.gvk",
-            "type": "provided",
-            "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdBackup", 
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.0"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
                 "version": "v1beta2"
             }
         },
         {
-            "name": "olm.channel",
-            "value": "alpha",
-            "replaces":"etcdoperator-community.v0.6.1"
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
+            }
         },
         {
-            "name": "olm.channel",
-            "value": "singlenamespace-alpha"
+            "type": "olm.channel",
+            "value": {
+                "name": "alpha",
+                "replaces":"etcdoperator-community.v0.6.1"
+            }
         },
         {
-            "name": "olm.channel",
-            "value": "clusterwide-alpha"
+            "type": "olm.channel",
+            "value": {
+                "name": "singlenamespace-alpha"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "clusterwide-alpha"
+            }
         }
     ],
     "relatedImages" : [
@@ -429,7 +564,7 @@ $ cat community-operators/etcd.json
             "image": "quay.io/coreos/etcd-operator@sha256:db563baa8194fcfe39d1df744ed70024b0f1f9e9b55b5923c2f3a413c44dc6b8"
         }
     ]
-},
+}
 .
 .
 .
@@ -481,40 +616,132 @@ The representation of the content of an index using json/yaml provides a unique 
 
 ![Alt text](assets/new-community-operators.png?raw=true "community-operators")
 
-Since each bundle in the index belongs to a channel in a package, the index itself can be represented as a collection of packages. Each package is then represented as a json/yaml, a config file that will live inside the index container image alongside the individual bundle metadata. 
+Since each bundle in the index belongs to a channel in a package, the index itself can be represented as a collection of packages. Each package is then represented as a json/yaml, a config file that will live inside the index container image alongside the individual bundle metadata.
 
 #### Contents of the config file
 
 The config file for each package will have a stream of json objects, representing the package and bundle information for that package. Currently, this information is stored in a sql database inside the index. To capture all the information previously stored in this database but in a normalized way, the config file will have two kinds of json blob: 
 
-1. The json blob capturing package information. 
+##### Declarative Package Format
 ```json
 {
     "schema": "olm.package",
     "name": "<package-name>",
     "defaultChannel": "<channel-name>",
     "icon": "embedded or remote",
-    "channels": ["<list-of-channels-in-package>"],
     "description": "A message about the operator, a description of channels..."
 }
 ```
 This information is currently captured in the `package` table.
 
-2. The json blob capturing the bundle information.
+##### Declarative Bundle Format
 ```json
 {
     "schema": "olm.bundle",
     "name": "<operatorbundle_name>",
     "package": "<package_name>",
     "image": "<operatorbundle_path>",
-    "version": "<version>",
     "properties":["<list of properties of bundle that encode bundle dependencies(provided and required apis) upgrade graph info(skips/skipRange), and bundle channel/s info>"],
     "relatedImages" : ["<list-of-related-images>"]
 }
-
 ```
 
-This information is currently captured in the `operatorbundle`, `properties`, `channel`, `channel_entry`, `api`, `api_provider`, `api_requirer` and `related_image` tables in the sql database.  
+This information is currently captured in the `operatorbundle`, `properties`, `channel`, `channel_entry`, `api`, `api_provider`, `api_requirer` and `related_image` tables in the sql database.
+
+##### Extension formats
+
+While this enhancement proposal does not specify any schemas other than `olm.package` and `olm.bundle`, it does not preclude them either. When reading/writing blobs, `opm` will search for a minimal set of fields to determine validity and associations:
+
+```json
+{
+  "schema": "<string>", /* required: "olm." prefix is reserved; blobs without schemas will be ignored. */
+  "package": "<string>", /* optional: blobs that define a their associated package will be stored in `<packageName>.json`, others will be stored in `__global.json` */
+  "properties": [
+    {
+      "type": "<string>", /* required: "olm." prefix is reserved */
+      "value": <arbitrary_json_defined_by_type> /* required */
+    }
+  ] /* optional: list of 0..n properties; not every schema is required to have properties, but if properties are present, they must follow the property spec */
+}
+```
+
+###### A note on properties
+
+Defining bundle properties is not within the scope of this proposal. For the purposes of the declarative configuration format, properties are opaque JSON blobs that can convey arbitrary metadata about a particular bundle.
+
+However, for backwards compatibility reasons, a subset of well-defined properties will be understood by `opm` so that declarative config representations can be transparently swapped in for the deprecated database backend while still serving the same GRPC API.
+These properties are:
+
+| Type                   | Value Schema                           | Example                                                                                                                   |
+|------------------------|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| `olm.package`          | `{ packageName, version string }`      | `{"type":"olm.package", "value": {"packageName":"etcd", "version":"0.9.4"}}`                                              |
+| `olm.package.provided` | `{ packageName, version string }`      | `{"type":"olm.package.provided", "value": {"packageName":"etcd", "version":"0.9.4"}}`                                     |
+| `olm.package.required` | `{ packageName, versionRange string }` | `{"type":"olm.package.required", "value": {"packageName":"test", "versionRange":">=1.2.3 <2.0.0-0"}}`                     |
+| `olm.gvk`              | `{ group, version, kind string }`      | `{"type":"olm.gvk", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}`          |
+| `olm.gvk.provided`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.provided", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}` |
+| `olm.gvk.required`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.required", "value": {"group": "test.coreos.com", "version": "v1", "kind": "Testapi"}}`                  |
+| `olm.skips`            | `string`                               | `{"type":"olm.skips", "value": "etcdoperator.v0.9.0"}`<br>`{"type":"olm.skips", "value": "etcdoperator.v0.9.2"}`          |
+| `olm.skipRange`        | `string`                               | `{"type":"olm.skipRange", "value": "<0.9.4"}`                                                                             |
+| `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}`         |
+
+To support both old and new clients, `opm` will ensure that there are matching `olm.gvk`/`olm.gvk.provided` and `olm.package`/`olm.package.provided` properties present in bundle properties when migrating from the sqlite database representation and also during build time and validation. When all supported clients have been transitioned to understand the new property names, `olm.gvk` and `olm.package` will be retired.
+Since the `olm.bundle` schema also has a top-level field for `package`, `opm` will verify that it aligns with the `olm.package`/`olm.package.provided` properties.
+
+#### Filesystem structure
+
+Declarative configs are expected to exist in a directory structure. When reading a declarative config index, `opm` will
+traverse the file tree and load valid blobs from each file it finds. When writing a declarative config, package-specific
+blobs are concatenated into a single `<packageName>.json` file, and non-package-specific blobs are concatenated into
+`__global.json`.
+
+Package-specific blobs are defined by either the `olm.package` schema or a non-empty root-level `package` field.
+Non-package-specific blobs are defined by non-`olm.package` blobs with an empty root-level `package` field. So for
+example, if an index contains only `olm.package` and `olm.bundle` blobs, `opm` will not write its declarative
+config representation with a `__global.json` file because the index consists of only package-specific blobs.
+
+The output directory structure will be:
+```bash
+$ tree <index_name>
+<index_name>
+├── amqstreams.json
+├── etcd.json
+├── __global.json
+└── servicemesh.json
+```
+
+When stored in a tarball, the output structure will be:
+```bash
+$ tar tvf <index_name>.db
+drwxr-xr-x nobody/nobody     0 2021-03-17 17:18 index/
+-rw-r--r-- nobody/nobody     0 2021-03-17 15:44 index/servicemesh.json
+-rw-r--r-- nobody/nobody     0 2021-03-17 17:18 index/__global.json
+-rw-r--r-- nobody/nobody     0 2021-03-17 15:39 index/amqstreams.json
+-rw-r--r-- nobody/nobody     0 2021-03-17 15:38 index/etcd.json
+```
+
+When migrating an sqlite file to a tarball, `opm` will create the tarball with the declarative directory structure
+(described above) with the root directory always called `index`.
+
+For example, if `my-index.db` is an sqlite file `opm registry add --database /path/to/my-index.db --bundle my-bundle:v0.1.0`
+will replace the input `/path/to/my-index.db` file with a tarball, also called `/path/to/my-index.db`. The tarball
+`my-index.db` file will have an `index` directory in its root, which contains global and package JSON files.
+
+By implicitly migrating the sqlite database to a tarball (instead of the configs directory), users will be able to
+continue using `opm registry` commands in their existing scripts with the assumption that the database is a single
+_file_, which is important when combined with other commands (e.g. `cp` requires different flags to copy files and
+directories).
+
+Explicit migrations will convert the input database to a declarative configs directory because users are explicitly
+opting in to the new format and are therefore aware of the changes that will be made during the migration.
+
+```bash
+$ tar tvf my-index.db
+drwxr-xr-x nobody/nobody     0 2021-03-17 17:18 index/
+-rw-r--r-- nobody/nobody     0 2021-03-17 15:44 index/servicemesh.json
+-rw-r--r-- nobody/nobody     0 2021-03-17 17:18 index/__global.json
+-rw-r--r-- nobody/nobody     0 2021-03-17 15:39 index/amqstreams.json
+-rw-r--r-- nobody/nobody     0 2021-03-17 15:38 index/etcd.json
+```
 
 #### Representing the upgrade graph in the channel json blob
 
@@ -563,7 +790,12 @@ etcdoperator.v0.9.4-clusterwide  quay.io/operatorhubio/etcd:v0.9.4-clusterwide  
 etcdoperator.v0.9.4              quay.io/operatorhubio/etcd:v0.9.4              0.9.4                                etcdoperator.v0.9.2   
 ```
 
-This information will be captured in the `properties.<"olm.channel">.replaces`, `properties.skips` and `properties.skipRange` of the `olm.bundle` blob. In the `properties.<"olm.channel">` object for each channel, the bundle that replaces a previous bundle is captured in the `replaces` field. An upgrade edge in a channel is represented by: bundle.properties<"olm.channel">.replaces <- bundle name. 
+This information will be captured in the `properties.<"olm.channel">.value.replaces`, `properties.<"olm.skips">.value` and `properties.<"olm.skipRange">.value` of the `olm.bundle` blob.
+
+When building an internal model of the upgrade graph for a particular channel, the `properties.<"olm.channel">.value.replaces` and `properties.<"olm.skips">.value` fields are used to count the number of incoming edges that each bundle has.
+To be valid, a channel's bundles must form a directed acyclic graph, and there must be exactly one bundle with zero incoming edges.
+
+The `properties.<"olm.skipRange">` property is currently consumed only by the OLM resolver to allow bundles to "override" the graph and form new implicit upgrade edges to allow direct upgrades from other bundles whose versions fall within the `skipRange`.
 
 #### Creating the json/yaml config file to represent a package
 
@@ -576,144 +808,183 @@ $ tree community-operators
 ├── etcd.json
 
 $ cat community-operators/etcd.json
-[
-    {
-        "schema": "olm.package",
-        "name": "etcd",
-        "defaultChannel": "singlenamespace-alpha",
-        "icon": {
-            "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
-            "mediatype":"image/png"
-        },
-        "channels": ["alpha"],
-        "description": "A message about etcd operator, a description of channels"
+{
+    "schema": "olm.package",
+    "name": "etcd",
+    "defaultChannel": "singlenamespace-alpha",
+    "icon": {
+        "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
+        "mediatype":"image/png"
     },
-    {
-        "schema": "olm.bundle", 
-        "name": "etcdoperator-community.v0.6.1",
-        "package": "etcd",
-        "image": "quay.io/operatorhubio/etcd:v0.6.1",
-        "version": "0.6.1",
-        "properties":[
-            {
-                "name": "olm.package",
-                "values": {
-                    "packageName": "etcd",
-                    "version": "0.6.1"
-                }
-            },
-            {
-                "name":"olm.gvk",
-                "type": "provided",
-                "values":{
-                    "group": "etcd.database.coreos.com", 
-                    "kind": "EtcdCluster", 
-                    "version": "v1beta2"
-                }
-            }, 
-            {
-                "name": "olm.channel",
-                "value": "alpha",
+    "description": "A message about etcd operator, a description of channels"
+}
+{
+    "schema": "olm.bundle",
+    "name": "etcdoperator-community.v0.6.1",
+    "package": "etcd",
+    "image": "quay.io/operatorhubio/etcd:v0.6.1",
+    "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
             }
-        ],
-        "relatedImages": [
-            {
+        },
+        {
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "alpha"
+            }
+        }
+    ],
+    "relatedImages": [
+        {
             "name": "etcdv0.6.1",
             "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
-            }
-        ]
-    }
-]
+        }
+    ]
+}
 $ opm index add --bundles quay.io/operatorhubio/etcd:v0.9.0 --mode replaces --tag docker.io/my-namespace/community-operators:latest
 $ docker push docker.io/my-namespace/community-operators:latest
 $ opm index inspect --image=docker.io/my-namespace/community-operators:latest --output=json
 $ cat community-operators/etcd.json
-[
-    {
-        "schema": "olm.package",
-        "name": "etcd",
-        "defaultChannel": "singlenamespace-alpha",
-        "icon": {
-            "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
-            "mediatype":"image/png"
-        },
-        "channels": ["alpha", "singlenamespace-alpha"],
-        "description": "A message about etcd operator, a description of channels"
+{
+    "schema": "olm.package",
+    "name": "etcd",
+    "defaultChannel": "singlenamespace-alpha",
+    "icon": {
+        "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
+        "mediatype":"image/png"
     },
-    {
-        "schema": "olm.bundle", 
-        "name": "etcdoperator-community.v0.6.1",
-        "package": "etcd",
-        "image": "quay.io/operatorhubio/etcd:v0.6.1",
-        "version": "0.6.1",
-        "properties":[
-            {
-                "name": "olm.package",
-                "values": {
-                    "packageName": "etcd",
-                    "version": "0.6.1"
-                }
-            },
-            {
-                "name":"olm.gvk",
-                "type": "provided",
-                "values":{
-                    "group": "etcd.database.coreos.com", 
-                    "kind": "EtcdCluster", 
-                    "version": "v1beta2"
-                }
-            },
-            {
-                "name": "olm.channel",
-                "value": "alpha",
+    "description": "A message about etcd operator, a description of channels"
+}
+{
+    "schema": "olm.bundle",
+    "name": "etcdoperator-community.v0.6.1",
+    "package": "etcd",
+    "image": "quay.io/operatorhubio/etcd:v0.6.1",
+    "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
             }
-        ],
-        "relatedImages": [
-            {
+        },
+        {
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "alpha"
+            }
+        }
+    ],
+    "relatedImages": [
+        {
             "name": "etcdv0.6.1",
             "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
+        }
+    ]
+}
+{
+    "schema": "olm.bundle",
+    "name": "etcdoperator.v0.9.0",
+    "package": "etcd",
+    "image": "quay.io/operatorhubio/etcd:v0.9.0",
+    "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.0"
             }
-        ]
-    },
-    {
-        "schema": "olm.bundle",
-        "name": "etcdoperator.v0.9.0",
-        "package": "etcd",
-        "image": "quay.io/operatorhubio/etcd:v0.9.0",
-        "version": "0.9.0",
-        "properties":[
-            {
-                "name": "olm.package",
-                "values": {
-                    "packageName": "etcd",
-                    "version": "0.9.0"
-                }
-            },
-            {
-                "name":"olm.gvk",
-                "type": "provided",
-                "values":{
-                    "group": "etcd.database.coreos.com", 
-                    "kind": "EtcdBackup", 
-                    "version": "v1beta2"
-                }
-            },
-             {
-                "name": "olm.channel",
-                "value": "singlenamespace-alpha",
+        },
+        {
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.0"
             }
-        ],
-        "relatedImages" : [
-            {
-                "name": "etcdv0.9.0",
-                "image": "quay.io/coreos/etcd-operator@sha256:db563baa8194fcfe39d1df744ed70024b0f1f9e9b55b5923c2f3a413c44dc6b8"
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
             }
-        ]
-    }
-]
+        },
+        {
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "singlenamespace-alpha"
+            }
+        }
+    ],
+    "relatedImages" : [
+        {
+            "name": "etcdv0.9.0",
+            "image": "quay.io/coreos/etcd-operator@sha256:db563baa8194fcfe39d1df744ed70024b0f1f9e9b55b5923c2f3a413c44dc6b8"
+        }
+    ]
+}
 ```
 
-The `opm index add` command will also be enhanced to create `olm.bundle` json blobs for bundles passed onto the command along with a package config file, and append them to the config file.
+The `opm registry add` command will also be enhanced to create `olm.bundle` json blobs for bundles passed onto the command along with a package config, and append them to the config.
 
 ```bash
 $ cat community-operators/etcd.json
@@ -725,45 +996,59 @@ $ cat community-operators/etcd.json
         "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
         "mediatype":"image/png"
     },
-    "channels": ["alpha"],
     "description": "A message about etcd operator, a description of channels"
-},
+}
 {
-    "schema": "olm.bundle", 
+    "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
         {
-            "name": "olm.package",
-            "values": {
+            "type": "olm.package",
+            "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
             }
         },
         {
-            "name":"olm.gvk",
-            "type": "provided",
-            "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdCluster", 
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
                 "version": "v1beta2"
             }
         },
         {
-            "name":"olm.channel",
-            "value": "alpha"
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "alpha"
+            }
         }
     ],
     "relatedImages": [
         {
-        "name": "etcdv0.6.1",
-        "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
+            "name": "etcdv0.6.1",
+            "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
         }
     ]
 }
-$ opm index add --bundles quay.io/operatorhubio/etcd:v0.9.0 --mode replaces --config community-operators/etcd
+$ opm registry add --bundles quay.io/operatorhubio/etcd:v0.9.0 --mode replaces --database community-operators
 $ cat community-operators/etcd.json
 {
     "schema": "olm.package",
@@ -773,70 +1058,99 @@ $ cat community-operators/etcd.json
         "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
         "mediatype":"image/png"
     },
-    "channels": ["alpha", "singlenamespace-alpha"],
     "description": "A message about etcd operator, a description of channels"
-},
+}
 {
-    "schema": "olm.bundle", 
+    "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "version": "0.6.1",
     "properties":[
         {
-            "name": "olm.package",
-            "values": {
+            "type": "olm.package",
+            "value": {
                 "packageName": "etcd",
                 "version": "0.6.1"
             }
         },
         {
-            "name":"olm.gvk",
-            "type": "provided",
-            "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdCluster", 
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
                 "version": "v1beta2"
             }
         },
         {
-            "name":"olm.channel",
-            "value": "alpha"
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "alpha"
+            }
         }
     ],
     "relatedImages": [
         {
-        "name": "etcdv0.6.1",
-        "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
+            "name": "etcdv0.6.1",
+            "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
         }
     ]
-},
+}
 {
     "schema": "olm.bundle",
     "name": "etcdoperator.v0.9.0",
     "package": "etcd",
     "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "version": "0.9.0",
     "properties":[
         {
-            "name": "olm.package",
-            "values": {
+            "type": "olm.package",
+            "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
             }
         },
         {
-            "name":"olm.gvk",
-            "type": "provided",
-            "values":{
-                "group": "etcd.database.coreos.com", 
-                "kind": "EtcdBackup", 
+            "type": "olm.package.provided",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.0"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
                 "version": "v1beta2"
             }
         },
         {
-            "name":"olm.channel",
-            "value": "singlenamespace-alpha"
+            "type": "olm.gvk.provided",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "singlenamespace-alpha"
+            }
         }
     ],
     "relatedImages" : [
@@ -900,7 +1214,7 @@ A new sub-command `validate` will be introduced under `opm index`, that will val
 
 #### Usage of the json representation of packages by olm components
 
-The sqllite database that is currently created inside the index is used to serve contents of the index over a gRPC api.
+The sqlite database that is currently created inside the index is used to serve contents of the index over a gRPC api.
 
 ```go
 rpc ListPackages(ListPackageRequest) returns (stream PackageName) {}
@@ -915,28 +1229,38 @@ rpc GetDefaultBundleThatProvides(GetDefaultProviderRequest) returns (Bundle) {}
 rpc ListBundles(ListBundlesRequest) returns (stream Bundle) {}
 ```
 
-Once the declarative package configs are available inside an index, these configs will be used to serve the content for these api endpoints instead of the sqllite database. A new flag `configs` will be introduced under `opm registry serve` that will accept a directory of config files as input, and use that directory to serve the grpc endpoints (instead of `registry serve --database index.db`).
+Once the declarative package configs are available inside an index, these configs will be used to serve the content for these api endpoints instead of the sqlite database.
+The `opm registry serve` will auto-detect the filetype of the `--database` flag and transparently handle both sqlite database files and declarative configs. If the database is formatted as sqlite, `opm registry serve` will internally migrate it to its declarative config representation prior to serving the GRPC API. When `opm registry serve` exits, the sqlite database will be preserved, and any temporary declarative config files will be cleaned up.
+
+## Deprecations
+
+Support for databases in the sqlite format will be marked for deprecation. All `opm` commands that interact with the database will print a deprecation warning on the
+command line when they detect an sqlite database is present. Users should plan to explicitly migrate their index images to the declarative config format because support for sqlite will be removed in a future release.
+
+Additionally, `prune`, `prune-stranded` and `rm` sub-commands under the `opm index` command will also be marked for deprecation.
 
 
 ## Migration Plan
 
-The index images that exists today have the sqllite database in them, and have been built with the following Docker configuration: 
+The `opm` command will automatically migrate an sqlite-based database to a declarative config-based database according to the following rules:
+1. Existing `opm index` commands will support images containing the deprecated sqlite representation or the declarative config-based tar or directory representation. All `opm index` subcommands will automatically migrate the input database to the declarative config directory representation, and then perform the desired underlying registry action against the declarative config representation.
+2. Existing `opm registry` commands will support input databases with the deprecated sqlite representation or the declarative config-based tar or directory representation. If the input database is a file (e.g. sqlite or declarative config tar), `opm registry` commands that modify the database will always output the declarative config tar format. This ensures that existing clients of `opm registry` who have not explicitly migrated can continue treating the database as an opaque file. If the input database is a declarative config directory, `opm registry` preserves the fact that it is a directory. `opm registry serve` does not have any permanent filesystem side effects.
+3. For existing commands, no new flags are being introduced to distinguish sqlite input from declarative config input. All input database formats can be provided via the `--database` flag.
+
+
+The index images that exist today have the sqlite database in them, and have been built with the following Docker configuration:
 
 ```Dockerfile
 ENTRYPOINT ["/bin/opm"]
 CMD ["registry", "serve", "--database", "/database/index.db"]
 ```
 
-Since the new `opm` binary will create configs on `add`, the new images will be built with the new configuration: 
+Since the new `opm` binary will implicitly migrate the database in-place to the declarative config format, no change is required in the index image entrypoint.
 
 ```Dockerfile
 ENTRYPOINT ["/bin/opm"]
-CMD ["registry", "serve", "--config", "config.json"]
+CMD ["registry", "serve", "--database", "/database/index.db"]
 ```
-
-To migrate existing index images built with the old configuration, all existing `opm index` commands that alter the index (i,e `opm index add --from-index`, `opm index prune`, `opm index prune-stranded` and `opm index rm`) will be enhanced to first let the corresponding operation through, and then check if the sqllite database exists in the index. If it does, the sqllite database will be converted over to package representations instead, the sqllite database will be deleted, and the new altered image will be built using the new configuration. `prune`, `prune-stranded` and `rm` sub-commands under the `opm index` command will also be marked for deprecation. If these sub-commands are used on an index that has already been migrated over to package representations, the operations will still be supported on these indexes with package representations for the period of time these sub-commands are marked as deprecated, until they are removed.      
- 
-The `opm registry` command contains the same sub-commands as that of `opm index` (`add`, `prune`, `prune-stranded` and `rm`), but accepts a database file with the `--database` flag that it operators on (instead of a container image like the `opm index` command). A new flag `configs` will be introduced under `opm registry` that will accept a directory which contains the declarative representation of all the packages inside the index. All existing sub-commands of `opm registry` will be continued to be supported for performing operations on the declarative representations using the new `config` flag. The ability to perform `add`, `prune`, `prune-stranded` and `rm` using the `--database` flag will be removed. The only `opm registry` command that will continue to be supported using the `--database` flag is the `serve` command, which will also be marked for deprecation.     
 
 ## Test plan
 
