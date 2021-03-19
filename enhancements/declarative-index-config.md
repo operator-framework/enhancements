@@ -694,6 +694,11 @@ traverse the file tree and load valid blobs from each file it finds. When writin
 blobs are concatenated into a single `<packageName>.json` file, and non-package-specific blobs are concatenated into
 `__global.json`.
 
+Package-specific blobs are defined by either the `olm.package` schema or a non-empty root-level `package` field.
+Non-package-specific blobs are defined by non-`olm.package` blobs with an empty root-level `package` field. So for
+example, if an index contains only `olm.package` and `olm.bundle` blobs, `opm` will not write its declarative
+config representation with a `__global.json` file because the index consists of only package-specific blobs.
+
 The output directory structure will be:
 ```bash
 $ tree <index_name>
@@ -720,6 +725,14 @@ When migrating an sqlite file to a tarball, `opm` will create the tarball with t
 For example, if `my-index.db` is an sqlite file `opm registry add --database /path/to/my-index.db --bundle my-bundle:v0.1.0`
 will replace the input `/path/to/my-index.db` file with a tarball, also called `/path/to/my-index.db`. The tarball
 `my-index.db` file will have an `index` directory in its root, which contains global and package JSON files.
+
+By implicitly migrating the sqlite database to a tarball (instead of the configs directory), users will be able to
+continue using `opm registry` commands in their existing scripts with the assumption that the database is a single
+_file_, which is important when combined with other commands (e.g. `cp` requires different flags to copy files and
+directories).
+
+Explicit migrations will convert the input database to a declarative configs directory because users are explicitly
+opting in to the new format and are therefore aware of the changes that will be made during the migration.
 
 ```bash
 $ tar tvf my-index.db
@@ -971,7 +984,7 @@ $ cat community-operators/etcd.json
 }
 ```
 
-The `opm index add` command will also be enhanced to create `olm.bundle` json blobs for bundles passed onto the command along with a package config file, and append them to the config file.
+The `opm registry add` command will also be enhanced to create `olm.bundle` json blobs for bundles passed onto the command along with a package config, and append them to the config.
 
 ```bash
 $ cat community-operators/etcd.json
@@ -1035,7 +1048,7 @@ $ cat community-operators/etcd.json
         }
     ]
 }
-$ opm index add --bundles quay.io/operatorhubio/etcd:v0.9.0 --mode replaces
+$ opm registry add --bundles quay.io/operatorhubio/etcd:v0.9.0 --mode replaces --database community-operators
 $ cat community-operators/etcd.json
 {
     "schema": "olm.package",
