@@ -152,48 +152,73 @@ The main components of the repository are as follows:
     ```bash
     ./scripts/push_upstream.sh api b548a718f..85784b751
     ```
+
+    This will create a PR against `operator-framework/api:master` from a new branch `api-b548a7-1605884019`.
+
+  - pull\_upstream.sh: When run, this pulls all changes from an upstream repository. The specific subtree meant to be pulled can be provided as an argument, along with an upstream branch to pull from. The changes will be merged to a new local branch from which a PR will be opened to downstream/master. If no arguments are passed, the script will sync all the vendored repositories in the `staging` directory.
+
+    ```bash
+    ./scripts/pull_upstream.sh api
+    ```
+
     During the upstream merge process, any conflicts will require human intervention to resolve.
-  - manifests: Contains the list of YAML manifests that are needed by the [CVO to deploy](https://github.com/openshift/cluster-version-operator/blob/master/docs/dev/operators.md) OLM and the operator-registry resources and roles.
+- manifests: Contains the list of YAML manifests that are needed by the [CVO to deploy](https://github.com/openshift/cluster-version-operator/blob/master/docs/dev/operators.md) OLM and the operator-registry resources and roles.
+
 ### Downstreaming
+
 1. Change PRs merge to upstream/master.
-2. The upstream sync runs manually for the vendored subtrees. This will create a PR against downstream/master except when downstream/master is closed for development, sync will be run daily to decrease the changes being merged at once.
-  ```
-  $ ./scripts/pull_upstream.sh
-  ```
-  Any conflicts will be resolved manually here.
-3. Downstream tests run against the sync PR. If tests fail, sync is stopped from merging and will require manual intervention. Development can continue on downstream repo, but the sync will need to be re-run or the sync PR rebased.
-3. Sync PR passes all tests and gets merged into downstream/master
+1. The upstream sync runs manually for the vendored subtrees. This will create a PR against downstream/master except when downstream/master is closed for development, sync will be run daily to decrease the changes being merged at once.
+
+    ```bash
+    ./scripts/pull_upstream.sh
+    ```
+
+    Any conflicts will be resolved manually here.
+
+1. Downstream tests run against the sync PR. If tests fail, sync is stopped from merging and will require manual intervention. Development can continue on downstream repo, but the sync will need to be re-run or the sync PR rebased.
+1. Sync PR passes all tests and gets merged into downstream/master
 
 ### Upstreaming
+
 Ideally, all changes should be made upstream. However, in case of a critical feature or fix needs to be added to downstream while upstream is not in a good state, the change can be brought back upstream as follows:
+
 1. PR merges to downstream into one of the repositories in `/staging`.
 2. PR cherry-picked to upstream using the `push_upstream.sh` script by commit range. This creates a PR against upstream/master.
+
+   ```bash
+   ./scripts/push_upstream.sh api b548a718f..85784b751
    ```
-   $ ./scripts/push_upstream.sh api b548a718f..85784b751
-   ```
+
 3. Upstream tests run against PR. Once tests pass, fix is merged to upstream.
 
 ### Testing
 
 #### Downstream testing
+
 To have the OpenShift specific tests running against the downstream repo, the [`ci-operator`](github.com/openshift/release/tree/master/ci-operator/jobs/operator-framework/operator-lifecycle-manager) will be updated to use use the new downstream repo as its source. The unit tests will continue to use github actions.
 
 #### Upstream testing
+
 The upstream repositories will continue to use github actions for tests, with the OpenShift specific tests being removed.
 
 #### Testing for upstream/downstream sync
+
 The upstream sync creates a PR against downstream master before merging, so it undergoes the same tests as any other downstream PR.
 
 #### Building releases
+
 For enabling builds from the new downstream repo, [`openshift/release`](github.com/openshift/release/tree/master/ci-operator/jobs/operator-framework/operator-lifecycle-manager) will be updated to use it as a source.
 
 ### Backporting
 
 #### Pre-4.7
+
 Pre-4.6 releases will continue to live as branches on the upstream repositories. Backports to these will be cherry-picked directly from the upstream/master but will not be merged until backports have succeeded till 4.6.
 
 #### 4.7 and later
-The backport workflow is as follows
+
+The backport workflow is as follows:
+
 1. Change gets accepted to upstream/master
 2. Sync runs for downstream/master, a sync PR is opened against it
 3. Sync PR merges, downstream/master has the fix. Fix is cherry-picked to the latest release branch
@@ -207,25 +232,31 @@ Backports to older versions of OpenShift may be blocked if the corresponding ups
 
 ### Test Plan
 
-create a downstream monorepo in `openshift/operator-framework-olm`, vendor mirrors of the other repositories as subtrees. Do not update the build source at this stage
-ensure that builds can succeed from the monorepo.
-do nightly sync with the upstream repos to ensure that the downstreaming process works as intended
-test a backport of a commit, both to another branch on the monorepo and to the mirrored repositories
-Update `openshift/release` to use `openshift/operator-framework-olm` as its build source, ensure successful build
+Create a downstream monorepo in `openshift/operator-framework-olm`, vendor mirrors of the other repositories as subtrees. Do not update the build source at this stage.
+
+Ensure that builds can succeed from the monorepo.
+
+Perform nightly syncs with the upstream repositories to ensure that the downstreaming process works as intended.
+
+Test a backport of a commit, both to another branch on the monorepo, and to the mirrored repositories.
+
+Update the `openshift/release` repository, adding a prow configuration for the `openshift/operator-framework-olm` repository, and verifying that successful builds and tests using those builds are working as intended.
 
 ### Upgrade / Downgrade Strategy
 
 For performing the migration:
+
 - Prepare downstream repositories
-    - Add staging subtrees
-    - Set up downstream specific Makefiles/Dockerfiles and build dependencies to build staged packages.
+  - Add staging subtrees
+  - Set up downstream specific Makefiles/Dockerfiles and build dependencies to build staged packages.
 - Set up build and test pipelines
-    - Downstream
-        - Configure [downstream release automation]((https://github.com/openshift/release/tree/master/ci-operator/jobs/operator-framework)) for required versions to point to new downstream repository.
-        - Add [OpenShift-bot](https://github.com/openshift/release/blob/0eba3f6cfdc76c9b710af19cf004918859cba3d0/ci-operator/jobs/infra-periodics.yaml) to manage downstream repository state
+  - Downstream
+    - Configure [downstream release automation]((https://github.com/openshift/release/tree/master/ci-operator/jobs/operator-framework)) for required versions to point to new downstream repository.
+    - Add [OpenShift-bot](https://github.com/openshift/release/blob/0eba3f6cfdc76c9b710af19cf004918859cba3d0/ci-operator/jobs/infra-periodics.yaml) to manage downstream repository state
 - Phase out downstream content from upstream repositories as older releases reach EOL
 
 To revert the upstream/downstream split:
+
 - Add any removed downstream specific requirements to upstream repositories
 - Push any release branches present only on downstream monorepo to upstream repositories
 - Revert changes to jobs in [`openshift/release`](https://github.com/openshift/release/tree/master/ci-operator/jobs/operator-framework)
@@ -244,4 +275,4 @@ The downstream product may also be a set of forks of corresponding upstream proj
 
 ## Infrastructure Needed
 
-- New downstream repository, `openshift/operator-framework-olm`.
+- A new downstream repository, `openshift/operator-framework-olm` will need to be created.
