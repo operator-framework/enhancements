@@ -91,7 +91,7 @@ The upstream codebase will continue to live in the [operator framework](https://
 
 ### Downstream repository layout
 
-The downstream monorepo will live at a new repo openshift/operator-lifecycle-manager. The upstream projects will be present as vendored directories.
+The downstream monorepo will live at a new repo openshift/operator-framework-olm. The upstream projects will be present as vendored directories.
 
 ``` yaml
 .
@@ -199,11 +199,11 @@ Backports to older versions of OpenShift may be blocked if the corresponding ups
 
 ### Test Plan
 
-create a downstream monorepo in `openshift/operator-lifecycle-manager`, vendor mirrors of the other repositories as subtrees. Do not update the build source at this stage
+create a downstream monorepo in `openshift/operator-framework-olm`, vendor mirrors of the other repositories as subtrees. Do not update the build source at this stage
 ensure that builds can succeed from the monorepo.
 do nightly sync with the upstream repos to ensure that the downstreaming process works as intended
 test a backport of a commit, both to another branch on the monorepo and to the mirrored repositories
-Update `openshift/release` to use `openshift/operator-lifecycle-manager` as its build source, ensure successful build
+Update `openshift/release` to use `openshift/operator-framework-olm` as its build source, ensure successful build
 
 ### Upgrade / Downgrade Strategy
 
@@ -236,4 +236,4 @@ The downstream product may also be a set of forks of corresponding upstream proj
 
 ## Infrastructure Needed
 
-- New downstream repository, `openshift/operator-lifecycle-manager`.
+- New downstream repository, `openshift/operator-framework-olm`.
