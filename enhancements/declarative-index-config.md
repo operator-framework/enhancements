@@ -662,30 +662,6 @@ drwxr-xr-x nobody/nobody     0 2021-03-17 17:18 index/
 -rw-r--r-- nobody/nobody     0 2021-03-17 15:38 index/etcd.json
 ```
 
-When migrating an sqlite file to a tarball, `opm` will create the tarball with the declarative directory structure
-(described above) with the root directory always called `index`.
-
-For example, if `my-index.db` is an sqlite file `opm registry add --database /path/to/my-index.db --bundle my-bundle:v0.1.0`
-will replace the input `/path/to/my-index.db` file with a tarball, also called `/path/to/my-index.db`. The tarball
-`my-index.db` file will have an `index` directory in its root, which contains global and package JSON files.
-
-By implicitly migrating the sqlite database to a tarball (instead of the configs directory), users will be able to
-continue using `opm registry` commands in their existing scripts with the assumption that the database is a single
-_file_, which is important when combined with other commands (e.g. `cp` requires different flags to copy files and
-directories).
-
-Explicit migrations will convert the input database to a declarative configs directory because users are explicitly
-opting in to the new format and are therefore aware of the changes that will be made during the migration.
-
-```bash
-$ tar tvf my-index.db
-drwxr-xr-x nobody/nobody     0 2021-03-17 17:18 index/
--rw-r--r-- nobody/nobody     0 2021-03-17 15:44 index/servicemesh.json
--rw-r--r-- nobody/nobody     0 2021-03-17 17:18 index/__global.json
--rw-r--r-- nobody/nobody     0 2021-03-17 15:39 index/amqstreams.json
--rw-r--r-- nobody/nobody     0 2021-03-17 15:38 index/etcd.json
-```
-
 #### Representing the upgrade graph in the channel json blob
 
 Currently, a bundle can be added into the index using `opm index add --bundles <list-of-bundle-paths> --mode replaces|semver|semver-skippatch --tag=<index-image-tag>` where the bundle images (like `quay.io/operatorhubio/etcd:v0.9.0`) are included in `<list-of-bundle-path>`. The bundle can also mention bundles it can be upgrade from using the `skips` or `skipRange` fields in the bundle ClusterServiceVersion. With all of these information provided, the upgrade graph of the bundles in the package is calculated and stored in the `channel_entry` table of the sql database that is built inside the index, while the `skips`/`skipRange` information is persisted in the `operatorbundle` table. The `channel_entry` table is always authoritative in terms of calculating the upgrade graph in a package. The operatorbundle table persists the values of `skips`/`skipRange`/`replaces` when the bundle was first unpacked/added to the index, and other index operations could have changed the real graph in `channel_entry`.  
@@ -1131,7 +1107,7 @@ rpc ListBundles(ListBundlesRequest) returns (stream Bundle) {}
 ```
 
 Once the declarative package configs are available inside an index, these configs will be used to serve the content for these api endpoints instead of the sqlite database.
-The `opm registry serve` will auto-detect the filetype of the `--database` flag and transparently handle both sqlite database files and declarative configs. If the database is formatted as sqlite, `opm registry serve` will internally migrate it to its declarative config representation prior to serving the GRPC API. When `opm registry serve` exits, the sqlite database will be preserved, and any temporary declarative config files will be cleaned up.
+A new `opm serve` command will be introduced to handle serving declarative configs.
 
 ## Deprecations
 
@@ -1143,11 +1119,8 @@ Additionally, `prune`, `prune-stranded` and `rm` sub-commands under the `opm ind
 
 ## Migration Plan
 
-The `opm` command will automatically migrate an sqlite-based database to a declarative config-based database according to the following rules:
-1. Existing `opm index` commands will support images containing the deprecated sqlite representation or the declarative config-based tar or directory representation. All `opm index` subcommands will automatically migrate the input database to the declarative config directory representation, and then perform the desired underlying registry action against the declarative config representation.
-2. Existing `opm registry` commands will support input databases with the deprecated sqlite representation or the declarative config-based tar or directory representation. If the input database is a file (e.g. sqlite or declarative config tar), `opm registry` commands that modify the database will always output the declarative config tar format. This ensures that existing clients of `opm registry` who have not explicitly migrated can continue treating the database as an opaque file. If the input database is a declarative config directory, `opm registry` preserves the fact that it is a directory. `opm registry serve` does not have any permanent filesystem side effects.
-3. For existing commands, no new flags are being introduced to distinguish sqlite input from declarative config input. All input database formats can be provided via the `--database` flag.
-
+Migration is opt-in. Users with existing index images and database files can continue using `opm` in their current workflows
+with no changes.
 
 The index images that exist today have the sqlite database in them, and have been built with the following Docker configuration:
 
@@ -1156,11 +1129,11 @@ ENTRYPOINT ["/bin/opm"]
 CMD ["registry", "serve", "--database", "/database/index.db"]
 ```
 
-Since the new `opm` binary will implicitly migrate the database in-place to the declarative config format, no change is required in the index image entrypoint.
+Users who have opted into the declarative config format will use a different entrypoint, the new `opm serve` command:
 
 ```Dockerfile
 ENTRYPOINT ["/bin/opm"]
-CMD ["registry", "serve", "--database", "/database/index.db"]
+CMD ["serve", "/configs"]
 ```
 
 ## Test plan
