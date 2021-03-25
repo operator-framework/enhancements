@@ -105,13 +105,6 @@ $ cat etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "type":"olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -149,13 +142,6 @@ $ cat etcd.json
     "properties":[
         {
             "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
-        {
-            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
@@ -211,13 +197,6 @@ $ cat etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.2"
-            }
-        },
-        {
             "type": "olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -256,13 +235,6 @@ $ cat etcd.json
     "properties":[
         {
             "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.2-clusterwide"
-            }
-        },
-        {
-            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.2-clusterwide"
@@ -325,13 +297,6 @@ $ cat etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.4"
-            }
-        },
-        {
             "type": "olm.package.required",
             "value": {
                 "packageName": "test",
@@ -385,13 +350,6 @@ $ cat etcd.json
     "properties":[
         {
             "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.4-clusterwide"
-            }
-        },
-        {
-            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.4-clusterwide"
@@ -466,13 +424,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "type": "olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -510,13 +461,6 @@ $ cat community-operators/etcd.json
     "properties":[
         {
             "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
-        {
-            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
@@ -675,7 +619,6 @@ These properties are:
 | Type                   | Value Schema                           | Example                                                                                                                   |
 |------------------------|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
 | `olm.package`          | `{ packageName, version string }`      | `{"type":"olm.package", "value": {"packageName":"etcd", "version":"0.9.4"}}`                                              |
-| `olm.package.provided` | `{ packageName, version string }`      | `{"type":"olm.package.provided", "value": {"packageName":"etcd", "version":"0.9.4"}}`                                     |
 | `olm.package.required` | `{ packageName, versionRange string }` | `{"type":"olm.package.required", "value": {"packageName":"test", "versionRange":">=1.2.3 <2.0.0-0"}}`                     |
 | `olm.gvk`              | `{ group, version, kind string }`      | `{"type":"olm.gvk", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}`          |
 | `olm.gvk.provided`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.provided", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}` |
@@ -684,8 +627,8 @@ These properties are:
 | `olm.skipRange`        | `string`                               | `{"type":"olm.skipRange", "value": "<0.9.4"}`                                                                             |
 | `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}`         |
 
-To support both old and new clients, `opm` will ensure that there are matching `olm.gvk`/`olm.gvk.provided` and `olm.package`/`olm.package.provided` properties present in bundle properties when migrating from the sqlite database representation and also during build time and validation. When all supported clients have been transitioned to understand the new property names, `olm.gvk` and `olm.package` will be retired.
-Since the `olm.bundle` schema also has a top-level field for `package`, `opm` will verify that it aligns with the `olm.package`/`olm.package.provided` properties.
+To support both old and new clients, `opm` will ensure that there are matching `olm.gvk`/`olm.gvk.provided` properties present in bundle properties when migrating from the sqlite database representation and also during build time and validation. When all supported clients have been transitioned to understand the new property names, `olm.gvk` will be retired.
+Since the `olm.bundle` schema also has a top-level field for `package`, `opm` will verify that it aligns with the `olm.package` property.
 
 #### Filesystem structure
 
@@ -832,13 +775,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "type": "olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -896,13 +832,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "type": "olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -940,13 +869,6 @@ $ cat community-operators/etcd.json
     "properties":[
         {
             "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
-        {
-            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
@@ -1012,13 +934,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "type": "olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -1074,13 +989,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "type": "olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -1118,13 +1026,6 @@ $ cat community-operators/etcd.json
     "properties":[
         {
             "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
-        {
-            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
