@@ -113,14 +113,6 @@ $ cat etcd.json
             }
         },
         {
-            "type":"olm.gvk.provided",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdCluster",
-                "version": "v1beta2"
-            }
-        },
-        {
             "type": "olm.channel",
             "value": {
                 "name": "alpha"
@@ -149,14 +141,6 @@ $ cat etcd.json
         },
         {
             "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdBackup",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.gvk.provided",
             "value": {
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
@@ -205,14 +189,6 @@ $ cat etcd.json
             }
         },
         {
-            "type": "olm.gvk.provided",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdRestore",
-                "version": "v1beta2"
-            }
-        },
-        {
             "type": "olm.channel",
             "value": {
                 "name": "singlenamespace-alpha",
@@ -242,14 +218,6 @@ $ cat etcd.json
         },
         {
             "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdBackup",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.gvk.provided",
             "value": {
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
@@ -312,14 +280,6 @@ $ cat etcd.json
             }
         },
         {
-            "type": "olm.gvk.provided",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdBackup",
-                "version": "v1beta2"
-            }
-        },
-        {
             "type": "olm.gvk.required",
             "value": {
                 "group": "testapi.coreos.com",
@@ -357,14 +317,6 @@ $ cat etcd.json
         },
         {
             "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdBackup",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.gvk.provided",
             "value": {
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
@@ -432,14 +384,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.gvk.provided",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdCluster",
-                "version": "v1beta2"
-            }
-        },
-        {
             "type": "olm.channel",
             "value": {
                 "name": "alpha"
@@ -468,14 +412,6 @@ $ cat community-operators/etcd.json
         },
         {
             "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdBackup",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.gvk.provided",
             "value": {
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
@@ -621,14 +557,14 @@ These properties are:
 | `olm.package`          | `{ packageName, version string }`      | `{"type":"olm.package", "value": {"packageName":"etcd", "version":"0.9.4"}}`                                              |
 | `olm.package.required` | `{ packageName, versionRange string }` | `{"type":"olm.package.required", "value": {"packageName":"test", "versionRange":">=1.2.3 <2.0.0-0"}}`                     |
 | `olm.gvk`              | `{ group, version, kind string }`      | `{"type":"olm.gvk", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}`          |
-| `olm.gvk.provided`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.provided", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}` |
 | `olm.gvk.required`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.required", "value": {"group": "test.coreos.com", "version": "v1", "kind": "Testapi"}}`                  |
 | `olm.skips`            | `string`                               | `{"type":"olm.skips", "value": "etcdoperator.v0.9.0"}`<br>`{"type":"olm.skips", "value": "etcdoperator.v0.9.2"}`          |
 | `olm.skipRange`        | `string`                               | `{"type":"olm.skipRange", "value": "<0.9.4"}`                                                                             |
 | `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}`         |
 
-To support both old and new clients, `opm` will ensure that there are matching `olm.gvk`/`olm.gvk.provided` properties present in bundle properties when migrating from the sqlite database representation and also during build time and validation. When all supported clients have been transitioned to understand the new property names, `olm.gvk` will be retired.
 Since the `olm.bundle` schema also has a top-level field for `package`, `opm` will verify that it aligns with the `olm.package` property.
+
+The existing sqlite-based GRPC API sends `plural` fields in the provided and required APIs of bundles. However [OLM discards these fields upon receipt](https://github.com/operator-framework/operator-lifecycle-manager/blob/7823ebe7bc0c5b69d285b908a459375048d555be/pkg/controller/registry/resolver/cache.go#L219-L220). Therefore, the declarative config implementation will not set and send `plural` fields at all.
 
 #### Filesystem structure
 
@@ -759,14 +695,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.gvk.provided",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdCluster",
-                "version": "v1beta2"
-            }
-        },
-        {
             "type": "olm.channel",
             "value": {
                 "name": "alpha"
@@ -816,14 +744,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.gvk.provided",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdCluster",
-                "version": "v1beta2"
-            }
-        },
-        {
             "type": "olm.channel",
             "value": {
                 "name": "alpha"
@@ -852,14 +772,6 @@ $ cat community-operators/etcd.json
         },
         {
             "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdBackup",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.gvk.provided",
             "value": {
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
@@ -918,14 +830,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.gvk.provided",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdCluster",
-                "version": "v1beta2"
-            }
-        },
-        {
             "type": "olm.channel",
             "value": {
                 "name": "alpha"
@@ -973,14 +877,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.gvk.provided",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdCluster",
-                "version": "v1beta2"
-            }
-        },
-        {
             "type": "olm.channel",
             "value": {
                 "name": "alpha"
@@ -1009,14 +905,6 @@ $ cat community-operators/etcd.json
         },
         {
             "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdBackup",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.gvk.provided",
             "value": {
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
