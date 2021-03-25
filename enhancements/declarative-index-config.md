@@ -105,13 +105,6 @@ $ cat etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "type":"olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -149,13 +142,6 @@ $ cat etcd.json
     "properties":[
         {
             "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
-        {
-            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
@@ -211,13 +197,6 @@ $ cat etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.2"
-            }
-        },
-        {
             "type": "olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -256,13 +235,6 @@ $ cat etcd.json
     "properties":[
         {
             "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.2-clusterwide"
-            }
-        },
-        {
-            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.2-clusterwide"
@@ -325,13 +297,6 @@ $ cat etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.4"
-            }
-        },
-        {
             "type": "olm.package.required",
             "value": {
                 "packageName": "test",
@@ -385,13 +350,6 @@ $ cat etcd.json
     "properties":[
         {
             "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.4-clusterwide"
-            }
-        },
-        {
-            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.4-clusterwide"
@@ -466,13 +424,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "type": "olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -510,13 +461,6 @@ $ cat community-operators/etcd.json
     "properties":[
         {
             "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
-        {
-            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
@@ -675,7 +619,6 @@ These properties are:
 | Type                   | Value Schema                           | Example                                                                                                                   |
 |------------------------|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
 | `olm.package`          | `{ packageName, version string }`      | `{"type":"olm.package", "value": {"packageName":"etcd", "version":"0.9.4"}}`                                              |
-| `olm.package.provided` | `{ packageName, version string }`      | `{"type":"olm.package.provided", "value": {"packageName":"etcd", "version":"0.9.4"}}`                                     |
 | `olm.package.required` | `{ packageName, versionRange string }` | `{"type":"olm.package.required", "value": {"packageName":"test", "versionRange":">=1.2.3 <2.0.0-0"}}`                     |
 | `olm.gvk`              | `{ group, version, kind string }`      | `{"type":"olm.gvk", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}`          |
 | `olm.gvk.provided`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.provided", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}` |
@@ -684,8 +627,8 @@ These properties are:
 | `olm.skipRange`        | `string`                               | `{"type":"olm.skipRange", "value": "<0.9.4"}`                                                                             |
 | `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}`         |
 
-To support both old and new clients, `opm` will ensure that there are matching `olm.gvk`/`olm.gvk.provided` and `olm.package`/`olm.package.provided` properties present in bundle properties when migrating from the sqlite database representation and also during build time and validation. When all supported clients have been transitioned to understand the new property names, `olm.gvk` and `olm.package` will be retired.
-Since the `olm.bundle` schema also has a top-level field for `package`, `opm` will verify that it aligns with the `olm.package`/`olm.package.provided` properties.
+To support both old and new clients, `opm` will ensure that there are matching `olm.gvk`/`olm.gvk.provided` properties present in bundle properties when migrating from the sqlite database representation and also during build time and validation. When all supported clients have been transitioned to understand the new property names, `olm.gvk` will be retired.
+Since the `olm.bundle` schema also has a top-level field for `package`, `opm` will verify that it aligns with the `olm.package` property.
 
 #### Filesystem structure
 
@@ -712,30 +655,6 @@ $ tree <index_name>
 When stored in a tarball, the output structure will be:
 ```bash
 $ tar tvf <index_name>.db
-drwxr-xr-x nobody/nobody     0 2021-03-17 17:18 index/
--rw-r--r-- nobody/nobody     0 2021-03-17 15:44 index/servicemesh.json
--rw-r--r-- nobody/nobody     0 2021-03-17 17:18 index/__global.json
--rw-r--r-- nobody/nobody     0 2021-03-17 15:39 index/amqstreams.json
--rw-r--r-- nobody/nobody     0 2021-03-17 15:38 index/etcd.json
-```
-
-When migrating an sqlite file to a tarball, `opm` will create the tarball with the declarative directory structure
-(described above) with the root directory always called `index`.
-
-For example, if `my-index.db` is an sqlite file `opm registry add --database /path/to/my-index.db --bundle my-bundle:v0.1.0`
-will replace the input `/path/to/my-index.db` file with a tarball, also called `/path/to/my-index.db`. The tarball
-`my-index.db` file will have an `index` directory in its root, which contains global and package JSON files.
-
-By implicitly migrating the sqlite database to a tarball (instead of the configs directory), users will be able to
-continue using `opm registry` commands in their existing scripts with the assumption that the database is a single
-_file_, which is important when combined with other commands (e.g. `cp` requires different flags to copy files and
-directories).
-
-Explicit migrations will convert the input database to a declarative configs directory because users are explicitly
-opting in to the new format and are therefore aware of the changes that will be made during the migration.
-
-```bash
-$ tar tvf my-index.db
 drwxr-xr-x nobody/nobody     0 2021-03-17 17:18 index/
 -rw-r--r-- nobody/nobody     0 2021-03-17 15:44 index/servicemesh.json
 -rw-r--r-- nobody/nobody     0 2021-03-17 17:18 index/__global.json
@@ -832,13 +751,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "type": "olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -896,13 +808,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "type": "olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -940,13 +845,6 @@ $ cat community-operators/etcd.json
     "properties":[
         {
             "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
-        {
-            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
@@ -1012,13 +910,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "type": "olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -1074,13 +965,6 @@ $ cat community-operators/etcd.json
             }
         },
         {
-            "type": "olm.package.provided",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
             "type": "olm.gvk",
             "value": {
                 "group": "etcd.database.coreos.com",
@@ -1118,13 +1002,6 @@ $ cat community-operators/etcd.json
     "properties":[
         {
             "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
-        {
-            "type": "olm.package.provided",
             "value": {
                 "packageName": "etcd",
                 "version": "0.9.0"
@@ -1230,7 +1107,7 @@ rpc ListBundles(ListBundlesRequest) returns (stream Bundle) {}
 ```
 
 Once the declarative package configs are available inside an index, these configs will be used to serve the content for these api endpoints instead of the sqlite database.
-The `opm registry serve` will auto-detect the filetype of the `--database` flag and transparently handle both sqlite database files and declarative configs. If the database is formatted as sqlite, `opm registry serve` will internally migrate it to its declarative config representation prior to serving the GRPC API. When `opm registry serve` exits, the sqlite database will be preserved, and any temporary declarative config files will be cleaned up.
+A new `opm serve` command will be introduced to handle serving declarative configs.
 
 ## Deprecations
 
@@ -1242,11 +1119,8 @@ Additionally, `prune`, `prune-stranded` and `rm` sub-commands under the `opm ind
 
 ## Migration Plan
 
-The `opm` command will automatically migrate an sqlite-based database to a declarative config-based database according to the following rules:
-1. Existing `opm index` commands will support images containing the deprecated sqlite representation or the declarative config-based tar or directory representation. All `opm index` subcommands will automatically migrate the input database to the declarative config directory representation, and then perform the desired underlying registry action against the declarative config representation.
-2. Existing `opm registry` commands will support input databases with the deprecated sqlite representation or the declarative config-based tar or directory representation. If the input database is a file (e.g. sqlite or declarative config tar), `opm registry` commands that modify the database will always output the declarative config tar format. This ensures that existing clients of `opm registry` who have not explicitly migrated can continue treating the database as an opaque file. If the input database is a declarative config directory, `opm registry` preserves the fact that it is a directory. `opm registry serve` does not have any permanent filesystem side effects.
-3. For existing commands, no new flags are being introduced to distinguish sqlite input from declarative config input. All input database formats can be provided via the `--database` flag.
-
+Migration is opt-in. Users with existing index images and database files can continue using `opm` in their current workflows
+with no changes.
 
 The index images that exist today have the sqlite database in them, and have been built with the following Docker configuration:
 
@@ -1255,11 +1129,11 @@ ENTRYPOINT ["/bin/opm"]
 CMD ["registry", "serve", "--database", "/database/index.db"]
 ```
 
-Since the new `opm` binary will implicitly migrate the database in-place to the declarative config format, no change is required in the index image entrypoint.
+Users who have opted into the declarative config format will use a different entrypoint, the new `opm serve` command:
 
 ```Dockerfile
 ENTRYPOINT ["/bin/opm"]
-CMD ["registry", "serve", "--database", "/database/index.db"]
+CMD ["serve", "/configs"]
 ```
 
 ## Test plan
