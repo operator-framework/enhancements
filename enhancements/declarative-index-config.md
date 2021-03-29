@@ -77,10 +77,28 @@ pulls the index image from the registry, creates a new folder `community-operato
 $ cd community-operators
 $ tree
 .
-├── etcd.json
-├── amqstreams.json
+├── amqstreams
+│   └── amqstreams.json
+│   └── objects
+│       └── ...
+└── etcd
+    ├── etcd.json
+    └── objects
+        ├── etcdoperator.v0.6.1
+        │   ├── etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
+        │   └── etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml
+        ├── etcdoperator.v0.9.4
+        │   ├── etcdbackups.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
+        │   ├── etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
+        │   ├── etcdoperator.v0.9.4_operators.coreos.com_v1alpha1_clusterserviceversion.yaml
+        │   └── etcdrestores.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
+        └── etcdoperator.v0.9.4-clusterwide
+            ├── etcdbackups.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
+            ├── etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
+            ├── etcdoperator.v0.9.4-clusterwide_operators.coreos.com_v1alpha1_clusterserviceversion.yaml
+            └── etcdrestores.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
 
-$ cat etcd.json
+$ cat etcd/etcd.json
 {
     "schema": "olm.package",
     "name": "etcd",
@@ -116,6 +134,18 @@ $ cat etcd.json
             "type": "olm.channel",
             "value": {
                 "name": "alpha"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
             }
         }
     ],
@@ -293,7 +323,32 @@ $ cat etcd.json
                 "name": "singlenamespace-alpha",
                 "replaces": "etcdoperator.v0.9.2"
             }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.4/etcdbackups.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.4/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.4/etcdoperator.v0.9.4_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.4/etcdrestores.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
         }
+
     ],
     "relatedImages":[
         {
@@ -329,6 +384,30 @@ $ cat etcd.json
                 "name": "clusterwide-alpha",
                 "replaces": "etcdoperator.v0.9.2-clusterwide"
             }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.4-clusterwide/etcdbackups.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.4-clusterwide/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.4-clusterwide/etcdoperator.v0.9.4-clusterwide_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.4-clusterwide/etcdrestores.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
         }
     ],
     "relatedImages":[
@@ -346,12 +425,12 @@ As an index author(with push permission to the namespace my index is hosted in),
 
 ```bash
 $ cd community-operators 
-$ //edit etcd.json to add etcdoperator.v0.9.0 to a the channel `alpha`, and add an upgrade edge from etcdoperator-community.v0.6.1 to etcdoperator.v0.9.0 in channel `alpha`
+$ //edit etcd/etcd.json to add etcdoperator.v0.9.0 to a the channel `alpha`, and add an upgrade edge from etcdoperator-community.v0.6.1 to etcdoperator.v0.9.0 in channel `alpha`
 $ cd ..
 $ opm index update community-operators --tag=docker.io/my-namespace/community-operators:latest
 $ rm -rf community-operators
 $ opm index inspect --image=docker.io/my-namespace/community-operators --output=json
-$ cat community-operators/etcd.json
+$ cat community-operators/etcd/etcd.json
 {
     "schema": "olm.package",
     "name": "etcd",
@@ -387,6 +466,18 @@ $ cat community-operators/etcd.json
             "type": "olm.channel",
             "value": {
                 "name": "alpha"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
             }
         }
     ],
@@ -451,7 +542,7 @@ $ cat community-operators/etcd.json
 .
 ```
 
-Similarly, removing a `.json` from `community-operators` and pushing that update up to the container image removes the operator from the index. 
+Similarly, removing a package directory from `community-operators` and pushing that update up to the container image removes the operator from the index. 
 
 ### Story 3
 
@@ -459,9 +550,9 @@ As a user with pull permission from the namespace an index is hosted in/as a com
  
 ```bash
 $ cd community-operators 
-$ sed '/defaultChannel/d' etcd.json > etcd.json //delete the line "defaultChannel":"singlenamespace-alpha"
+$ sed -i '/defaultChannel/d' etcd/etcd.json //delete the line "defaultChannel":"singlenamespace-alpha"
 $ git status 
-	modified:    etcd.json
+	modified:    etcd/etcd.json
 
 $ cd ..
 $ opm index validate community-operators
@@ -470,7 +561,7 @@ $ opm index update community-operator --tag=docker.io/mynamespace/community-oper
 $ opm index validate docker.io/mynamespace/community-operators:latest 
 marshal error: etcd.defaultchannel: cannot convert incomplete value "string" to JSON
 $ cd community-operators 
-$ git checkout etcd.json
+$ git checkout etcd/etcd.json
 $ cd ..
 $ opm index validate community-operators 
 No errors found!
@@ -483,10 +574,19 @@ Given a set of package representations, I can author a new index using just thos
 ```bash
 $ tree community-operators 
 community-operators
-├── amqstreams.json
-└── etcd.json
-└── servicemesh.json
-$ rm community-operators/servicemesh.json
+├── amqstreams
+│   └── amqstreams.json
+│   └── objects
+│       └── ...
+├── etcd
+│   └── etcd.json
+│   └── objects
+│       └── ...
+└── servicemesh
+    ├── objects
+    │   └── ...
+    └── servicemesh.json
+$ rm -r community-operators/servicemesh
 $ opm index create --from=community-operators --tag=docker.io/someothernamespace/new-community-operators:latest
 ```
 ## Implementation Details
@@ -496,7 +596,8 @@ The representation of the content of an index using json/yaml provides a unique 
 
 ![Alt text](assets/new-community-operators.png?raw=true "community-operators")
 
-Since each bundle in the index belongs to a channel in a package, the index itself can be represented as a collection of packages. Each package is then represented as a json/yaml, a config file that will live inside the index container image alongside the individual bundle metadata.
+Since each bundle in the index belongs to a channel in a package, the index itself can be represented as a collection of packages. Each package is then represented as a json/yaml, a config file that will live inside the index container image alongside the individual bundle metadata. For convenience, `opm`
+suggests (though does not require) that indexes composed of multiple packages contain a package-based directory structure as shown throughout this proposal. That way operator authors and index maintainers can exchange full package metadata as isolated package directories, reducing the potential for conflicts between packages in an index. 
 
 #### Contents of the config file
 
@@ -560,18 +661,34 @@ These properties are:
 | `olm.gvk.required`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.required", "value": {"group": "test.coreos.com", "version": "v1", "kind": "Testapi"}}`                  |
 | `olm.skips`            | `string`                               | `{"type":"olm.skips", "value": "etcdoperator.v0.9.0"}`<br>`{"type":"olm.skips", "value": "etcdoperator.v0.9.2"}`          |
 | `olm.skipRange`        | `string`                               | `{"type":"olm.skipRange", "value": "<0.9.4"}`                                                                             |
-| `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}`         |
+| `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}` |
+| `olm.bundle.object`    | `{ ref string, data []byte }`          | `{"type":"olm.bundle.object", "value":{"ref":"objects/etcdoperator.v0.9.4/csv.yaml"}}`<br>`{"type":"olm.bundle.object", "value":{"data":"eyJhcGlWZXJzaW9uIjoi..."}}`   |
 
 Since the `olm.bundle` schema also has a top-level field for `package`, `opm` will verify that it aligns with the `olm.package` property.
 
 The existing sqlite-based GRPC API sends `plural` fields in the provided and required APIs of bundles. However [OLM discards these fields upon receipt](https://github.com/operator-framework/operator-lifecycle-manager/blob/7823ebe7bc0c5b69d285b908a459375048d555be/pkg/controller/registry/resolver/cache.go#L219-L220). Therefore, the declarative config implementation will not set and send `plural` fields at all.
 
+The `olm.bundle.object` property can be used to include bundle objects in an index. It behaves like a union type,
+where one of `ref` or `data` must be set. If `ref` is set, `opm` will load data from the referenced file path, relative 
+to the directory in which the `olm.bundle` blob is found. If `data` is set, `opm` will base64 decode the `data`
+value. 
+
+For backwards-compatibility reasons, the `olm.bundle.object` properties are necessary for `opm` to serve OLM's
+packageserver component with `CSV`-derived metadata from a declarative config-based index. The API service exposed by
+packageserver is used by various on-cluster tools, such as the OpenShift console and the `kubectl operator` plugin.
+Index maintainers that desire for their indexes to support these components should validate that CSV objects are present
+in the index for each channel head of each package.
+
+In the future, OLM maintainers plan to revisit the packageserver APIs and implementation so that it is not necessary for
+index servers to include this metadata in their bundle responses.
+
+
 #### Filesystem structure
 
 Declarative configs are expected to exist in a directory structure. When reading a declarative config index, `opm` will
 traverse the file tree and load valid blobs from each file it finds. When writing a declarative config, package-specific
-blobs are concatenated into a single `<packageName>.json` file, and non-package-specific blobs are concatenated into
-`__global.json`.
+blobs are concatenated into a single `<package>/<packageName>.json` file, and non-package-specific blobs are
+concatenated into `__global.json`.
 
 Package-specific blobs are defined by either the `olm.package` schema or a non-empty root-level `package` field.
 Non-package-specific blobs are defined by non-`olm.package` blobs with an empty root-level `package` field. So for
@@ -582,20 +699,31 @@ The output directory structure will be:
 ```bash
 $ tree <index_name>
 <index_name>
-├── amqstreams.json
-├── etcd.json
+├── amqstreams
+│   ├── amqstreams.json
+│   └── objects
+│       └── ...
+├── etcd
+│   ├── etcd.json
+│   └── objects
+│       ├── etcdoperator.v0.6.1
+│       │   ├── etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
+│       │   └── etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml
+│       ├── etcdoperator.v0.9.4
+│       │   ├── etcdbackups.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
+│       │   ├── etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
+│       │   ├── etcdoperator.v0.9.4_operators.coreos.com_v1alpha1_clusterserviceversion.yaml
+│       │   └── etcdrestores.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
+│       └── etcdoperator.v0.9.4-clusterwide
+│           ├── etcdbackups.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
+│           ├── etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
+│           ├── etcdoperator.v0.9.4-clusterwide_operators.coreos.com_v1alpha1_clusterserviceversion.yaml
+│           └── etcdrestores.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml
 ├── __global.json
-└── servicemesh.json
-```
-
-When stored in a tarball, the output structure will be:
-```bash
-$ tar tvf <index_name>.db
-drwxr-xr-x nobody/nobody     0 2021-03-17 17:18 index/
--rw-r--r-- nobody/nobody     0 2021-03-17 15:44 index/servicemesh.json
--rw-r--r-- nobody/nobody     0 2021-03-17 17:18 index/__global.json
--rw-r--r-- nobody/nobody     0 2021-03-17 15:39 index/amqstreams.json
--rw-r--r-- nobody/nobody     0 2021-03-17 15:38 index/etcd.json
+└── servicemesh
+    ├── objects
+    │   └── ...
+    └── servicemesh.json
 ```
 
 #### Representing the upgrade graph in the channel json blob
@@ -660,9 +788,12 @@ The `opm index add` command will be enhanced to create a config file for represe
 $ opm index inspect --image=docker.io/my-namespace/community-operators:latest --output=json
 $ tree community-operators
 .
-├── etcd.json
+└── etcd
+    ├── etcd.json
+    └── objects
+        └── ...
 
-$ cat community-operators/etcd.json
+$ cat community-operators/etcd/etcd.json
 {
     "schema": "olm.package",
     "name": "etcd",
@@ -698,6 +829,18 @@ $ cat community-operators/etcd.json
             "type": "olm.channel",
             "value": {
                 "name": "alpha"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
             }
         }
     ],
@@ -711,7 +854,7 @@ $ cat community-operators/etcd.json
 $ opm index add --bundles quay.io/operatorhubio/etcd:v0.9.0 --mode replaces --tag docker.io/my-namespace/community-operators:latest
 $ docker push docker.io/my-namespace/community-operators:latest
 $ opm index inspect --image=docker.io/my-namespace/community-operators:latest --output=json
-$ cat community-operators/etcd.json
+$ cat community-operators/etcd/etcd.json
 {
     "schema": "olm.package",
     "name": "etcd",
@@ -747,6 +890,18 @@ $ cat community-operators/etcd.json
             "type": "olm.channel",
             "value": {
                 "name": "alpha"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
             }
         }
     ],
@@ -782,6 +937,18 @@ $ cat community-operators/etcd.json
             "type": "olm.channel",
             "value": {
                 "name": "singlenamespace-alpha"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.0/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.0/etcdoperator.v0.9.0_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
             }
         }
     ],
@@ -797,7 +964,7 @@ $ cat community-operators/etcd.json
 The `opm registry add` command will also be enhanced to create `olm.bundle` json blobs for bundles passed onto the command along with a package config, and append them to the config.
 
 ```bash
-$ cat community-operators/etcd.json
+$ cat community-operators/etcd/etcd.json
 {
     "schema": "olm.package",
     "name": "etcd",
@@ -833,6 +1000,18 @@ $ cat community-operators/etcd.json
             "type": "olm.channel",
             "value": {
                 "name": "alpha"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
             }
         }
     ],
@@ -844,7 +1023,7 @@ $ cat community-operators/etcd.json
     ]
 }
 $ opm registry add --bundles quay.io/operatorhubio/etcd:v0.9.0 --mode replaces --database community-operators
-$ cat community-operators/etcd.json
+$ cat community-operators/etcd/etcd.json
 {
     "schema": "olm.package",
     "name": "etcd",
@@ -880,6 +1059,18 @@ $ cat community-operators/etcd.json
             "type": "olm.channel",
             "value": {
                 "name": "alpha"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
             }
         }
     ],
@@ -915,6 +1106,18 @@ $ cat community-operators/etcd.json
             "type": "olm.channel",
             "value": {
                 "name": "singlenamespace-alpha"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.0/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.0/etcdoperator.v0.9.0_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
             }
         }
     ],
@@ -941,8 +1144,14 @@ $ opm index inspect --image=docker.io/my-namespace/community-operators --output=
 $ cd community-operators
 $ tree
 .
-├── etcd.json
-├── amqstreams.json
+├── amqstreams
+│   ├── amqstreams.json
+│   └── objects
+│       └── ...
+└── etcd
+    ├── etcd.json
+    └── objects
+        └── ...
 ```
 #### Editing a package inside an index
 
@@ -950,7 +1159,7 @@ A new sub-command `update` will be introduced under `opm index`, which will take
 
 ```bash
 $ opm index inspect --image=quay.io/some-namespace/my-index 
-$ // edit a my-index/package-config.json 
+$ // edit a my-index/package/package-config.json 
 $ opm index update my-index --tag=docker.io/some-namespace/my-index:latest
 ``` 
 
@@ -968,8 +1177,14 @@ A new sub-command `create` will be introduced under `opm index`, that will take 
 ```bash
 $ tree community-operators 
 community-operators
-├── amqstreams.json
-└── etcd.json
+├── amqstreams
+│   ├── amqstreams.json
+│   └── objects
+│       └── ...
+└── etcd
+    ├── etcd.json
+    └── objects
+        └── ...
 $ opm index create --from=community-operators --tag=docker.io/some-namespace/community-operators
 ```   
 
