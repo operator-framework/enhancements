@@ -682,6 +682,12 @@ in the index for each channel head of each package.
 In the future, OLM maintainers plan to revisit the packageserver APIs and implementation so that it is not necessary for
 index servers to include this metadata in their bundle responses.
 
+Lastly, OLM projects all bundle properties into CSV annotations on cluster. Therefore, these new `olm.bundle.object`
+properties would be projected, causing CSVs on cluster to contain a copy of themselves in an annotation, which would
+at least double the size of CSVs. To avoid this issue, `opm serve` will filter out `olm.bundle.object` properties at
+serve time. Note, however, that the actual contents of the objects will still be served via the `api.Bundle.Object` and
+`api.Bundle.CsvJson` fields.
+
 
 #### Filesystem structure
 
