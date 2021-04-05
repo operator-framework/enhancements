@@ -7,7 +7,7 @@ reviewers:
 approvers:
   - TBD
 creation-date: 2021-02-19
-last-updated: 2021-03-14
+last-updated: 2021-05-01
 status: implementable
 ---
 
@@ -149,31 +149,18 @@ Then, it means that the check will validate the operator bundle configuration ac
 
 If the `--optional-values="k8s=1.22"` not be used then, we will use the `minKubeVersion` in the CSV to do the checks. So, the criteria is `>=minKubeVersion`. By last, if the `minKubeVersion` is not provided then, we should consider as described above that the operator bundle is intend to work well in any Kubernetes version.
 
-**CRD and Webook APIS deprecated and unsupported versions**
+**Deprecated and unsupported versions**
 
-Note that in these cases, users should be informed that the `apiextensions/v1beta1` and that the `admissionregistration.k8s.io/v1beta1` was deprecated in Kubernetes `1.16` and will/was removed in `1.22`.
+Note that in these cases, users should be informed that the `apiextensions/v1beta1` was deprecated in Kubernetes `1.16` and will/was removed in `1.22`.
 
 - To check if the operator bundle is using a CRD API version which is deprecated or not supported we will need to see if the CRD manifests in the bundle are using `apiVersion: apiextensions.k8s.io/v1beta1`. (See [here](https://github.com/operator-framework/operator-sdk/blob/v1.4.2/testdata/go/v2/memcached-operator/bundle/manifests/cache.example.com_memcacheds.yaml#L1)). Note that an operator bundle can have Many CRD(s).
-
-- To check if the operator bundle is using the Webhook API version which is deprecated we will need to see if the CSV has the spec `webhookdefinitions.<*>.v1beta1`. (e.g See [here](https://github.com/operator-framework/operator-sdk/blob/v1.4.2/testdata/go/v2/memcached-operator/bundle/manifests/memcached-operator.clusterserviceversion.yaml#L203-L205). Note that an operator bundle can have Many Webhook(s) and with more than one type and this field is a list of.
 
 The error raised will be accordingly with the Kubernetes version that we have, see:
 
 | Conditional |Type |
 | ------ | ----- |
-| operator bundle supports k8s => `1.22` and do not uses `apiextensions/v1` ÒR has [webhookdefinitions](https://github.com/operator-framework/operator-sdk/blob/v1.4.2/testdata/go/v2/memcached-operator/bundle/manifests/memcached-operator.clusterserviceversion.yaml#L203-L205) and do not have the API `v1` listed | error |
+| operator bundle supports k8s => `1.22` and do not uses `apiextensions/v1` | error |
 | operator bundle supports k8s `=> 1.16 <= 1.22` and uses `apiextensions/v1beta1` ÒR `admissionregistration.k8s.io/v1beta1` | warning |
-
-**Why we need to check if the api v1 is not used instead of only check if it has any CRD or Webhook with the deprecated `v1beta1`?**
-		
-The operator author might provide a solution that works for both scenarios which means that will work when installed in the previous version of `Kubernetes < 1.16` and also in the upper versions `=> 1.22`. However, for the operator works well in any Kubernetes version `>=1.22`, we know that it is mandatory it has the latest APIs versions `v1`. See [here](https://github.com/kubernetes-sigs/kubebuilder/blob/v3.0.0-beta.0/test/e2e/v3/plugin_cluster_test.go#L99-L101), for example, that in the e2e test for Kubebuilder, we check what is the cluster version to apply and test the API versions accordingly. And then, note that we can find both APIs in the webhooks fields of the CSV as well such as:
-
-```
-  webhookdefinitions:
-  - admissionReviewVersions:
-    - v1beta1
-    - v1   
-``` 
 
 **IMPORTANT** 
 
@@ -198,6 +185,7 @@ Note that the OperatorHubValidator needs to be able to receive a string map and 
 The Kubernetes `1.22` release will impact the Pipeline. After the implementation of the check: 
 
 **After `1.22` k8s release**
+We could return an error optionally:
 - `minKubeVersion >= 1.22 or empty/nil`  return the error result.
 
 All bundles which are using the no longer supported Kubernetes API will start to fail in the above check which indeed is the purpose of this proposal. However, the risk still solved since the Pipeline can indeed inform a Kubernetes version lower such as `--optional-values="k8s=1.21"` if required until all projects are properly update.
