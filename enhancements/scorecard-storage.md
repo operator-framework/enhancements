@@ -10,7 +10,7 @@ reviewers:
 approvers:
   - TBD
 creation-date: 2021-03-26
-last-updated: 2021-03-26
+last-updated: 2021-04-12
 status: implementable
 see-also:
   - "/enhancements/this-other-neat-thing.md"  
@@ -86,10 +86,6 @@ A scorecard user can optionally specify storage class details within the scoreca
 ```yaml
   tests:
   - image: quay.io/custom-scorecard-example/example-test:latest
-    storage: 
-      provision: true
-      size: 1Gi
-      class: standard
     entrypoint:
     - example-scorecard-test
     - example-test
