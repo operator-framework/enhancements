@@ -66,8 +66,8 @@ This enhancement doesn't change scorecard's test result format (v1alpha3) so thi
 ### User Stories
 
 #### Story 1
-A scorecard user can specify for a given test that they want persistent storage to be made available to that test.  This is specified within the scorecard configuration file as a label.  For example, a user would specify they want storage for a test by specifying
-in the scorecard configuration file the `storage` label as in the following example:
+A scorecard user can specify for a given test that they want persistent storage to be made available to that test.  This is specified within the scorecard configuration file as a PersistentVolume spec.  For example, a user would specify they want storage for a test by specifying
+in the scorecard configuration file the `storage` spec as in the following example:
 
 ```yaml
   tests:
@@ -78,7 +78,13 @@ in the scorecard configuration file the `storage` label as in the following exam
     labels:
       suite: example
       test: example-test
-      storage: true
+    storage: 
+      spec:
+        storageClassName: hostpath
+        capacity:
+          storage: 1Gi
+        accessModes:
+          - ReadWriteOnce
 ```
 
 #### Story 2
@@ -92,10 +98,13 @@ A scorecard user can optionally specify storage class details within the scoreca
     labels:
       suite: custom
       test: example-test
-      storage: true
-      storage-size: 1Gi
-      storage-accessmode: ReadWriteOnce
-      storage-class: hostpath
+    storage: 
+      spec:
+        storageClassName: hostpath
+        capacity:
+          storage: 1Gi
+        accessModes:
+          - ReadWriteOnce
 ```
 
 Valid values for access mode:
@@ -171,9 +180,9 @@ scorecard was executed, however the user can also specify a command line flag (e
 test output stored at a custom location.  The gathered output appears as follows:
 ```bash
 ./test-output
-./test-output/example-test/somefile
-./test-output/example-test2/anotherfile
-./test-output/example-test3/foo.log
+./test-output/custom-suite/example-test1/somefile
+./test-output/custom-suite/example-test2/anotherfile
+./test-output/custom-suite/example-test3/foo.log
 ```
 This directory will be over-written if scorecard is executed multiple times, it is therefore up to the end user
 to perform data management of this test output directory as they require.
