@@ -150,7 +150,7 @@ Scorecard users that don't require persistent storage are not impacted by this p
 ## Design Details
 
 ### Unique Volume Claims
-Each scorecard test that specifies the storage feature will have a unique PersistentVolumeClaim created for that test.  This insures that each
+Each scorecard test that specifies the storage feature will have a unique PersistentVolumeClaim created for that test.  This ensures that each
 test can be scheduled on any cluster node and that multiple tests will not co-mingle test output onto the same volume.  Scorecard deletes
 these volumes after test output has been gathered from the volume.  If the user specifies the command line flag of "--skip-cleanup", the volume will not
 be deleted.
@@ -264,6 +264,5 @@ I currently don't see value in backporting this feature to previous versions of 
 An alternative to this feature would be to design a means of embedding test content into the test Pod log itself, co-mingled with the current scorecard test result JSON.
 
 This seems really complicated and hard to maintain so I rejected this in favor of this proposal.
-
 
 
