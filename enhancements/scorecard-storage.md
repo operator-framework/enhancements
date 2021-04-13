@@ -59,7 +59,13 @@ Goals of this proposal include:
 
 ### Non-Goals
 
-This enhancement doesn't change scorecard's test result format (v1alpha3) so this is not a breaking change.
+This enhancement would introduce a new storage spec be added into its
+configuration API, this would mean creating a v1beta1 version of the
+scorecard API.  The scorecard API is hosted in the https://github.com/operator-framework/api repository at the following location: https://github.com/operator-framework/api/tree/master/pkg/apis/scorecard.
+
+The names of the persistent volumes created by scorecard for this feature
+are opaque to the test writer, meaning that they are not defined in a way
+where test writers would need or want to know the names of their volumes.
 
 ## Proposal
 
@@ -85,10 +91,12 @@ in the scorecard configuration file the `storage` spec as in the following examp
           storage: 1Gi
         accessModes:
           - ReadWriteOnce
+        hostPath:
+          path: /test-output
 ```
 
 #### Story 2
-A scorecard user can optionally specify storage class details within the scorecard configuration file to override storage defaults. Volume size, access mode, and storage class names can be specified as follows:
+A scorecard user can optionally specify storage class details within the scorecard configuration file to override storage defaults. Volume size, access mode, storage class, and mount paths can be specified as follows:
 ```yaml
   tests:
   - image: quay.io/custom-scorecard-example/example-test:latest
@@ -105,6 +113,8 @@ A scorecard user can optionally specify storage class details within the scoreca
           storage: 1Gi
         accessModes:
           - ReadWriteOnce
+        hostPath:
+          path: /test-output
 ```
 
 Valid values for access mode:
@@ -138,6 +148,33 @@ can specify a non-default local path for test output using a command flag as fol
 operator-sdk scorecard ./bundle --selector=suite=custom --test-output=/mytestoutput
 ```
 
+#### Story 4
+A scorecard user can specify storage globally for any selected tests.
+The `storage` spec can be defined globally as in the following example:
+
+```yaml
+  storage: 
+    spec:
+      storageClassName: hostpath
+      capacity:
+        storage: 1Gi
+      accessModes:
+        - ReadWriteOnce
+      hostPath:
+        path: /test-output
+  tests:
+  - image: quay.io/custom-scorecard-example/example-test:latest
+    entrypoint:
+    - example-scorecard-test
+    - example-test
+    labels:
+      suite: example
+      test: example-test
+```
+
+This would mean that any selected test would assume the global storage
+settings.  If a test has its own unique test storage defined, then those
+settings would override the global storage settings.
 
 ### Implementation Details/Notes/Constraints
 
@@ -160,6 +197,7 @@ The following defaults will be supplied for the storage feature:
  * 1Gi volume size
  * RWO (ReadWriteOnce) access mode
  * default storage class will be used
+ * /test-output mount path
 
 These defaults will likely cover the majority of use cases.  Users can override these values however
 as documented above.
