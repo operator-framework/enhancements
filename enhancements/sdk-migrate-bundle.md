@@ -61,7 +61,7 @@ bundles which is the preferred OLM packaging format.
 
 ## Proposal
 
-### User Stories [optional]
+### User Stories \[optional\]
 
 #### Story 1
 
@@ -73,7 +73,7 @@ the packagemanifest format to the new bundle format.
 As an catalog admin for my operators, I would like to be able to migrate a
 collection of packagemanifests to bundles.
 
-### Implementation Details/Notes/Constraints [optional]
+### Implementation Details/Notes/Constraints \[optional\]
 
 The Operator SDK currently supports generating & validating
 packagemanifests & bundles. This enhancement will add a new command, `migrate
@@ -94,7 +94,7 @@ The new command line will look as follows:
 
 ```
 operator-sdk pkgman-to-bundle <packagemanifestdir> [--build-image=] \
-    [--output-dir=] [--image-base=] [--build-cmd=]
+    [--output-dir=] [--image-tag-base=] [--build-cmd=]
 ```
 
 - `<packagemanifestdir>` is a positional argument that specifies the
@@ -104,11 +104,11 @@ operator-sdk pkgman-to-bundle <packagemanifestdir> [--build-image=] \
   directory.
 - `[--output-dir=]` is an optional flag that indicates the directory to write the
   bundle to, defaults to `bundle` directory.
-- `[--image-base]` optional flag that indicates the base container name for
+- `[--image-tag-base]` optional flag that indicates the base container name for
   the bundles; e.g. `quay.io/example/memcached-operator-bundle`
 - `[--build-cmd]` optional flag that indicates the fully qualified build command;
 
-For more information about the `image-base` and `build-cmd` see the
+For more information about the `image-tag-base` and `build-cmd` see the
 [creating bundle image](#creating-bundle-image) section.
 
 #### Generating bundle on disk
@@ -129,14 +129,14 @@ command but also offer an override.
 
 This would add 2 more flags to the CLI:
 
-- `[--image-base]` optional flag that indicates the base container name for
+- `[--image-tag-base]` optional flag that indicates the base container name for
   the bundles; e.g. `quay.io/example/memcached-operator-bundle`
 - `[--build-cmd]` optional flag that indicates the fully qualified build command;
 
 These flags would output a bundle image for each bundle created. We would use
 the `<dirname>` for the tags.
 
-The `--image-base` needs to be valid docker image name without the tag. We will
+The `--image-tag-base` needs to be valid docker image name without the tag. We will
 use the bundle directory for the imagetag.
 
 Since we can't always anticipate what folks want to do with their builds, we'll
@@ -154,7 +154,6 @@ path name. For example, `podman build -t quay.io/example/bundle ...` or
 
 For each of the scenarios below, assume we have a packagemanifest dir with the
 following layout.
-
 
 ```
 manifests
@@ -183,10 +182,10 @@ Assuming the packagemanifest above, let's take the simplest example:
 operator-sdk pkgman-to-bundle manifests
 ```
 
-The command will generate 3 bundles in the default `bundle` directory:
+The command will generate 3 bundles in the default `bundles` directory:
 
 ```
-bundle
+bundles
 ├── bundle-0.6.1
 │   ├── bundle.Dockerfile
 │   ├── manifests
@@ -284,6 +283,7 @@ The exact wording for the message will be determined later.
   https://github.com/jmrodri/migrate-prototype/blob/master/main.go
 
 ### Risks and Mitigations
+
 If we cannot change the behavior of `GenerateFunc` to write the
 `bundle.Dockerfile` in a particular location this could make this process
 difficult.
@@ -313,6 +313,7 @@ N/A
 
 ## Implementation History
 
+20210412 - Change output dir to `bundles`; Change image-base to image-tag-base
 20210306 - Remove usage of `GenerateFunc` and `BuildBundleImage`
 20210225 - Add details about deprecated run|generate packagemanifests
 20210224 - Deprecated packagemanifests features
