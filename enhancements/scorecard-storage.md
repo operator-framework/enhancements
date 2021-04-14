@@ -59,10 +59,6 @@ Goals of this proposal include:
 
 ### Non-Goals
 
-This enhancement would introduce a new storage spec be added into its
-configuration API, this would mean creating a v1beta1 version of the
-scorecard API.  The scorecard API is hosted in the https://github.com/operator-framework/api repository at the following location: https://github.com/operator-framework/api/tree/master/pkg/apis/scorecard.
-
 The names of the persistent volumes created by scorecard for this feature
 are opaque to the test writer, meaning that they are not defined in a way
 where test writers would need or want to know the names of their volumes.
@@ -91,7 +87,7 @@ in the scorecard configuration file the `storage` spec as in the following examp
           storage: 1Gi
         accessModes:
           - ReadWriteOnce
-        hostPath:
+        mountPath:
           path: /test-output
 ```
 
@@ -113,7 +109,7 @@ A scorecard user can optionally specify storage class details within the scoreca
           storage: 1Gi
         accessModes:
           - ReadWriteOnce
-        hostPath:
+        mountPath:
           path: /test-output
 ```
 
@@ -160,7 +156,7 @@ The `storage` spec can be defined globally as in the following example:
         storage: 1Gi
       accessModes:
         - ReadWriteOnce
-      hostPath:
+      mountPath:
         path: /test-output
   tests:
   - image: quay.io/custom-scorecard-example/example-test:latest
