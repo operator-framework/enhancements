@@ -176,6 +176,16 @@ settings would override the global storage settings.
 
 This feature, if specified by a scorecard user, requires a storage class be defined and operational on the k8s cluster nodes that scorecard tests would be executed upon.  If no storage class is specified or a default storage class is not available an error is returned for the scorecard test.
 
+This feature follows a workflow as follows:
+ * scorecard allocates a unique PVC for a test if that test requests storage
+ * scorecard mounts that PVC into the test Pod so the test can write to
+a given mountPath any test output they want
+ * upon test completion and before cleaning up the tests, scorecard
+will create a container that mounts the PVC solely to harvest (exec/tar)
+the test output contents to the local host that scorecard is executing upon
+ * scorecard cleanup would include PVC cleanup as well as the current Pod cleanup
+ * the end user is left with a local directory of the harvested test output, with test output being divided into subdirectories based on suite and test names
+
 ### Risks and Mitigations
 
 Scorecard users that don't require persistent storage are not impacted by this proposed feature.
@@ -291,12 +301,33 @@ I currently don't see value in backporting this feature to previous versions of 
 
 ## Drawbacks
 
+This feature and suggested implementation depend on dynamic storage
+being available on-cluster.
 
 
 ## Alternatives
 
+### Alternative 1
 An alternative to this feature would be to design a means of embedding test content into the test Pod log itself, co-mingled with the current scorecard test result JSON.
 
 This seems really complicated and hard to maintain so I rejected this in favor of this proposal.
+
+### Alternative 2
+
+Another alternative to creating PVCs for test output storage, you could:
+ * create a sidecar container in the test pod
+ * share an emptydir volume between the containers
+ * have the test pod write to that emptydir any test output
+ * change scorecard to not remove the test pod until the
+test output is harvested from the sidecar.
+
+This would work, but it means depending on emptyDir storage which makes
+per-test configuration of storage probably not possible.  The other
+issue might include no way to access the test output after a test concludes
+which might limit some use of this feature longer term. Test output PVCs 
+could possibly be used for other applications down the road for example.
+
+The upside to this alternative is that you don't depend on a dynamic
+storage class being available on the test nodes.
 
 
