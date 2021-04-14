@@ -85,8 +85,6 @@ in the scorecard configuration file the `storage` spec as in the following examp
         storageClassName: hostpath
         capacity:
           storage: 1Gi
-        accessModes:
-          - ReadWriteOnce
         mountPath:
           path: /test-output
 ```
@@ -107,18 +105,9 @@ A scorecard user can optionally specify storage class details within the scoreca
         storageClassName: hostpath
         capacity:
           storage: 1Gi
-        accessModes:
-          - ReadWriteOnce
         mountPath:
           path: /test-output
 ```
-
-Valid values for access mode:
- * ReadWriteOnce (default if not specified)
- * ReadOnlyMany
- * ReadWriteMany
-
-Access mode values are defined in https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/api/core/v1/types.go#L556
 
 Valid values for volume size must be formatted according to the rules defined for storage 
 in https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Format.  Typical values for 
@@ -154,8 +143,6 @@ The `storage` spec can be defined globally as in the following example:
       storageClassName: hostpath
       capacity:
         storage: 1Gi
-      accessModes:
-        - ReadWriteOnce
       mountPath:
         path: /test-output
   tests:
@@ -176,7 +163,8 @@ settings would override the global storage settings.
 
 This feature, if specified by a scorecard user, requires a storage class be defined and operational on the k8s cluster nodes that scorecard tests would be executed upon.  If no storage class is specified or a default storage class is not available an error is returned for the scorecard test.
 
-This feature follows a workflow as follows:
+For each test that specifies storage, scorecard will interate
+this sequence for each test:
  * scorecard allocates a unique PVC for a test if that test requests storage
  * scorecard mounts that PVC into the test Pod so the test can write to
 a given mountPath any test output they want
@@ -184,11 +172,15 @@ a given mountPath any test output they want
 will create a container that mounts the PVC solely to harvest (exec/tar)
 the test output contents to the local host that scorecard is executing upon
  * scorecard cleanup would include PVC cleanup as well as the current Pod cleanup
- * the end user is left with a local directory of the harvested test output, with test output being divided into subdirectories based on suite and test names
+
+A successful scorecard execution of tests that use this storage feature
+would include a local directory of the harvested test output, with test output being divided into subdirectories based on suite and test names
 
 ### Risks and Mitigations
 
 Scorecard users that don't require persistent storage are not impacted by this proposed feature.
+
+If Persistent Storage is used then you have the risk of leaving PVCs on your cluster if scorecard were to exit abnormally.  This is similar to having scorecard not cleanup Pods when it exits abnormally.
 
 ## Design Details
 
