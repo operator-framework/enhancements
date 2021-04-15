@@ -10,7 +10,7 @@ reviewers:
 approvers:
   - TBD
 creation-date: 2021-03-26
-last-updated: 2021-04-12
+last-updated: 2021-04-15
 status: implementable
 see-also:
   - "/enhancements/this-other-neat-thing.md"  
@@ -40,7 +40,8 @@ None
 
 QE and other test writers sometimes require storage within their test environment (e.g. test container) to write reports and other test output material.  Today within scorecard this is not possible since a persistent volume is not available within the test container.  As the test completes, the container ends, leaving only the container log on the k8s cluster until the Pod is deleted.
 
-This enhancement would offer an optional mechanism whereby test writers have a persistent volume mounted within their test containers, provisioned, enabled, and cleaned up by scorecard.
+This enhancement would offer an optional mechanism whereby test writers have an emptyDir volume mounted within their test containers enabling them to write test output. Scorecard would set this emptyDir up and extract test output from
+it before the test is deleted.
 
 
 ## Motivation
@@ -54,21 +55,17 @@ This feature enables a wider adoption of tests that can be executed within score
 ### Goals
 
 Goals of this proposal include:
-* provide a persistent volume for scorecard test developers
-* Collect persistent volume output when scorecard completes
+* provide a writable volume for scorecard test developers
+* Collect test output when scorecard completes
 
 ### Non-Goals
-
-The names of the persistent volumes created by scorecard for this feature
-are opaque to the test writer, meaning that they are not defined in a way
-where test writers would need or want to know the names of their volumes.
 
 ## Proposal
 
 ### User Stories
 
 #### Story 1
-A scorecard user can specify for a given test that they want persistent storage to be made available to that test.  This is specified within the scorecard configuration file as a PersistentVolume spec.  For example, a user would specify they want storage for a test by specifying
+A scorecard user can specify for a given test that they want storage to be made available to that test.  This is specified within the scorecard configuration file as a storage spec.  For example, a user would specify they want storage for a test by specifying
 in the scorecard configuration file the `storage` spec as in the following example:
 
 ```yaml
@@ -82,67 +79,27 @@ in the scorecard configuration file the `storage` spec as in the following examp
       test: example-test
     storage: 
       spec:
-        storageClassName: hostpath
-        capacity:
-          storage: 1Gi
         mountPath:
           path: /test-output
 ```
+
+Note, that if the mountPath is not specified, then a default mount path
+of /test-output would be used.
 
 #### Story 2
-A scorecard user can optionally specify storage class details within the scorecard configuration file to override storage defaults. Volume size, access mode, storage class, and mount paths can be specified as follows:
-```yaml
-  tests:
-  - image: quay.io/custom-scorecard-example/example-test:latest
-    entrypoint:
-    - example-scorecard-test
-    - example-test
-    labels:
-      suite: custom
-      test: example-test
-    storage: 
-      spec:
-        storageClassName: hostpath
-        capacity:
-          storage: 1Gi
-        mountPath:
-          path: /test-output
-```
-
-Valid values for volume size must be formatted according to the rules defined for storage 
-in https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Format.  Typical values for 
-storage are like:
- * 1Gi (1 gigabyte) (default)
- * 100M (100 megabyte)
-
-Storage classes can be found on a cluster by the following command:
- * kubectl get sc
-
-A default storage class is the storage class on a cluster that has the following annotation:
-```yaml
-  metadata:
-    annotations:
-      storageclass.kubernetes.io/is-default-class: "true"
-```
-
-
-#### Story 3
 Scorecard gathers any persisted volume data upon test completion and stores it in a local directory where scorecard is executed.  Users
 can specify a non-default local path for test output using a command flag as follows:
 ```bash
 operator-sdk scorecard ./bundle --selector=suite=custom --test-output=/mytestoutput
 ```
 
-#### Story 4
+#### Story 3
 A scorecard user can specify storage globally for any selected tests.
 The `storage` spec can be defined globally as in the following example:
 
 ```yaml
   storage: 
     spec:
-      storageClassName: hostpath
-      capacity:
-        storage: 1Gi
       mountPath:
         path: /test-output
   tests:
@@ -161,55 +118,35 @@ settings would override the global storage settings.
 
 ### Implementation Details/Notes/Constraints
 
-This feature, if specified by a scorecard user, requires a storage class be defined and operational on the k8s cluster nodes that scorecard tests would be executed upon.  If no storage class is specified or a default storage class is not available an error is returned for the scorecard test.
-
 For each test that specifies storage, scorecard will interate
 this sequence for each test:
- * scorecard allocates a unique PVC for a test if that test requests storage
- * scorecard mounts that PVC into the test Pod so the test can write to
-a given mountPath any test output they want
- * upon test completion and before cleaning up the tests, scorecard
-will create a container that mounts the PVC solely to harvest (exec/tar)
-the test output contents to the local host that scorecard is executing upon
- * scorecard cleanup would include PVC cleanup as well as the current Pod cleanup
+ * scorecard adds a sidecar container into the test pod, the sidecar container would also mount the same emptyDir volume that is mounted into the test container
+ * upon test container completion and before removing the test pod, scorecard
+will extract (exec/tar) the test output contents from the sidecar container to the local host that scorecard is executing upon
+ * scorecard cleanup would cleanup the test Pod as normal, thereby also removing the added storage sidecar container
 
 A successful scorecard execution of tests that use this storage feature
-would include a local directory of the harvested test output, with test output being divided into subdirectories based on suite and test names
+would include a local directory of the collected test output, with test output being divided into subdirectories based on suite and test names
 
 ### Risks and Mitigations
 
 Scorecard users that don't require persistent storage are not impacted by this proposed feature.
 
-If Persistent Storage is used then you have the risk of leaving PVCs on your cluster if scorecard were to exit abnormally.  This is similar to having scorecard not cleanup Pods when it exits abnormally.
-
 ## Design Details
 
-### Unique Volume Claims
-Each scorecard test that specifies the storage feature will have a unique PersistentVolumeClaim created for that test.  This ensures that each
-test can be scheduled on any cluster node and that multiple tests will not co-mingle test output onto the same volume.  Scorecard deletes
-these volumes after test output has been gathered from the volume.  If the user specifies the command line flag of "--skip-cleanup", the volume will not
-be deleted.
+### emptyDir Volumes
+Each scorecard test that specifies the storage feature will have a unique emptyDir Volume into which they can write test output. This ensures that each
+test can be write output in isolation from other tests.  These volumes
+will be removed as part of scorecard's test Pod cleanup.  The presence of
+a storage spec within the scorecard config file triggers the addtion of the storage sidecar.
 
-### Default Storage Values
-The following defaults will be supplied for the storage feature:
- * 1Gi volume size
- * RWO (ReadWriteOnce) access mode
- * default storage class will be used
- * /test-output mount path
-
-These defaults will likely cover the majority of use cases.  Users can override these values however
-as documented above.
+By using emptyDir volumes for this feature, the cluster doesn't have to have a storage class defined and volume cleanup is included as part of test Pod cleanup.
 
 ### Errors
-This storage feature, when specifed in the configuration, requires a valid storage class be present on the cluster.  If a storage
-class is not found on the cluster, an error message will be raised in the scorecard test.
-
-When a user specifies invalid storage settings (e.g. storage class, access mode, volume size), an error is raised in the scorecard
-test result.
 
 ### Test Output
-Scorecard test output is gathered from the provisioned volumes using a container that includes the tar utility.  Scorecard test output
-is extracted from the 'gather' container using client-go APIs (e.g. exec).  
+Scorecard test output is gathered from the emptyDir volumes using a sidecar container that continues to run after the test container completes. The extraction of test output is performed by exec/tar into the sidecar container.
+Scorecard test output is extracted from the 'sidecar' container using client-go APIs (e.g. exec).  
 
 Test output is organized by test name in sub-directories.  For example, gathered output by default is stored in the local directory where
 scorecard was executed, however the user can also specify a command line flag (e.g. --test-output) to have the
@@ -293,9 +230,8 @@ I currently don't see value in backporting this feature to previous versions of 
 
 ## Drawbacks
 
-This feature and suggested implementation depend on dynamic storage
-being available on-cluster.
-
+Using emptyDir volumes means the on-cluster volumes are not accessible when the test pod is removed.  However, there is no current requirement to have 
+volumes live beyond the life of the test Pod.
 
 ## Alternatives
 
@@ -306,20 +242,9 @@ This seems really complicated and hard to maintain so I rejected this in favor o
 
 ### Alternative 2
 
-Another alternative to creating PVCs for test output storage, you could:
- * create a sidecar container in the test pod
- * share an emptydir volume between the containers
- * have the test pod write to that emptydir any test output
- * change scorecard to not remove the test pod until the
-test output is harvested from the sidecar.
-
-This would work, but it means depending on emptyDir storage which makes
-per-test configuration of storage probably not possible.  The other
-issue might include no way to access the test output after a test concludes
-which might limit some use of this feature longer term. Test output PVCs 
-could possibly be used for other applications down the road for example.
-
-The upside to this alternative is that you don't depend on a dynamic
-storage class being available on the test nodes.
-
+Another alternative to using emptyDir volumes would be to provision
+persistent volumes per test.  The downside of this approach is
+that you have to have persistent storage available on the cluster
+and you might have to manually manage error cases that would leave storage
+volumes on-cluster.
 
