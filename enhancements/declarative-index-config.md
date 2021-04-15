@@ -50,7 +50,7 @@ Since indexes are manipulated by making additive changes to it, the way an index
 A human consumable representation of packages in an index in the form of json/yaml will: 
 
 1. Allow for editing of package level information without rebuilding and republishing artifacts(remove bundle/s from a channel, switch bundle/s to a different channel, edit the upgrade graph in a channel etc).
-2. Allow modification of upgrade graph for a package without needing to rebuild and republish the index the package belongs to(i.e combine packages from two indexes, create multiple indexes with packages from a single index, remove bundles from the index, switch channels bundles belong to etc).
+2. Allow modification of upgrade graph for a package without needing to rebuild and republish the bundles that belong to the package (i.e combine packages from two indexes, create multiple indexes with packages from a single index, remove bundles from the index, switch channels bundles belong to etc).
 3. Allow for validation of the structure of an index against a standard definition of an index.
 4. Provide a way for index authors to reason about their indexes via a visual representation of the index, without having to curl a grpc api that in turn queries a sqllite database underneath, etc.
 5. Provide a way for tools like `opm`, `operator-registry` etc to consume the content of an index without needing a sqlite database as an input whenever they need information about the index to perform a task. 
@@ -69,11 +69,12 @@ A human consumable representation of packages in an index in the form of json/ya
 As a user with pull permission from the namespace an index is hosted in/as a component of OLM, I can query an index for a json/yaml representation of the packages of an index.
 The representation of individual packages will allow individual package owners to reason about/make changes to their individual packages in isolation.  
 
-`opm index inspect --image=docker.io/my-namespace/community-operators --output=json`
+`opm unpack docker.io/my-namespace/community-operators`
 
 pulls the index image from the registry, creates a new folder `community-operators` and copies the package representations for the packages that are in the image to the local folder. 
 
 ```bash
+$ opm unpack docker.io/my-namespace/community-operators
 $ cd community-operators
 $ tree
 .
@@ -421,15 +422,24 @@ $ cat etcd/etcd.json
 
 ### Story 2
 
-As an index author(with push permission to the namespace my index is hosted in), I can edit the packages in my index (remove bundles from a package, move a bundle to a different channel, etc), using only the json representation of the index/packages inside the index. 
+As an index author(with push permission to the registry/namespace my index is hosted in), I can edit the packages in my index (remove bundles from a package, move a bundle to a different channel, etc), using only the json representation of the index/packages inside the index. 
 
 ```bash
 $ cd community-operators 
 $ //edit etcd/etcd.json to add etcdoperator.v0.9.0 to a the channel `alpha`, and add an upgrade edge from etcdoperator-community.v0.6.1 to etcdoperator.v0.9.0 in channel `alpha`
 $ cd ..
-$ opm index update community-operators --tag=docker.io/my-namespace/community-operators:latest
+$ opm generate community-operators
+$ cat index.Dockerfile
+FROM quay.io/operator-framework/upstream-opm-builder
+LABEL operators.operatorframework.io.index.configs.v1=/configs
+ADD community-operators /configs
+EXPOSE 50051
+ENTRYPOINT ["/bin/opm"]
+CMD ["serve","/configs"]
+$ docker build -f index.Dockerfile . --tag=docker.io/my-namespace/community-operators:latest
 $ rm -rf community-operators
-$ opm index inspect --image=docker.io/my-namespace/community-operators --output=json
+$ docker push docker.io/my-namespace/community-operators:latest
+$ opm unpack docker.io/my-namespace/community-operators 
 $ cat community-operators/etcd/etcd.json
 {
     "schema": "olm.package",
@@ -549,21 +559,15 @@ Similarly, removing a package directory from `community-operators` and pushing t
 As a user with pull permission from the namespace an index is hosted in/as a component of OLM, I can validate the structure of the content of an index using the json representation.
  
 ```bash
-$ cd community-operators 
-$ sed -i '/defaultChannel/d' etcd/etcd.json //delete the line "defaultChannel":"singlenamespace-alpha"
+$ sed -i '/defaultChannel/d' community-operators/etcd/etcd.json //delete the line "defaultChannel":"singlenamespace-alpha"
 $ git status 
 	modified:    etcd/etcd.json
 
 $ cd ..
-$ opm index validate community-operators
+$ opm validate community-operators/
 marshal error: etcd.defaultchannel: cannot convert incomplete value "string" to JSON
-$ opm index update community-operator --tag=docker.io/mynamespace/community-operators:latest
-$ opm index validate docker.io/mynamespace/community-operators:latest 
-marshal error: etcd.defaultchannel: cannot convert incomplete value "string" to JSON
-$ cd community-operators 
-$ git checkout etcd/etcd.json
-$ cd ..
-$ opm index validate community-operators 
+$ git checkout community-operators/etcd.json //include default channel and push update to docker.io/mynamespace/community-operators:latest
+$ opm validate community-operators/ 
 No errors found!
 ```
 
@@ -587,7 +591,9 @@ community-operators
     │   └── ...
     └── servicemesh.json
 $ rm -r community-operators/servicemesh
-$ opm index create --from=community-operators --tag=docker.io/someothernamespace/new-community-operators:latest
+$ opm generate community-operators
+$ docker build -f index.Dockerfile --tag=docker.io/someothernamespace/new-community-operators:latest
+$ docker push docker.io/someothernamespace/new-community-operators:latest
 ```
 ## Implementation Details
 ### Representing a package using json/yaml 
@@ -788,10 +794,10 @@ The `properties.<"olm.skipRange">` property is currently consumed only by the OL
 
 #### Creating the json/yaml config file to represent a package
 
-The `opm index add` command will be enhanced to create a config file for representing the package the bundle is being added to if it is the first bundle in the package that is being added to this index. If the package the bundle is being added to already exists, the `olm.bundle` blob for the bundle will be added to the existing package config file.
+A new command `opm alpha add` command will create a config file for representing the package the bundle is being added to if it is the first bundle in the package that is being added to this index. If the package the bundle is being added to already exists, the `olm.bundle` blob for the bundle will be added to the existing package config file.
 
 ```bash
-$ opm index inspect --image=docker.io/my-namespace/community-operators:latest --output=json
+$ opm unpack docker.io/my-namespace/community-operators:latest 
 $ tree community-operators
 .
 └── etcd
@@ -857,283 +863,115 @@ $ cat community-operators/etcd/etcd.json
         }
     ]
 }
-$ opm index add --bundles quay.io/operatorhubio/etcd:v0.9.0 --mode replaces --tag docker.io/my-namespace/community-operators:latest
+$ opm alpha add community-operator quay.io/operatorhubio/etcd:v0.9.0  
+$ cat community-operators/etcd/etcd.json
+{
+    "schema": "olm.package",
+    "name": "etcd",
+    "defaultChannel": "singlenamespace-alpha",
+    "icon": {
+        "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
+        "mediatype":"image/png"
+    },
+    "description": "A message about etcd operator, a description of channels"
+}
+{
+    "schema": "olm.bundle",
+    "name": "etcdoperator-community.v0.6.1",
+    "package": "etcd",
+    "image": "quay.io/operatorhubio/etcd:v0.6.1",
+    "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.6.1"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdCluster",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "alpha"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.6.1/etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
+            }
+        }
+    ],
+    "relatedImages": [
+        {
+            "name": "etcdv0.6.1",
+            "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
+        }
+    ]
+}
+{
+    "schema": "olm.bundle",
+    "name": "etcdoperator.v0.9.0",
+    "package": "etcd",
+    "image": "quay.io/operatorhubio/etcd:v0.9.0",
+    "properties":[
+        {
+            "type": "olm.package",
+            "value": {
+                "packageName": "etcd",
+                "version": "0.9.0"
+            }
+        },
+        {
+            "type": "olm.gvk",
+            "value": {
+                "group": "etcd.database.coreos.com",
+                "kind": "EtcdBackup",
+                "version": "v1beta2"
+            }
+        },
+        {
+            "type": "olm.channel",
+            "value": {
+                "name": "singlenamespace-alpha"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.0/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
+            }
+        },
+        {
+            "type": "olm.bundle.object",
+            "value": {
+                "ref": "objects/etcdoperator.v0.9.0/etcdoperator.v0.9.0_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
+            }
+        }
+    ],
+    "relatedImages" : [
+        {
+            "name": "etcdv0.9.0",
+            "image": "quay.io/coreos/etcd-operator@sha256:db563baa8194fcfe39d1df744ed70024b0f1f9e9b55b5923c2f3a413c44dc6b8"
+        }
+    ]
+}
+$ opm generate community-operators
+$ docker build -f index.Dockerfile . --tag=docker.io/my-namespace/community-operators:latest
 $ docker push docker.io/my-namespace/community-operators:latest
-$ opm index inspect --image=docker.io/my-namespace/community-operators:latest --output=json
-$ cat community-operators/etcd/etcd.json
-{
-    "schema": "olm.package",
-    "name": "etcd",
-    "defaultChannel": "singlenamespace-alpha",
-    "icon": {
-        "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
-        "mediatype":"image/png"
-    },
-    "description": "A message about etcd operator, a description of channels"
-}
-{
-    "schema": "olm.bundle",
-    "name": "etcdoperator-community.v0.6.1",
-    "package": "etcd",
-    "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "properties":[
-        {
-            "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
-            "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdCluster",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "alpha"
-            }
-        },
-        {
-            "type": "olm.bundle.object",
-            "value": {
-                "ref": "objects/etcdoperator.v0.6.1/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
-            }
-        },
-        {
-            "type": "olm.bundle.object",
-            "value": {
-                "ref": "objects/etcdoperator.v0.6.1/etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
-            }
-        }
-    ],
-    "relatedImages": [
-        {
-            "name": "etcdv0.6.1",
-            "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
-        }
-    ]
-}
-{
-    "schema": "olm.bundle",
-    "name": "etcdoperator.v0.9.0",
-    "package": "etcd",
-    "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "properties":[
-        {
-            "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
-        {
-            "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdBackup",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "singlenamespace-alpha"
-            }
-        },
-        {
-            "type": "olm.bundle.object",
-            "value": {
-                "ref": "objects/etcdoperator.v0.9.0/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
-            }
-        },
-        {
-            "type": "olm.bundle.object",
-            "value": {
-                "ref": "objects/etcdoperator.v0.9.0/etcdoperator.v0.9.0_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
-            }
-        }
-    ],
-    "relatedImages" : [
-        {
-            "name": "etcdv0.9.0",
-            "image": "quay.io/coreos/etcd-operator@sha256:db563baa8194fcfe39d1df744ed70024b0f1f9e9b55b5923c2f3a413c44dc6b8"
-        }
-    ]
-}
-```
-
-The `opm registry add` command will also be enhanced to create `olm.bundle` json blobs for bundles passed onto the command along with a package config, and append them to the config.
-
-```bash
-$ cat community-operators/etcd/etcd.json
-{
-    "schema": "olm.package",
-    "name": "etcd",
-    "defaultChannel": "singlenamespace-alpha",
-    "icon": {
-        "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
-        "mediatype":"image/png"
-    },
-    "description": "A message about etcd operator, a description of channels"
-}
-{
-    "schema": "olm.bundle",
-    "name": "etcdoperator-community.v0.6.1",
-    "package": "etcd",
-    "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "properties":[
-        {
-            "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
-            "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdCluster",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "alpha"
-            }
-        },
-        {
-            "type": "olm.bundle.object",
-            "value": {
-                "ref": "objects/etcdoperator.v0.6.1/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
-            }
-        },
-        {
-            "type": "olm.bundle.object",
-            "value": {
-                "ref": "objects/etcdoperator.v0.6.1/etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
-            }
-        }
-    ],
-    "relatedImages": [
-        {
-            "name": "etcdv0.6.1",
-            "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
-        }
-    ]
-}
-$ opm registry add --bundles quay.io/operatorhubio/etcd:v0.9.0 --mode replaces --database community-operators
-$ cat community-operators/etcd/etcd.json
-{
-    "schema": "olm.package",
-    "name": "etcd",
-    "defaultChannel": "singlenamespace-alpha",
-    "icon": {
-        "base64data":"iVBORw0KGgoAAAANSUhEUgAAA.....",
-        "mediatype":"image/png"
-    },
-    "description": "A message about etcd operator, a description of channels"
-}
-{
-    "schema": "olm.bundle",
-    "name": "etcdoperator-community.v0.6.1",
-    "package": "etcd",
-    "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "properties":[
-        {
-            "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
-            "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdCluster",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "alpha"
-            }
-        },
-        {
-            "type": "olm.bundle.object",
-            "value": {
-                "ref": "objects/etcdoperator.v0.6.1/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
-            }
-        },
-        {
-            "type": "olm.bundle.object",
-            "value": {
-                "ref": "objects/etcdoperator.v0.6.1/etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
-            }
-        }
-    ],
-    "relatedImages": [
-        {
-            "name": "etcdv0.6.1",
-            "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
-        }
-    ]
-}
-{
-    "schema": "olm.bundle",
-    "name": "etcdoperator.v0.9.0",
-    "package": "etcd",
-    "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "properties":[
-        {
-            "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
-        {
-            "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdBackup",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "singlenamespace-alpha"
-            }
-        },
-        {
-            "type": "olm.bundle.object",
-            "value": {
-                "ref": "objects/etcdoperator.v0.9.0/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
-            }
-        },
-        {
-            "type": "olm.bundle.object",
-            "value": {
-                "ref": "objects/etcdoperator.v0.9.0/etcdoperator.v0.9.0_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
-            }
-        }
-    ],
-    "relatedImages" : [
-        {
-            "name": "etcdv0.9.0",
-            "image": "quay.io/coreos/etcd-operator@sha256:db563baa8194fcfe39d1df744ed70024b0f1f9e9b55b5923c2f3a413c44dc6b8"
-        }
-    ]
-}
 ```
 
 ### Using the package json representation
@@ -1141,12 +979,12 @@ $ cat community-operators/etcd/etcd.json
 Once every package inside an index is represented using a json/yaml config file, the config files can be leveraged to inspect/update/validate the packages inside the index without needing to rebuild the index from scratch.  
 #### Inspecting the packages inside an index
 
-A new sub-command `inspect` will be introduced under `opm index`.
+A new sub-command `unpack` will be introduced under the `opm` root command.
 
-When `opm index inspect` is summoned, the index image will be downloaded, and the json representations of the packages inside the index will be unfurled in a folder with the same name as the index. 
+When `opm unpack` is summoned, the index image will be pulled from the remote registry, and the json representations of the packages inside the index will be unfurled in a folder with the same name as the index. 
 
 ```bash 
-$ opm index inspect --image=docker.io/my-namespace/community-operators --output=json
+$ opm unpack --image=docker.io/my-namespace/community-operators
 $ cd community-operators
 $ tree
 .
@@ -1161,42 +999,32 @@ $ tree
 ```
 #### Editing a package inside an index
 
-A new sub-command `update` will be introduced under `opm index`, which will take a folder containing json representations of packages as it's input along with an existing index image tag, and will replace the edited config files in the index container. 
+Declarative configs that represent packages and bundles inside the index will provide utmost access to index authors to edit the makeup of the index by editing the content of the configs. The configs can be edited to create new update graphs for packages (for eg by editing the `replaces` metadata for bundle/s), add new bundles to the update graphs (assited by `opm alpha add` to create the metadata for the `olm.bundle` blobs), change existing metadata in `olm.package`/`olm.bundle` blobs (for eg changing the default channal for a package can be done by just edited the `defaultChannel` field in `olm.package` blob) etc.
+
+A new command `opm generate` that takes in the directory that contains these configs as input will help generate the Dockerfile for building an index image using the directory.
 
 ```bash
-$ opm index inspect --image=quay.io/some-namespace/my-index 
-$ // edit a my-index/package/package-config.json 
-$ opm index update my-index --tag=docker.io/some-namespace/my-index:latest
+$ opm generate configs-dir 
+$ cat index.Dockerfile 
+$ cat index.Dockerfile
+FROM quay.io/operator-framework/upstream-opm-builder
+LABEL operators.operatorframework.io.index.configs.v1=/configs
+ADD configs-dir /configs
+EXPOSE 50051
+ENTRYPOINT ["/bin/opm"]
+CMD ["serve","/configs"]
 ``` 
 
-> Note: For a seamless UX, the following things should be consider during implementation when the `opm index update` command is summoned: 
-> 1. Validate the files inside the folder given as input to the command to ensure they are valid json representation of packages (and not random files with random content, which could be potential security risks) 
-> 2. If the files are valid, take a git diff between the present content of the index (i.e the existing json representations) and the content of the folder given as input. Display the diff as an output of the command with the following message 
-> "The following changes will be updated in the index:"
-> If there is no diff between the content in the container image and the content of the local folder, throw an error with the message "No diff found between index and local content to update."    
+This Dockerfile can then be used to build an updated index using a prefered client(docker/podman/buildah etc)   
 
-
-#### Creating new indexes using the config files from an existing index
-
-A new sub-command `create` will be introduced under `opm index`, that will take a folder containing json/yaml representation of packages, and a container image tag as input. The sub-command will create a new index container, walk the tree of files to find the json representations and store them in the container. 
-
-```bash
-$ tree community-operators 
-community-operators
-├── amqstreams
-│   ├── amqstreams.json
-│   └── objects
-│       └── ...
-└── etcd
-    ├── etcd.json
-    └── objects
-        └── ...
-$ opm index create --from=community-operators --tag=docker.io/some-namespace/community-operators
-```   
+```
+$ docker build . -f index.Dockerfile --tag=quay.io/some-namespace/my-index
+$ docker push quay.io/some-namespace/my-index:update1
+```
 
 #### Validating a package inside the index
 
-A new sub-command `validate` will be introduced under `opm index`, that will validate the content of each package's json representation. These validations will be in the context of rules about the structure of a package config in an index (required fields, naming conventions etc). A best effort is currently being made to aggregate these rules from various sources and maintained in the [api project's validation library](https://github.com/operator-framework/api/tree/master/pkg/validation). The `opm index validate` will be responsible for validating the index for authors to make sure that the packages in the index conforms to these rules. 
+A new sub-command `validate` will be introduced under `opm`, that will validate the content of each package's json representation. These validations will be in the context of rules about the structure of a package config in an index (required fields, naming conventions etc). A best effort is currently being made to aggregate these rules from various sources and maintained in the [api project's validation library](https://github.com/operator-framework/api/tree/master/pkg/validation). The `opm validate` will be responsible for validating the index for authors to make sure that the packages in the index conforms to these rules, and can be used by a new `opm serve` command to parse and serve the gRPC apis that exists currently(listed below). 
 
 #### Usage of the json representation of packages by olm components
 
@@ -1216,7 +1044,7 @@ rpc ListBundles(ListBundlesRequest) returns (stream Bundle) {}
 ```
 
 Once the declarative package configs are available inside an index, these configs will be used to serve the content for these api endpoints instead of the sqlite database.
-A new `opm serve` command will be introduced to handle serving declarative configs.
+A new `opm serve` command will be introduced to handle parsing the declarative configs and serving infromation from the contents of these configs.
 
 ## Deprecations
 
