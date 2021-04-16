@@ -230,8 +230,6 @@ I currently don't see value in backporting this feature to previous versions of 
 
 ## Implementation History
 
-
-
 ## Drawbacks
 
 Using emptyDir volumes means the on-cluster volumes are not accessible when the test pod is removed.  However, there is no current requirement to have 
@@ -255,4 +253,3 @@ volumes on-cluster.
 It is worth noting that the storage spec implemented for this feature
 could also be extended to support PVs if they to be implemented in 
 the future.
-
