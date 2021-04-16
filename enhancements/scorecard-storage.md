@@ -196,28 +196,6 @@ enhancement:
 
 Clearly define what graduation means.
 
-#### Examples
-
-These are generalized examples to consider, in addition to the aforementioned
-[maturity levels][maturity-levels].
-
-##### Dev Preview -> Tech Preview
-
-- Ability to utilize the enhancement end to end
-- End user documentation, relative API stability
-- Sufficient test coverage
-- Gather feedback from users rather than just developers
-
-##### Tech Preview -> GA 
-
-- More testing (upgrade, downgrade, scale)
-- Sufficient time for feedback
-- Available by default
-
-**For non-optional features moving to GA, the graduation criteria must include
-end to end tests.**
-
-
 
 ### Upgrade / Downgrade Strategy
 
