@@ -132,6 +132,10 @@ would include a local directory of the collected test output, with test output b
 
 Scorecard users that don't require persistent storage are not impacted by this proposed feature.
 
+The storage sidecar would use the wait-time value to timeout in
+the event that scorecard abnormally exited before it performed 
+its test pod cleanup.
+
 ## Design Details
 
 ### emptyDir Volumes
@@ -247,4 +251,8 @@ persistent volumes per test.  The downside of this approach is
 that you have to have persistent storage available on the cluster
 and you might have to manually manage error cases that would leave storage
 volumes on-cluster.
+
+It is worth noting that the storage spec implemented for this feature
+could also be extended to support PVs if they to be implemented in 
+the future.
 
