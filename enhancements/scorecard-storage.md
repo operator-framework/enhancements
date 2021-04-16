@@ -140,7 +140,7 @@ its test pod cleanup.
 
 ### emptyDir Volumes
 Each scorecard test that specifies the storage feature will have a unique emptyDir Volume into which they can write test output. This ensures that each
-test can be write output in isolation from other tests.  These volumes
+test can write output in isolation from other tests.  These volumes
 will be removed as part of scorecard's test Pod cleanup.  The presence of
 a storage spec within the scorecard config file triggers the addition of the storage sidecar.
 
