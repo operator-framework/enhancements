@@ -129,10 +129,14 @@ Because the driving need behind this functionality is the ability to customize a
 the Helm-based operator, we will scaffold out every bit of code that is not accessible via
 a library, and err on the side of scaffolding more than we need to.
 
-For the first iteration of the hybrid Helm/Go operator plugin, we will likely just scaffold
-out nearly everything that is currently in the [helm-operator repository][helm-operator-repo], but
+For the first iteration of the hybrid Helm/Go operator plugin, we will scaffold out most of the
+configuration and core reconciliation logic that is currently in the 
+[helm-operator repository][helm-operator-repo], but
 with a `main.go` that is more in line with a typical Go-based operator, including the kubebuilder
-scaffolding markers that make it easy to add pure Go-based apis. This will provide maximal
+scaffolding markers that make it easy to add pure Go-based apis. The major difference between the
+scaffolded `main.go` for a hybrid operator vs a pure Go-based operator is that it will include the
+logic for loading/parsing the `watches.yaml` and handling the reconciliation of resources defined there.
+This will provide maximal
 flexibility for early adopters of the pre-stable plugin. This also matches the functionality that
 current users of the [helm-operator repository][helm-operator-repo] have, as the way they have
 customized the behavior of the `helm-operator` binary is by forking the repository entirely and
@@ -144,6 +148,9 @@ Examples of code that will likely have to remain scaffolded in the long-term are
     or changing their handling is likely to be a long-term need.
 1. `internal/cmd/run/cmd.go`: Similarly to the `watches.go` file, users will need to have the
    ability to freely modify the arguments the `helm-operator` binary takes.
+1. `pkg/reconcile/reconciler.go`: There are pieces here that could be moved to the library, but
+   the bulk of the core logic of the reconcile loop should be exposed so that the users can
+   modify it as they see fit without having to copy/reimplement all of it.
 
 #### Library for helm functionality
 
@@ -186,6 +193,36 @@ The operator-sdk already supports running commands that do not match the PROJECT
 that the directory structure for the hybrid Helm/Go operator project is compatible with both the Golang
 and Helm plugins' implementation of the `create` subcommands, and that all relevant files have the markers
 necessary for both the Helm and Go plugins to insert scaffolded code for new APIs.
+
+Example usage of both plugins to create APIs might look like:
+
+##### init
+
+```bash
+$ operator-sdk init --plugins hybrid-helm-go.sdk.operatorframework.io/v1
+```
+
+This would initialize a Go project with a `main.go` that contains the markers for extending with
+Go-based APIs, but also all of the logic necessary to parse and use a `watches.yaml`. It would also
+scaffold the base `watches.yaml` and `helm-charts` that the Helm SDK plugin would initialize.
+
+##### Create Go API
+```bash
+$ operator-sdk create api --plugins go.kubebuilder.io/v3 --group ship --version v1beta1 --kind Frigate
+```
+
+This would behave exactly as normal, scaffolding out code under `api` and `controllers`, as well as
+modifying the deployment manifests in `config`.
+
+##### Create Helm API
+```bash
+$ operator-sdk create api --plugins helm.sdk.operatorframework.io/v1 --group ship --version v1beta1 --kind Trireme
+```
+
+This would add the proper entry to `watches.yaml`, update the RBAC rules in `config`, and initialize a new helm
+chart under `helm-charts`. Due to the logic included in the `main.go`, additional scaffolded code, and helm library
+imports, building and running the operator at this point would automatically set up reconciliation for this resource,
+exactly as it would for a standard Helm-based operator.
 
 ### Risks and Mitigations
 
