@@ -77,13 +77,12 @@ Golang while leaving the existing helm functionality in place.
 
 ## Proposal
 
-There are 3 stages to this proposal:
+There are 4 stages to this proposal:
 
 1. Joe Lanford has made significant progress on this already, in the
-   [joelanford/helm-operator][helm-operator-repo] repository.
-   First we will migrate this code to the operator-sdk repo, where it will replace the
-   existing helm-operator code.
-1. We will write a new SDK plugin that can scaffold out a hybrid operator. As a first
+   [joelanford/helm-operator][helm-operator-repo] repository. As a first step, we will
+   migrate this code to a new repository, `operator-framework/helm-operator-plugins`.
+1. We will write a new SDK plugin in this repo that can scaffold out a hybrid operator. As a first
    iteration we can just scaffold out most of the code that is currently in the
    [helm-operator][helm-operator-repo] (though the exact structure of the code will likely change)
    and use that to generate what we ship in the base image.
@@ -91,6 +90,8 @@ There are 3 stages to this proposal:
    utility library, to minimize the amount of code the user will need to maintain. This
    library could either be the existing operator-lib package, or a new, helm-operator specific
    package.
+1. We will move the current helm-operator plugin from the `operator-sdk` to the new
+   `operator-framework/helm-operator-plugins` repository.
 
 ### User Stories
 
@@ -130,7 +131,7 @@ the Helm-based operator, we will scaffold out every bit of code that is not acce
 a library, and err on the side of scaffolding more than we need to.
 
 For the first iteration of the hybrid Helm/Go operator plugin, we will scaffold out most of the
-configuration and core reconciliation logic that is currently in the 
+configuration and core reconciliation logic that is currently in the
 [helm-operator repository][helm-operator-repo], but
 with a `main.go` that is more in line with a typical Go-based operator, including the kubebuilder
 scaffolding markers that make it easy to add pure Go-based apis. The major difference between the
@@ -172,11 +173,12 @@ Examples of code that will likely be broken out into a library are:
 The hybrid Helm/Go operator is a Go-based operator with scaffolded/library code that makes its
 default configuration identical to a Helm-based operator. Rather than relying on a base image,
 as a Helm-based operator does, the code for the `helm-operator` binary will be scaffolded and
-the scaffolded Dockerfile will build it. Additionally, internally the `operator-sdk` will use
-the hybrid Helm/Go operator plugin to scaffold and build the base image that is distributed
-for Helm-based operators. This ensures that there will be no code drift, and that the stock
-behavior of the hybrid operator will match that of the Helm-based operator.
+the scaffolded Dockerfile will build it.
 
+For a time, there will be some code duplication between the operator-sdk and the
+helm-operator-plugins repository. Eventually, we will move the helm-operator plugin, binary, and
+base image out of the operator-sdk and into helm-operator-plugins, at which point the plugin will
+just be imported by the SDK.
 
 #### The Makefile
 
@@ -236,6 +238,10 @@ Additionally, we will need to ensure that the integration testing in place for H
 thorough enough that we can avoid unknowingly introducing breaking changes for existing users of Helm-based
 operators as we change how the code is built and extend it to support this use-case.
 
+We will also be maintaining two implementations of the helm-operator binary, base image, and plugin initially.
+We should prioritize moving to the new repository as quickly as possible to prevent code drift between
+helm-operator-plugins and operator-sdk.
+
 ## Design Details
 
 ### Test Plan
@@ -245,8 +251,8 @@ Much of the code already has testing in place, but we will still need to add tes
 
 ### Graduation Criteria
 
-In phase 1 and 2 of this plan (moving the code from the [helm-operator repo][helm-operator-repo] to an 
-operator-sdk scaffolding plugin), the hybrid Helm/Go operator plugin should be considered a highly 
+In phase 1 and 2 of this plan (moving the code from the [helm-operator repo][helm-operator-repo] to an
+operator-sdk scaffolding plugin), the hybrid Helm/Go operator plugin should be considered a highly
 unstable dev preview. As functionality is broken out and the helm library fills out and churn decreases,
 we will consider moving to alpha status.
 
