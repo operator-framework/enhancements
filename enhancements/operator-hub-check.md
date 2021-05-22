@@ -7,7 +7,7 @@ reviewers:
 approvers:
   - TBD
 creation-date: 2021-02-19
-last-updated: 2021-05-01
+last-updated: 2021-05-14
 status: implementable
 ---
 
@@ -64,8 +64,16 @@ The new validator also needs to allow the checks occurs to verify the operator b
 ```sh
 $ operator-sdk bundle validate ./bundle \
     --select-optional name=operatorhub \
-    --optional-values="k8s=1.22"
+    --optional-values="k8s-version=1.22"
 ```
+
+Also, see that it needs to work for a suite of test which seems most used and suggested by the users who are looking for ensure that their bundle will work as expected. (e.g. [here][doc-guide])
+
+ ```sh
+ $ operator-sdk bundle validate ./bundle \
+    --select-optional suite=operatorframework \
+    --optional-values="k8s-version=1.22"
+ ```
 
 **NOTES** For further information check [here](https://sdk.operatorframework.io/docs/olm-integration/generation/#validation) in the SDK docs and [here](https://olm.operatorframework.io/docs/tasks/validate-package/#validation) in the OLM docs. Also, the new checks will be required for audit purposes where a tool would be able to check all bundles of a provided OLM index catalogue. 
 
@@ -142,12 +150,12 @@ For the checks which should be done accordingly for some specific version(s) it 
 ```sh
  operator-sdk bundle validate ./bundle \
      --select-optional name=operatorhub \
-     --optional-values="k8s=1.22"
+     --optional-values="k8s-version=1.22"
 ```
 
 Then, it means that the check will validate the operator bundle configuration accordingly to the Kubernetes version informed where it is intend to be published to. In this case, the validator will consider the Kubernetes version `=1.22`. 
 
-If the `--optional-values="k8s=1.22"` not be used then, we will use the `minKubeVersion` in the CSV to do the checks. So, the criteria is `>=minKubeVersion`. By last, if the `minKubeVersion` is not provided then, we should consider as described above that the operator bundle is intend to work well in any Kubernetes version.
+If the `--optional-values="k8s-version=1.22"` not be used then, we will use the `minKubeVersion` in the CSV to do the checks. So, the criteria is `>=minKubeVersion`. By last, if the `minKubeVersion` is not provided then, we should consider as described above that the operator bundle is intend to work well in any Kubernetes version.
 
 **Deprecated and unsupported versions**
 
@@ -168,8 +176,8 @@ The error raised will be accordingly with the Kubernetes version that we have, s
 > However, for the checks where the `--optional-values="k8s=1.22"` was used we know that the goal is to verify if the operator bundle will work òn `1.22` then, we can already raise the `error` result. 
 
 Then, it means that:
-- `--optional-values="k8s=value"` flag with a value `=> 1.16 <= 1.22` the validator will return result as warning.
-- `--optional-values="k8s=value"` flag with a value `=> 1.22` the validator will return result as error.
+- `--optional-values="k8s-version=value"` flag with a value `=> 1.16 <= 1.22` the validator will return result as warning.
+- `--optional-values="k8s-version=value"` flag with a value `=> 1.22` the validator will return result as error.
 - `minKubeVersion >= 1.22` return the error result.
 
 **Currently (Before `1.22` release)**
@@ -188,9 +196,28 @@ The Kubernetes `1.22` release will impact the Pipeline. After the implementation
 We could return an error optionally:
 - `minKubeVersion >= 1.22 or empty/nil`  return the error result.
 
-All bundles which are using the no longer supported Kubernetes API will start to fail in the above check which indeed is the purpose of this proposal. However, the risk still solved since the Pipeline can indeed inform a Kubernetes version lower such as `--optional-values="k8s=1.21"` if required until all projects are properly update.
+All bundles which are using the no longer supported Kubernetes API will start to fail in the above check which indeed is the purpose of this proposal. However, the risk still solved since the Pipeline can indeed inform a Kubernetes version lower such as `--optional-values="k8s-version=1.21"` if required until all projects are properly update.
 
 Then, this proposal has a very low risks and/or mitigations which are usually faced to address any change. However, see that the usage of the validator can be easily disabled from any place in case it is required until a bug fix can be patched as well. For example, the user or a job can decide not use the command until a bug fix to be addressed.
+
+#### Suggested Follow-ups
+
+Following the proposed follow-ups for this implementation which are not required to address its requirements and uses cases and are more related to the additional option added here which allows to pass values via a []map of key/values to the validators. 
+
+
+The `k8s-version` key, besides at this moment be only be used by the validator `OperatorHub.io`, requires to be "global". Otherwise, if it starts to be used for another validator would not be possible to use it as: 
+
+ ```sh
+ $ operator-sdk bundle validate ./bundle \
+    --select-optional suite=operatorframework \
+    --optional-values="k8s-version=1.22"
+ ```
+
+However, we could also have specific keys for each validator and then, to address this need would be nice define something like terraform’s [TF_VAR_name][tf-var] for validators, where the prefix is the validator name capitalized, so you don’t have to pass in some object or define flags for the validator lib consumer. Also, it could be optionals colon-delimited prefix per-validator or per-suite, for example; the validator `operatorhub:k8s-version` vs. the suite `operatorframework:k8s-version` vs. global `k8s-version`.
+
+Using the additional made here as an example that means that users could call the suite or the validator using `k8s-version` or `OPERATORHUB-k8s-version` to pass the values via the `--optional-values`.
+
+Additionally, would be interesting add methods in the [operator-framework/api][oper-api] to return a map with all keys as there descriptions which are valid by each validator.   
 
 ## Design Details
 
@@ -201,3 +228,5 @@ The rules implemented should be covered by unit tests in the [operator-framework
 [operatorhubvalidator]: https://github.com/operator-framework/operator-registry/blob/master/docs/design/operator-bundle.md
 [oper-api]: https://github.com/operator-framework/api
 [channel-names-doc]: https://github.com/operator-framework/operator-lifecycle-manager/blob/master/doc/design/channel-naming.md#naming-convention-rules
+[doc-guide]: https://redhat-connect.gitbook.io/certified-operator-guide/ocp-deployment/operator-metadata/reviewing-your-metadata-bundle#verifying-your-bundle-with-operator-sdk
+[tf-var]: https://www.terraform.io/docs/cli/config/environment-variables.html#tf_var_name
