@@ -56,7 +56,8 @@ In term of importance, the second puzzling point is the question around the appl
 So we built a framework (GO module) over the Operator SDK that must be updated as well each time the Operator SDK version is upgraded (thought is is also the case of any operator based on the SDK).
 
 
-Our expectation now is to evaluate if this GO module presents any insightfull concepts, do we make it public and if both previous questions are positive, where is its place, out or inside the OperatorSDK ?
+Our expectation now is to evaluate if this GO module presents any insightful concepts, do we make it public and if both previous questions are positive, where is its place, out or inside the Operator SDK ?
+
 
 
 ### Goals
