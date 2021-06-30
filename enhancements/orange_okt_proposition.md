@@ -37,7 +37,8 @@ It is described below through 2 stories to better understand the proposition. To
 We worked mainly on an operator for a stateful application and had to deal with:
 
 
-  - the question to detect finely any change in the managed resources by the operator (do not update  them unecessarly)
+  - the question to detect finely any change in the managed resources by the operator (do not update  them unnecessarily)
+
   - the CR Reconciliation's Status to update as recommended
   - apply CR finalizations as recommended
   - apply success and errors management 
