@@ -24,7 +24,8 @@ Once convinced that the Operator SDK is the tool to have to develop your operato
 The Operator SDK is sufficiently opened and flexible to let you use your own techniques to do what you want as you want. However, we thought that on some points we would prefer to be more guided and avoid some brainstorming on "how it works/how to do/do we need to do" some code to achieve our goal. However, we'd like too to keep the flexibility and we reject some other operator frameworks more dedicated/specialized to an application domain. Moreover, some code would worth a capitalization shared among other developers.
 
 
-It's fully normal to have to learn how to use a framework, however we noticed the existence of recommendations/golden rules out there (a repo exists with the code, RedHat blog, a book, ...) to follow for a great implementation. Ok but this disctrated us from ou main goal, the application business logic.
+It's fully normal to have to learn how to use a framework, however we noticed the existence of recommendations/golden rules out there (a repo exists with the code, Red Hat blog, a book, ...) to follow for a great implementation. Okay but this distracted us from our main goal, the application business logic.
+
 
 A GO module already exists (@Orange) and implements the point addressed here, and we are thinking to deliver the code in the OS community. Its name is OKT.
 Important to say, this code does not pretend to fill a gap (we felt it as is) to reach an optimal framework, but it may bring some propositions we would greatly appreciate to discuss with the community.
