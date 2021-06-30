@@ -111,7 +111,8 @@ I want to be aligned with best pratices, so I decide to use the OperatorSDK but 
 OKT aims to provide if it worth it, an optional resource helper. When it exists in the OKT library, it centralize some utilities for a specific kind of resource. For example, right now, a StatefulSetHelper is availaible and could evolve in the future. This last provides some basic methods or shortcut like  GetReadyPodsCount() or GetRunningPodsCount(). 
 If in the future if I'll have lots of resources to create, OKT allow through an option in its function call,  to create no more than X resource max at a same time (another best practice).  
 
-A throttle mecanism is put automatically in place by OKT if the same error occurs indefinitely to requeue the error with a growing elapsed time.
+A throttle mechanism is put automatically in place by OKT if the same error occurs indefinitely to requeue the error with a growing elapsed time.
+
 
 All the Operators I'll build with OperatorSDK+OKT in the future, will be built upon the same code structure, with a clear view on where are the resources and the mutation operations done on each of them.
 
