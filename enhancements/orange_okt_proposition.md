@@ -1,4 +1,5 @@
-# OperatorSDK must embed natively all best practices and more
+# OperatorSDK should embed natively all best practices and more
+
 
 This is the title of the enhancement. Keep it simple and descriptive. A good
 title can help communicate what the enhancement is and should be considered as
