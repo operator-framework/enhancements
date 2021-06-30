@@ -50,7 +50,8 @@ Note that it is mainly the first point (fine detection of changes) that puzzled 
 - `DeepEqual(expected, actual)` is not great for MetaData and defaulted values)
 -  a "hard way" consisting in comparaison by kind of fields (sameLabels(), sameAnnotations(),...) is not a great fit for unit tests, and so on...
 
-In term of importance, the second puzzeling point is the question around the application life-cycle. It is about the different states a database (or any app) can take once started and how to drive the application life-cycle at this level. The other level being the management of the Kubernetes resources life-cycle, the first need that comes in mind when we think Operator.
+In term of importance, the second puzzling point is the question around the application life-cycle. It is about the different states a database (or any app) can take once started and how to drive the application life-cycle at this level. The other level being the management of the Kubernetes resources life-cycle, the first need that comes in mind when we think Operator.
+
 
 So we built a framework (GO module) over the Operator SDK that must be updated as well each time the OperatorSDK version is upgraded (thought is is also the case of any operator based on the SDK).
 
