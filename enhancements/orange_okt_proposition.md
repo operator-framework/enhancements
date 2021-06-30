@@ -204,57 +204,6 @@ OKT will have its own unit tests.
 
 N/A
 
-#### Examples
-
-These are generalized examples to consider, in addition to the aforementioned
-[maturity levels][maturity-levels].
-
-##### Dev Preview -> Tech Preview
-
-- Ability to utilize the enhancement end to end
-- End user documentation, relative API stability
-- Sufficient test coverage
-- Gather feedback from users rather than just developers
-
-##### Tech Preview -> GA 
-
-- More testing (upgrade, downgrade, scale)
-- Sufficient time for feedback
-- Available by default
-
-**For non-optional features moving to GA, the graduation criteria must include
-end to end tests.**
-
-##### Removing a deprecated feature
-
-- Announce deprecation and support policy of the existing feature
-- Deprecate the feature
-
-### Upgrade / Downgrade Strategy
-
-If applicable, how will the component be upgraded and downgraded? Make sure this
-is in the test plan.
-
-Consider the following in developing an upgrade/downgrade strategy for this
-enhancement:
-- What changes (in invocations, configurations, API use, etc.) is an existing
-  cluster required to make on upgrade in order to keep previous behavior?
-- What changes (in invocations, configurations, API use, etc.) is an existing
-  cluster required to make on upgrade in order to make use of the enhancement?
-
-### Version Skew Strategy
-
-How will the component handle version skew with other components?
-What are the guarantees? Make sure this is in the test plan.
-
-Consider the following in developing a version skew strategy for this
-enhancement:
-- During an upgrade, we will always have skew among components, how will this impact your work?
-- Does this enhancement involve coordinating behavior in the control plane and
-  in the kubelet? How does an n-2 kubelet without this feature available behave
-  when this feature is used?
-- Will any other components on the node change? For example, changes to CSI, CRI
-  or CNI may require updating that component before the kubelet.
 
 ## Implementation History
 
