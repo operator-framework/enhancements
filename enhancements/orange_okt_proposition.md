@@ -34,7 +34,8 @@ It is described below through 2 stories to better understand the proposition. To
 
 ## Motivation
 
-We worked mainly on an operator for a statefull application and  had to deal with:
+We worked mainly on an operator for a stateful application and had to deal with:
+
 
   - the question to detect finely any change in the managed resources by the operator (do not update  them unecessarly)
   - the CR Reconciliation's Status to update as recommended
