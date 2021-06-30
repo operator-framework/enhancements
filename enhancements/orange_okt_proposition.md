@@ -64,7 +64,8 @@ Our expectation now is to evaluate if this GO module presents any insightful con
 
 The goal would be considered reached if :
 
- - the GO operator developper is ensured to respect all golden rules by using the OperatorSDK without adding external code, and in simple manner
+ - the GO operator developer is ensured to respect all golden rules by using the Operator SDK without adding external code, and in simple manner
+
  - the developper can better focus on its application logic and find with this tool many utilities commonly used in an application life cycle management (calling external API, check or control any application state, ...) 
  - Over the common K8S resources life-cycle management, the SDK brings also a generic way to easily handle any application states (other than these states like "resources created, updated, deleted") but some points like "application started, servicing, healing, unavailable, any possible situation..."  
 
