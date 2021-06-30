@@ -163,7 +163,8 @@ Once the application added to the OKT registry (like any other resource), the OK
   - on End: Delete() it!
   - on any other state: Update it!
 
-As any other resource, it put in place an idempotent mecanism and detect changes (and thus will do nothing during a Reconciliation if there's nothing new). Here what will trigger a change:
+As any other resource, it put in place an idempotent mechanism and detect changes (and thus will do nothing during a Reconciliation if there's nothing new). Here what will trigger a change:
+
 
   - a state change (in App LC Graph) due to a CR modification
   - a state change from the observation of a change at the application level. This observability should be implemented by an application sidecar container or a usable function in the application container itself. 
