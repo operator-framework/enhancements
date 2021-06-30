@@ -21,8 +21,8 @@ to implement the design.  For instance,
 Once convinced that the Operator SDK is the tool to have to develop your operator, you quickly encounter several points to deal with that are not natively brought through the SDK (we'll talk about that hereafter in details). It also becomes evident, that building an operator with a high capability level can be difficult.
 
 
-The Operator SDK is sufficiently opened and flexible to let you use your own technics to do what you want as you want. However we thought that on some points we would prefer to be more guided and avoid some brainstorming on "how it works/how to do/do we need to do" some code to achieve our goal. However we'd like too to keep the flexibility and we reject some other operator frameworks more dedicated/specialized to an application domain.
-Moreover, some code would worth a captilization shared among other developpers.
+The Operator SDK is sufficiently opened and flexible to let you use your own techniques to do what you want as you want. However, we thought that on some points we would prefer to be more guided and avoid some brainstorming on "how it works/how to do/do we need to do" some code to achieve our goal. However, we'd like too to keep the flexibility and we reject some other operator frameworks more dedicated/specialized to an application domain. Moreover, some code would worth a capitalization shared among other developers.
+
 
 It's fully normal to have to learn how to use a framework, however we noticed the existence of recommendations/golden rules out there (a repo exists with the code, RedHat blog, a book, ...) to follow for a great implementation. Ok but this disctrated us from ou main goal, the application business logic.
 
