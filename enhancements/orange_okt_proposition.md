@@ -151,7 +151,8 @@ OKT comes with a statemachine feature that should help in defining these steps a
 To allow this, OKT provides:
 
   -  a sidecar for my application to help me to get my database status and launch actions on it asynchronously.
-  -  an utility to modelize my graph of appication states into my CRD
+  -  an utility to modelize my graph of application states into my CRD
+
   -  a GO type to implement this graph and transition rules that condition how I validate the transition from one step to another
 
 In my CR I set the wished state (i.e. Servicing) I want to reach, while the current application state (i.e. is maintained in the CR status with a new Condition).
