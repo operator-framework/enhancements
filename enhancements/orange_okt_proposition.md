@@ -29,7 +29,8 @@ It's fully normal to have to learn how to use a framework, however we noticed th
 A GO module already exists (@Orange) and implements the point addressed here, and we are thinking to deliver the code in the OS community. Its name is OKT.
 Important to say, this code does not pretend to fill a gap (we felt it as is) to reach an optimal framework, but it may bring some propositions we would greatly appreciate to discuss with the community.
 
-It is described below through 2 stories to better understand the proposition. To see how it works, we built an example of the Memcached Operator using the OKT library and functionaly equal to the original Memcached operator sample (to see later: a second iteration that brings an implementation of the Memcached application life cycle through a state machine managed as a resource). 
+It is described below through 2 stories to better understand the proposition. To see how it works, we built an example of the Memcached Operator using the OKT library and functionally equal to the original Memcached operator sample (to see later: a second iteration that brings an implementation of the Memcached application life cycle through a state machine managed as a resource). 
+
 
 ## Motivation
 
