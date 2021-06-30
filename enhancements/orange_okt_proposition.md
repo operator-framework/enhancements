@@ -100,7 +100,8 @@ I want to be aligned with best pratices, so I decide to use the OperatorSDK but 
 -    In the Controller folder I use the OKT code generator for my 3 resources I want to create. i.e.: 
    `okt-gen-resource xxxxx`
 - In each file generated, I always find 3 parts to fill by myself and that will constitute a common/standard way to Mutate my resource:
-	- A method called `getHashXXX() { // Put your code here  }`  - It allows me to define, thanks to an OKT Helper, wich part of my object I want to include in the hash computation
+	- A method called `getHashXXX() { // Put your code here  }`  - It allows me to define, thanks to an OKT Helper, which part of my object I want to include in the hash computation
+
 	- A method  called `mutateWithIntialData() { // Put your code here }` - It is here I fill my object structure with the initial data at creation time, with eventually shared parameters across all my resources (a label name, a network port, ...). I can use to useful functions to fill my GO structure with either a YAML template or another initialized GO structure or fill my object directly as I want.
 	- A method called `mutateWithCR() { // Put your code here }` - Here I copy any CR relevant fields into my GO structure that become the "expected" object I want to create/update on my Cluster 
 - Once done, I can run my Operator localy or deploy it as usual  with the OperatorSDK commands, and I have an operator respectfull to the idempotency principle of the K8S reconciliations, a status and a finalization management out of the box.
