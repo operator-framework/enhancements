@@ -18,8 +18,8 @@ to implement the design.  For instance,
 
 ## Summary
 
-Once convinced that the Operator SDK is the tool to have to develop your operator, you quickly encounter several points to deal with that are not natively brougth through the SDK (we'll talk about that hereafter in details). 
-It becomes also evident, that building an operator with a high capability level will be difficult (my own point of view, shared with some colleagues, but that's true, we're not defining us as top guns developers).
+Once convinced that the Operator SDK is the tool to have to develop your operator, you quickly encounter several points to deal with that are not natively brought through the SDK (we'll talk about that hereafter in details). It also becomes evident, that building an operator with a high capability level can be difficult.
+
 
 The Operator SDK is sufficiently opened and flexible to let you use your own technics to do what you want as you want. However we thought that on some points we would prefer to be more guided and avoid some brainstorming on "how it works/how to do/do we need to do" some code to achieve our goal. However we'd like too to keep the flexibility and we reject some other operator frameworks more dedicated/specialized to an application domain.
 Moreover, some code would worth a captilization shared among other developpers.
