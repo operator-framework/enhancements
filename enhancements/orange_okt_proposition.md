@@ -192,13 +192,7 @@ Upgrading the OperatorSDK version means upgrading OKT, it would be less impactin
 
 ### Risks and Mitigations
 
-What are the risks of this proposal and how do we mitigate. Think broadly. For
-example, consider both security and how this will impact the larger Operator Framework
-ecosystem.
-
-How will security be reviewed and by whom? How will UX be reviewed and by whom?
-
-Consider including folks that also work outside your immediate sub-project.
+N/A
 
 ## Design Details
 
