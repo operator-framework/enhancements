@@ -53,7 +53,8 @@ Note that it is mainly the first point (fine detection of changes) that puzzled 
 In term of importance, the second puzzling point is the question around the application life-cycle. It is about the different states a database (or any app) can take once started and how to drive the application life-cycle at this level. The other level being the management of the Kubernetes resources life-cycle, the first need that comes in mind when we think Operator.
 
 
-So we built a framework (GO module) over the Operator SDK that must be updated as well each time the OperatorSDK version is upgraded (thought is is also the case of any operator based on the SDK).
+So we built a framework (GO module) over the Operator SDK that must be updated as well each time the Operator SDK version is upgraded (thought is is also the case of any operator based on the SDK).
+
 
 Our expectation now is to evaluate if this GO module presents any insightfull concepts, do we make it public and if both previous questions are positive, where is its place, out or inside the OperatorSDK ?
 
