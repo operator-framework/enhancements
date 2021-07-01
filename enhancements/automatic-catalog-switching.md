@@ -137,6 +137,8 @@ The Kubernetes version can be obtained from one of these sources:
 
 - the api server `/version` endpoint using the `gitVersion` field (e.g. v1.17.1+6af3663)
 
+The OLM version can be obtained from the package `pkg/version` using the `OLMVersion` variable.
+
 When the Kubernetes version (or other template value) is unobtainable, the CatalogSource status should be set to an unhealthy state
 with a message such as `Cannot construct catalog image reference, variable "kube_major_version" couldn't be resolved`
 
