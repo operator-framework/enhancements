@@ -7,7 +7,7 @@ reviewers:
 approvers:
   - TBD
 creation-date: 2021-07-02
-last-updated: 2021-07-02
+last-updated: 2021-07-19
 status: implementable
 see-also:
   - n/a
@@ -244,26 +244,52 @@ spec:
 The image reference would resolve to `quay.io/sample/catalog:v2`. 
 
 Regardless of template type, when the template value is unobtainable, the CatalogSource status should include 
-messages such as `Cannot construct catalog image reference, variable "kube_major_version" couldn't be resolved`
+messages such as `Cannot construct catalog image reference, variable "kube_major_version" couldn't be resolved`.
+
+Status should use an array of [apimachinery Condition](https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Condition)
+struct to indicate the status of the current template replacement activities. While the catalog switching controller will be the first
+piece of code to use this condition mechanism, the existing OLM catalog controller may someday use this same condition 
+array, therefore it is critical that the catalog switching controller should NOT interfere with other condition statuses.
+This means that the code must:
+1. look for existing condition entries that it controls and update only those existing entries
+1. if a condition does not yet exist, it must add a new condition at the end of the array
+1. the controller must not change the order of existing conditions in the array
+1. the controller must not change the content of a condition it does not "own"
+
+The `conditions` status field must be set to optional / and omitempty in order to avoid incrementing the version from its existing
+`v1alpha2` version.
 
 Example if one or more errors occur:
 
 ```yaml
 status:
-  olm.catalogImageTemplate:
-    messages:
-    - `Cannot construct catalog image reference, variable "{kube_major_version}" couldn't be resolved` 
-      `Cannot construct catalog image reference, variable "{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:spec.foo.bar}" couldn't be resolved` 
-    resolvedImage: "quay.io/sample{kube_major_version}/catalog:{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:spec.foo.bar}"   
+  conditions:
+    - type: TemplatesHaveResolved
+      status: False
+      lastTransitionTime: 2021-07-19T23:00:00Z
+      reason: UnableToResolve
+      message: Cannot construct catalog image reference, variable(s) "{kube_major_version}", "{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:spec.foo.bar}" couldn't be resolved
+    - type: ResolvedImage
+      status: False
+      lastTransitionTime: 2021-07-19T23:00:00Z
+      reason: UnableToResolve
+      message: "quay.io/sample{kube_major_version}/catalog:{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:spec.foo.bar}"
 ```
 
 Example of success:
 ```yaml
 status:
-  olm.catalogImageTemplate:
-    messages:
-    - `catalog image reference was successfully resolved` 
-    resolvedImage: "quay.io/kube-release-v1/catalog:v1.20"   
+  conditions:
+    - type: TemplatesHaveResolved
+      status: True
+      lastTransitionTime: 2021-07-19T23:00:00Z
+      reason: AllTemplatesResolved
+      message: catalog image reference was successfully resolved
+    - type: ResolvedImage
+      status: True
+      lastTransitionTime: 2021-07-19T23:00:00Z
+      reason: AllTemplatesResolved
+      message: "quay.io/kube-release-v1/catalog:v1.20"   
 ```
 
 If a user decides to no longer participate in automatic catalog switching, they can simply remove the annotation
