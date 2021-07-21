@@ -91,7 +91,7 @@ Optionally the GVK with JSON path template type consists of the following variab
 - `kind` - the singular kind in CamelCase format
 - `name` - any [valid name reference](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names) allowed by the kind and can be left blank if resource does not have a name
 - `namespace` - the namespace in [DNS Label](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names) format and can be left blank if resource is not namespaced
-- `jsonpath` - a valid JSON Path value compatible with client-go syntax 
+- `jsonpath` - a valid JSON Path value compatible with client-go syntax (NOTE: values of a `jsonpath` MUST start with `{` and end with `}` see [kubectl](https://kubernetes.io/docs/reference/kubectl/jsonpath/))
 
 These variables allow the user to identify arbitrary values to use for template substitution by pinpointing a 
 specific manifest by GVK, with a given name in a given namespace (if namespace scoped), and pull out any value within that manifest. 
@@ -102,7 +102,7 @@ The GVK with JSON path variables MUST be provided in the exact order shown in th
 variable name is followed by a colon and separated from the next variable by a comma:
 
 ```
-{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:spec.foo.bar}
+{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:{.spec.foo.bar}}
 ```
 
 Failure to follow this syntax will result in a invalid template which will be ignored. 
@@ -123,7 +123,7 @@ These templates are well known and can be resolved by any kubernetes distributio
 
 ### Optional GVK templates with JSON Path
 
-- `{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:spec.foo.bar}`
+- `{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:{.spec.foo.bar}}`
 
 ### Templates that have been discussed and rejected
 
@@ -233,7 +233,7 @@ metadata:
   name: dynamic-catalog
   namespace: olm
   annotations:
-    olm.catalogImageTemplate: "quay.io/sample/catalog:{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:spec.foo.bar}"
+    olm.catalogImageTemplate: "quay.io/sample/catalog:{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:{.spec.foo.bar}}"
 spec:
   sourceType: grpc
   image: quay.io/sample/catalog:v2
@@ -268,12 +268,12 @@ status:
       status: False
       lastTransitionTime: 2021-07-19T23:00:00Z
       reason: UnableToResolve
-      message: Cannot construct catalog image reference, variable(s) "{kube_major_version}", "{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:spec.foo.bar}" couldn't be resolved
+      message: Cannot construct catalog image reference, variable(s) "{kube_major_version}", "{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:{.spec.foo.bar}}" couldn't be resolved
     - type: ResolvedImage
       status: False
       lastTransitionTime: 2021-07-19T23:00:00Z
       reason: UnableToResolve
-      message: "quay.io/sample{kube_major_version}/catalog:{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:spec.foo.bar}"
+      message: "quay.io/sample{kube_major_version}/catalog:{group:foo.example.com,version:v1,kind:Sample,name:MySample,namespace:ns,jsonpath:{.spec.foo.bar}}"
 ```
 
 Example of success:
