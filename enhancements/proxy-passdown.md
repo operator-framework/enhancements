@@ -42,8 +42,8 @@ and documentation for this in our repository.
    1. Establish a best practice for operator authors:  Operators receive proxy
       environment variables from the operator deployment, and pass proxy
       environment variables to operands that require network.
-   2. Operator SDK features and documents to facilitate implementation of
-      proxy-friendly operators.
+   2. Add Operator SDK features and documentation to facilitate
+      implementation of proxy-aware operators.
 
 ### Non-Goals
 
@@ -64,17 +64,13 @@ administrator, or automatically set by OLM.
 
 ### How the Operator passes Env vars to Operands
 
-For Go-based operators, set of functions will be created in operator-lib
-(and offered upstream to controller-runtime) to read the proxy variables
-from the Operator environment and inject these variables into each of
-the container specs of various kubernetes objects. Operator authors will
-be responsible for invoking these functions. We will need functions for:
-
-   0. operatorlib.ReadProxyVarsFromEnv() // Helper function
-   1. operatorlib.AddProxyToDeployment(dep *appsv1.Deployment)
-   2. operatorlib.AddProxyToDaemonSets(daem *appsv1.DaemonSet)
-   3. operatorlib.AddProxyToReplicaSets(rep *appsv1.ReplicaSet)
-   4. operatorlib.AddProxyToPods(pod *appsv1.Pod)
+For Go-based operators, a helper function `ReadProxyVarsFromEnv()` will
+be created in operator-lib to read the proxy variables from the Operator
+environment with documentation on how to inject these variables into
+each of the container specs. Operator authors will be responsible for
+invoking this function and adding the variables to container specs. The
+documentation for this will live in the godoc, which should include
+example usage.
 
 Simplified Code:
 
@@ -95,37 +91,72 @@ func ReadProxyVarsFromEnv() ([]corev1.EnvVar) {
        },
     }
 }
-
-func AddProxyToDeployment(dep *appsv1.Deployment) {
-    // Create []corev1.EnvVar from Operator environment
-    proxyVars := ReadProxyVarsFromEnv()
-    // Pass proxy vars to each container
-   for _, container := range dep.Spec.Template.Spec.Containers {
-       container.Env = append(container.Env, proxyVars)
-   }
-}
 ```
 
 
 Example usage with the [memcached operator](https://github.com/operator-framework/operator-sdk/blob/master/testdata/go/v3/memcached-operator/controllers/memcached_controller.go#L83)
 
 ```go
+// Usage with appsv1 Objects
 dep := r.deploymentForMemcached(memcached)
-operatorlib.AddProxyToDeployment(dep)
+proxyVars := ReadProxyVarsFromEnv()
+for _, container := range dep.Spec.Template.Spec.Containers {
+    container.Env = append(container.Env, proxyVars)
+}
 ```
-
 
 For Ansible-based operators, the simplest way is to lookup and pass the
 environment variables directly where the objects are created by Operator
-authors. For example, the Ansible memcached `deployment.yaml` would
-include:
+authors. Using Ansible-based memcached for example, the task would become:
 ```yaml
-   env:
-      HTTPS_PROXY: {{ lookup('env', 'HTTPS_PROXY') | default('', True) }}'
+---
+- name: start memcached
+  community.kubernetes.k8s:
+    definition:
+      kind: Deployment
+      apiVersion: apps/v1
+      metadata:
+        name: '{{ ansible_operator_meta.name }}-memcached'
+        namespace: '{{ ansible_operator_meta.namespace }}'
+      spec:
+        replicas: "{{size}}"
+        selector:
+          matchLabels:
+            app: memcached
+        template:
+          metadata:
+            labels:
+              app: memcached
+          spec:
+            containers:
+            - name: memcached
+              command:
+              - memcached
+              - -m=64
+              - -o
+              - modern
+              - -v
+              image: "docker.io/memcached:1.4.36-alpine"
+              ports:
+                - containerPort: 11211
+              env:
+                 - Name: HTTPS_PROXY: 
+                   Value: "{{ lookup('env', 'HTTPS_PROXY') | default('', True) }}"
+                 - Name: https_proxy: 
+                   Value: "{{ lookup('env', 'HTTPS_PROXY') | default('', True) }}"
+                 - Name: HTTP_PROXY: 
+                   Value: "{{ lookup('env', 'HTTP_PROXY') | default('', True) }}"
+                 - Name: http_proxy: 
+                   Value: "{{ lookup('env', 'HTTP_PROXY') | default('', True) }}"
+                 - Name: NO_PROXY: 
+                   Value: "{{ lookup('env', 'NO_PROXY') | default('', True) }}"
+                 - Name: no_proxy: 
+                   Value: "{{ lookup('env', 'NO_PROXY') | default('', True) }}"
 ```
 
+
 For Helm-based operators, environment variables can be set as helm
-variables using the watches file, and passed along to operands using
+variables using the watches file, and passed along to operands in the
 templates.
 
 ```yaml
@@ -134,7 +165,9 @@ templates.
   kind: Nginx
   chart: helm-charts/nginx
   overrideValues:
-    httpsProxy: $HTTP_PROXY
+    httpsProxy: $HTTPS_PROXY
+    httpProxy: $HTTP_PROXY
+    noProxy: $NO_PROXY
 ```
 
 ### User Stories
@@ -151,12 +184,14 @@ passing proxy environment variables to my operands.
 
 #### Golang
 
-As a go-based operator author, I have functions that read and
-pass proxy environment variables to various operand types as well as
-documentation for how to use them.
+As a go-based operator author, I have a helper function to read proxy
+environment variables and docs to show how to pass them to operands in
+`kubernetes < v1.22`
 
+Update the godoc and FAQ to include examples using the new Server Side Apply in `kubernetes v1.22`
 
 ## Risks
 
-1. We may not have captured all of the go utility methods, we may need to
-add more helpers later.
+1. If operator-authors consistently implement similar code to set the
+   environment variables, we may be able to add more helper functions,
+   but they will need to work with Unstructured and Server Side Apply.
