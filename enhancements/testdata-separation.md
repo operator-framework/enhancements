@@ -39,20 +39,35 @@ The goal of this EP is not to change the contents of the bundle nor the testdata
 
 ## Proposal
 
-Flexible Bundle
-* Allow the bundle to be scaffolded with or without test data initially
-  * By default, the current structure of bundle + testdata will be scaffolded
-  * Add ability to scaffold test data at any time
-  * The SDK should allow changing between bundle types at any time, although changes made manually aren’t guaranteed to be preserved
-* Allow users the option to strip test data from the bundle post development
-  * This would let users maintain their current development flow and axe testdata from the bundle when the time is right to ship
-  * Ideally this is done through the osdk CLI, however it is reasonable to have this in the makefiles of operators
-* Creates the path of least resistance for OSDK development time
-  * This also maintains the current default behavior for existing sdk developers
-  * Only changes to CLI and scaffolding need to be made
-    * Need to add flags to scaffold slim (no testdata), and to strip or add testdata from an existing scaffold
-  * Scorecard, testing, and general operator bundle UI and behavior remains the same for seasoned users as well as contributors
-    * The bundle will continue to generate as is under the current workflow
+Please note that this proposed solution was elevated from the Alternatives selection after discussions, and the previous implementation has been moved down.
+
+Hard Split
+* Split existing bundle in a testdata only bundle paired with a operator essentials only bundle
+  * Allows the bundle to save significant space/reduce its size
+  * Allows operator developers to securely ship with including potentially sensitive testdata
+    * Users can use elevated permissions in testing without concerns about shipping those configs
+* Primary impact lies within scorecard internals, as well as scaffolding
+  * Scorecard needs logic to understand whether or not there are two bundle or one
+    * Recombine bundles at scorecard runtime
+      * Scorecard runs continue to behave the same, all this forces is a pre-processing step
+    * Allows scorecard test developers to contiue to use `/bundle` context
+* Allow discovery of test bundle using Annotation path
+  * Scorecard currently assumes testdata in the in current bundle, but can read the annotation to find another bundle
+    * This bundle can be configured as the seperate test bundle
+  * Seamless tranisition for users, exisiting CLI commands will continue to work in scipts if annotations are correctly configured
+  * This method does require manual user updates for configuration
+* Scorecard CLI extension
+  * Add ability to process one OR MORE bundles in the command line args
+  * If multiple args exist combine bundles and carry on
+* Opt In design
+  * By default bundles will continue to be scaffolded as is
+  * Users can always re-scaffold the bundle to toggle between types
+* Minimizes User Impact
+  * Current operators will still work
+  * New single bundle opertaors will not require any changes in the development or test process
+    * Those who opt in will have minimal manual adjustments needed for the 2 bundles to work together
+  * Scorecard test developers can expect the same scorecard API's and bundle mounting
+ 
 
 ## Design Details
 
@@ -70,13 +85,20 @@ Implementation and testing of this feature should be sufficient for graduation. 
 
 ## Alternatives
 
-Hard Split
-* Split existing bundle in a testdata only bundle paired with a operator essentials only bundle
-* Would require significant rework in testing to accommodate a test data bundle being strictly separate from the rest of the bundle
-  * This will impact how scorecard finds it’s config and test images
-    * Primarily scorecard internals, external apis should remain the same
-    * Scorecard users would need to learn to work in the new context with their test image and config in a different bundle location
-* Still saddles users with the testdata bundle upon scaffolding, but can trivially be removed
+Flexible Bundle (Previous Implementation Choice)
+* Allow the bundle to be scaffolded with or without test data initially
+  * By default, the current structure of bundle + testdata will be scaffolded
+  * Add ability to scaffold test data at any time
+  * The SDK should allow changing between bundle types at any time, although changes made manually aren’t guaranteed to be preserved
+* Allow users the option to strip test data from the bundle post development
+  * This would let users maintain their current development flow and axe testdata from the bundle when the time is right to ship
+  * Ideally this is done through the osdk CLI, however it is reasonable to have this in the makefiles of operators
+* Creates the path of least resistance for OSDK development time
+  * This also maintains the current default behavior for existing sdk developers
+  * Only changes to CLI and scaffolding need to be made
+    * Need to add flags to scaffold slim (no testdata), and to strip or add testdata from an existing scaffold
+  * Scorecard, testing, and general operator bundle UI and behavior remains the same for seasoned users as well as contributors
+    * The bundle will continue to generate as is under the current workflow
 
 Dual bundle
 * Maintain the current bundle for daily use and provide the option to scaffold a slim bundle at any time
