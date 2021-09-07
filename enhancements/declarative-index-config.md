@@ -111,6 +111,34 @@ $ cat etcd/etcd.json
     "description": "A message about etcd operator, a description of channels"
 }
 {
+    "schema": "olm.channel",
+    "name", "alpha",
+    "package": "etcd",
+    "entries":[
+        {"name":"etcdoperator-community.v0.6.1"}
+    ]
+}
+{
+    "schema": "olm.channel",
+    "name", "singlenamespace-alpha",
+    "package": "etcd",
+    "entries":[
+        {"name":"etcdoperator.v0.9.0"},
+        {"name":"etcdoperator.v0.9.2", "replaces":"etcdoperator.v0.9.0"},
+        {"name":"etcdoperator.v0.9.4", "replaces":"etcdoperator.v0.9.2"}
+    ]
+}
+{
+    "schema": "olm.channel",
+    "name", "clusterwide-alpha",
+    "package": "etcd",
+    "entries":[
+        {"name":"etcdoperator.v0.9.0"},
+        {"name":"etcdoperator.v0.9.2-clusterwide", "replaces":"etcdoperator.v0.9.0", "skips":["etcdoperator.v0.6.0", "etcdoperator.v0.6.1"], "skipRange":">=0.9.0 <0.9.2-0"},
+        {"name":"etcdoperator.v0.9.4-clusterwide", "replaces":"etcdoperator.v0.9.2-clusterwide"}
+    ]
+}
+{
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
@@ -129,12 +157,6 @@ $ cat etcd/etcd.json
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdCluster",
                 "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "alpha"
             }
         },
         {
@@ -177,18 +199,6 @@ $ cat etcd/etcd.json
                 "kind": "EtcdBackup",
                 "version": "v1beta2"
             }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "singlenamespace-alpha"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "clusterwide-alpha"
-            }
         }
     ],
     "relatedImages" : [
@@ -218,13 +228,6 @@ $ cat etcd/etcd.json
                 "kind": "EtcdRestore",
                 "version": "v1beta2"
             }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "singlenamespace-alpha",
-                "replaces": "etcdoperator.v0.9.0"
-            }
         }
     ],
     "relatedImages":[
@@ -253,25 +256,6 @@ $ cat etcd/etcd.json
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
                 "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.skipRange",
-            "value": ">=0.9.0 <0.9.2-0"
-        },
-        {
-            "type": "olm.skips",
-            "value" : "etcdoperator.v0.6.0"
-        },
-        {
-            "type": "olm.skips",
-            "value" : "etcdoperator.v0.6.1"
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "clusterwide-alpha",
-                "replaces": "etcdoperator.v0.9.0"
             }
         }
     ],
@@ -316,13 +300,6 @@ $ cat etcd/etcd.json
                 "group": "testapi.coreos.com",
                 "kind": "Testapi",
                 "version": "v1"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "singlenamespace-alpha",
-                "replaces": "etcdoperator.v0.9.2"
             }
         },
         {
@@ -380,13 +357,6 @@ $ cat etcd/etcd.json
             }
         },
         {
-            "type": "olm.channel",
-            "value": {
-                "name": "clusterwide-alpha",
-                "replaces": "etcdoperator.v0.9.2-clusterwide"
-            }
-        },
-        {
             "type": "olm.bundle.object",
             "value": {
                 "ref": "objects/etcdoperator.v0.9.4-clusterwide/etcdbackups.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
@@ -426,7 +396,7 @@ As an index author(with push permission to the registry/namespace my index is ho
 
 ```bash
 $ cd community-operators 
-$ //edit etcd/etcd.json to add etcdoperator.v0.9.0 to a the channel `alpha`, and add an upgrade edge from etcdoperator-community.v0.6.1 to etcdoperator.v0.9.0 in channel `alpha`
+$ //edit etcd/etcd.json to add an entry for etcdoperator.v0.9.0 in the channel `alpha`, and add an upgrade edge from etcdoperator-community.v0.6.1 to etcdoperator.v0.9.0 in channel `alpha`
 $ cd ..
 $ opm generate community-operators
 $ cat index.Dockerfile
@@ -452,98 +422,12 @@ $ cat community-operators/etcd/etcd.json
     "description": "A message about etcd operator, a description of channels"
 }
 {
-    "schema": "olm.bundle",
-    "name": "etcdoperator-community.v0.6.1",
+    "schema": "olm.channel",
+    "name", "alpha",
     "package": "etcd",
-    "image": "quay.io/operatorhubio/etcd:v0.6.1",
-    "properties":[
-        {
-            "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.6.1"
-            }
-        },
-        {
-            "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdCluster",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "alpha"
-            }
-        },
-        {
-            "type": "olm.bundle.object",
-            "value": {
-                "ref": "objects/etcdoperator.v0.6.1/etcdclusters.etcd.database.coreos.com_apiextensions.k8s.io_v1beta1_customresourcedefinition.yaml"
-            }
-        },
-        {
-            "type": "olm.bundle.object",
-            "value": {
-                "ref": "objects/etcdoperator.v0.6.1/etcdoperator.v0.6.1_operators.coreos.com_v1alpha1_clusterserviceversion.yaml"
-            }
-        }
-    ],
-    "relatedImages": [
-        {
-            "name": "etcdv0.6.1",
-            "image": "quay.io/coreos/etcd-operator@sha256:bd944a211eaf8f31da5e6d69e8541e7cada8f16a9f7a5a570b22478997819943"
-        }
-    ]
-}
-{
-    "schema": "olm.bundle",
-    "name": "etcdoperator.v0.9.0",
-    "package": "etcd",
-    "image": "quay.io/operatorhubio/etcd:v0.9.0",
-    "properties":[
-        {
-            "type": "olm.package",
-            "value": {
-                "packageName": "etcd",
-                "version": "0.9.0"
-            }
-        },
-        {
-            "type": "olm.gvk",
-            "value": {
-                "group": "etcd.database.coreos.com",
-                "kind": "EtcdBackup",
-                "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "alpha",
-                "replaces":"etcdoperator-community.v0.6.1"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "singlenamespace-alpha"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "clusterwide-alpha"
-            }
-        }
-    ],
-    "relatedImages" : [
-        {
-            "name": "etcdv0.9.0",
-            "image": "quay.io/coreos/etcd-operator@sha256:db563baa8194fcfe39d1df744ed70024b0f1f9e9b55b5923c2f3a413c44dc6b8"
-        }
+    "entries":[
+        {"name":"etcdoperator-community.v0.6.1"},
+        {"name":"etcdoperator.v0.9.0", "replaces":"etcdoperator-community.v0.6.1"}
     ]
 }
 .
@@ -621,6 +505,19 @@ The config file for each package will have a stream of json objects, representin
 ```
 This information is currently captured in the `package` table.
 
+##### Declarative Channel Format
+```json
+{
+    "schema": "olm.channel",
+    "name": "<channel_name>",
+    "package": "<package_name>",
+    "entries":["<list of bundle entries with upgrade graph info(replaces/skips/skipRange)"],
+}
+```
+
+This information is currently captured in the `operatorbundle`, `channel`, and `channel_entry` tables in the sql database.
+
+
 ##### Declarative Bundle Format
 ```json
 {
@@ -628,12 +525,12 @@ This information is currently captured in the `package` table.
     "name": "<operatorbundle_name>",
     "package": "<package_name>",
     "image": "<operatorbundle_path>",
-    "properties":["<list of properties of bundle that encode bundle dependencies(provided and required apis) upgrade graph info(skips/skipRange), and bundle channel/s info>"],
+    "properties":["<list of properties of bundle that encode bundle metadata like identity information and dependencies(provided and required apis)"],
     "relatedImages" : ["<list-of-related-images>"]
 }
 ```
 
-This information is currently captured in the `operatorbundle`, `properties`, `channel`, `channel_entry`, `api`, `api_provider`, `api_requirer` and `related_image` tables in the sql database.
+This information is currently captured in the `operatorbundle`, `properties`, `api`, `api_provider`, `api_requirer` and `related_image` tables in the sql database.
 
 ##### Extension formats
 
@@ -665,9 +562,6 @@ These properties are:
 | `olm.package.required` | `{ packageName, versionRange string }` | `{"type":"olm.package.required", "value": {"packageName":"test", "versionRange":">=1.2.3 <2.0.0-0"}}`                     |
 | `olm.gvk`              | `{ group, version, kind string }`      | `{"type":"olm.gvk", "value": {"group": "etcd.database.coreos.com", "version": "v1beta2", "kind": "EtcdBackup"}}`          |
 | `olm.gvk.required`     | `{ group, version, kind string }`      | `{"type":"olm.gvk.required", "value": {"group": "test.coreos.com", "version": "v1", "kind": "Testapi"}}`                  |
-| `olm.skips`            | `string`                               | `{"type":"olm.skips", "value": "etcdoperator.v0.9.0"}`<br>`{"type":"olm.skips", "value": "etcdoperator.v0.9.2"}`          |
-| `olm.skipRange`        | `string`                               | `{"type":"olm.skipRange", "value": "<0.9.4"}`                                                                             |
-| `olm.channel`          | `{ name, replaces string }`            | `{"type":"olm.channel", "value":{"name":"singlenamespace-alpha", "replaces":"etcdoperator.v0.9.2"}}`<br>`{"type":"olm.channel", "value":{"name":"clusterwide-alpha"}}` |
 | `olm.bundle.object`    | `{ ref string, data []byte }`          | `{"type":"olm.bundle.object", "value":{"ref":"objects/etcdoperator.v0.9.4/csv.yaml"}}`<br>`{"type":"olm.bundle.object", "value":{"data":"eyJhcGlWZXJzaW9uIjoi..."}}`   |
 
 Since the `olm.bundle` schema also has a top-level field for `package`, `opm` will verify that it aligns with the `olm.package` property.
@@ -785,12 +679,13 @@ etcdoperator.v0.9.4-clusterwide  quay.io/operatorhubio/etcd:v0.9.4-clusterwide  
 etcdoperator.v0.9.4              quay.io/operatorhubio/etcd:v0.9.4              0.9.4                                etcdoperator.v0.9.2   
 ```
 
-This information will be captured in the `properties.<"olm.channel">.value.replaces`, `properties.<"olm.skips">.value` and `properties.<"olm.skipRange">.value` of the `olm.bundle` blob.
+All of this information will be captured in the `olm.channel` blobs via their entries, each of which contain the `name` of a bundle that is present
+in the channel along with its optional upgrade edge metadata (`replaces`, `skips`, and `skipRange`).
 
-When building an internal model of the upgrade graph for a particular channel, the `properties.<"olm.channel">.value.replaces` and `properties.<"olm.skips">.value` fields are used to count the number of incoming edges that each bundle has.
+When building an internal model of the upgrade graph for a particular channel, the entries' `replaces` and `skips` fields are used to count the number of incoming edges that each bundle has.
 To be valid, a channel's bundles must form a directed acyclic graph, and there must be exactly one bundle with zero incoming edges.
 
-The `properties.<"olm.skipRange">` property is currently consumed only by the OLM resolver to allow bundles to "override" the graph and form new implicit upgrade edges to allow direct upgrades from other bundles whose versions fall within the `skipRange`.
+The `skipRange` is currently consumed only by the OLM resolver to allow bundles to "override" the graph and form new implicit upgrade edges to allow direct upgrades from other bundles whose versions fall within the `skipRange`.
 
 #### Creating the json/yaml config file to represent a package
 
@@ -817,6 +712,14 @@ $ cat community-operators/etcd/etcd.json
     "description": "A message about etcd operator, a description of channels"
 }
 {
+    "schema": "olm.channel",
+    "name", "alpha",
+    "package": "etcd",
+    "entries":[
+        {"name":"etcdoperator-community.v0.6.1"}
+    ]
+}
+{
     "schema": "olm.bundle",
     "name": "etcdoperator-community.v0.6.1",
     "package": "etcd",
@@ -835,12 +738,6 @@ $ cat community-operators/etcd/etcd.json
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdCluster",
                 "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "alpha"
             }
         },
         {
@@ -863,7 +760,7 @@ $ cat community-operators/etcd/etcd.json
         }
     ]
 }
-$ opm alpha add community-operator quay.io/operatorhubio/etcd:v0.9.0  
+$ opm alpha add community-operator quay.io/operatorhubio/etcd:v0.9.0
 $ cat community-operators/etcd/etcd.json
 {
     "schema": "olm.package",
@@ -874,6 +771,22 @@ $ cat community-operators/etcd/etcd.json
         "mediatype":"image/png"
     },
     "description": "A message about etcd operator, a description of channels"
+}
+{
+    "schema": "olm.channel",
+    "name", "alpha",
+    "package": "etcd",
+    "entries":[
+        {"name":"etcdoperator-community.v0.6.1"}
+    ]
+}
+{
+    "schema": "olm.channel",
+    "name", "single-namespacealpha",
+    "package": "etcd",
+    "entries":[
+        {"name":"etcdoperator.v0.9.0"}
+    ]
 }
 {
     "schema": "olm.bundle",
@@ -894,12 +807,6 @@ $ cat community-operators/etcd/etcd.json
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdCluster",
                 "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "alpha"
             }
         },
         {
@@ -941,12 +848,6 @@ $ cat community-operators/etcd/etcd.json
                 "group": "etcd.database.coreos.com",
                 "kind": "EtcdBackup",
                 "version": "v1beta2"
-            }
-        },
-        {
-            "type": "olm.channel",
-            "value": {
-                "name": "singlenamespace-alpha"
             }
         },
         {
