@@ -121,6 +121,27 @@ The constraints that are specified in `olm-runtime-constraints` Configmap are co
 
 If constraints are added to bundles, they will be evaluated and must be satisfied similarly to `olm.gvk.required` and `olm.package.required` properties.
 
+#### Compound Constraint
+
+It is possible to write `cel-go` expression to evaluate multiple different properties in one single expression that is specified in one constraint. For example:
+
+```json=
+{
+  "type": "olm.constraint",
+  "value": {
+    "evaluator": {
+        "id": "cel",
+    }
+    "source": 'properties.exists(p, p.type == "certified") && properties.exists(p, p.type == "new")',
+    "action": {
+        "id": "require"
+    }
+  }
+}
+```
+
+The expression in `source` has two requirements that are linked in an AND (&&) logical operator. In order for that expression to be true, both requirements must be satisfied. This concept represents the compound constraint.
+
 ### Risks and Mitigations
 
 ### Prototype
