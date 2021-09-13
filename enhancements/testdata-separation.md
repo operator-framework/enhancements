@@ -28,6 +28,9 @@ The current bundle includes both an operator as well as its testdata. This resul
 ## Motivation
 
 The motivation for this EP is to provide users with the option to deliver a slim bundle without testdata.
+* Creates a smaller size bundle to ship
+* Prevents including testing resources in shipped bundle
+  * Stop potential elevated RBAC's in the test bundle from being included in production environments
 
 ### Goals
 
