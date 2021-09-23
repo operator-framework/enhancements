@@ -106,10 +106,10 @@ dependencies:
 
 Summary:
 -	`required`:  The default that requires the dependency to be present and auto-provisioned.
-  - Same behavior as today.
-  - OLM requires the dependency
-  - OLM provisions the dependency if available.
-  - OLM blocks provisioning of Operators if dependencies are not satisfied.
+    - Same behavior as today.
+    - OLM requires the dependency
+    - OLM provisions the dependency if available.
+    - OLM blocks provisioning of Operators if dependencies are not satisfied.
 -	`recommended`:  The dependency is not required, but if available, will be provisioned by default.  Clients can override the default behavior.
 -	`optional`: The dependency is not required, and if available, will not be provisioned by default.  Clients can override the default behavior.
 
@@ -120,6 +120,10 @@ The required dependency is the default.  When the `intent` is omitted or `requir
 - Provisioner:
 - `opm alpha diff`
 - Image Collectors:
+
+#### recommended
+
+#### optional
 
 ### User Stories [optional]
 
