@@ -29,7 +29,10 @@ superseded-by:
 
 ## Open Questions [optional]
 - Who are the actual consumers of the dependency.  Do I have them right?  Are there more to consider?
-- Should the depenendency intent be on all dependency types?  I was thinking olm.package only because this would give us a way to more easily identify the "thing" to provision from the sister provisinioning spec.
+- Should the depenendency intent be on all dependency types?  I was thinking olm.package only because this would give us a way to more easily identify the "thing" to provision from the sister provisionioning spec.
+- Instead, add a new `optionalDependencies` and `recommendedDependencies` objects?
+  - These would be ignored by the current runtime (mirroring would ignore them as would OLM entirely).
+  - 
 
 
 ## Summary
@@ -85,7 +88,7 @@ This specification further describes how the current `dependencies` consumers im
 ### Non-Goals
 - Methods for provisioning optional dependencies.
 
-## Proposal
+## Proposal 1 - Add intent to current dependencies
 Add an `intent` property to the `olm.package` dependency object.
 
 ```yaml
@@ -124,6 +127,28 @@ The required dependency is the default.  When the `intent` is omitted or `requir
 #### recommended
 
 #### optional
+
+## Proposal 2 - Add completely new intent dependency objects
+Add an `intent` property to the `olm.package` dependency object.
+
+```yaml
+dependencies:
+- type: olm.gvk
+  value:
+    group: etcd.database.coreos.com
+    kind: EtcdCluster
+    version: v1beta2
+
+recommendedDependencies:
+- type: olm.package
+  value:     
+    packageName: prometheus
+    version: >0.27.0
+
+optionalDependencies:
+- ...
+```
+
 
 ### User Stories [optional]
 
