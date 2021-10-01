@@ -70,7 +70,7 @@ to implement the design.  For instance,
 The `Summary` section is incredibly important for producing high quality
 user-focused documentation such as release notes or a development roadmap. It
 should be possible to collect this information before implementation begins in
-order to avoid requiring implementors to split their attention between writing
+order to avoid requiring implementers to split their attention between writing
 release notes and implementing the feature itself.
 
 A good summary is probably at least a paragraph in length.
@@ -108,7 +108,7 @@ bogged down.
 
 What are the caveats to the implementation? What are some important details that
 didn't come across above. Go in to as much detail as necessary here. This might
-be a good place to talk about core concepts and how they releate.
+be a good place to talk about core concepts and how they relate.
 
 ### Risks and Mitigations
 
