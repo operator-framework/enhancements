@@ -3,13 +3,12 @@ title: sdk-external-and-pluggable-validations
 authors:
   - "@jmrodri"
 reviewers:
-  - TBD
-  - "@camila"
-  - "@joe"
+  - "@camilamacedo86"
+  - "@joelanford"
+  - "@bparees"
 approvers:
-  - TBD
-  - "@camila"
-  - "@joe"
+  - "@camilamacedo86"
+  - "@joelanford"
 creation-date: 2021-10-01
 last-updated: 2021-10-01
 status: implementable
@@ -57,14 +56,18 @@ as 3 weeks away.
 
 List the specific goals of the proposal. How will we know that this has succeeded?
 
+* allow validations to be updated when the business needs them to be
+* do not require newer builds of the operator-sdk to get updates
+* allow validations to be hosted in their own repos
+* allow validations to be run external to operator-sdk
+
 ### Non-Goals
 
+TODO:
 What is out of scope for this proposal? Listing non-goals helps to focus discussion
 and make progress.
 
 ## Proposal
-
-This is where we get down to the nitty gritty of what the proposal actually is.
 
 ### User Stories [optional]
 
@@ -74,14 +77,20 @@ the system. The goal here is to make this feel real for users without getting
 bogged down.
 
 #### Story 1
+* as a CVP admin I would like to change the validation for XXX and have it
+  useable right now.
 
 #### Story 2
+* as a user
 
 ### Implementation Details/Notes/Constraints [optional]
 
 What are the caveats to the implementation? What are some important details that
 didn't come across above. Go in to as much detail as necessary here. This might
 be a good place to talk about core concepts and how they releate.
+
+
+
 
 ### Risks and Mitigations
 
