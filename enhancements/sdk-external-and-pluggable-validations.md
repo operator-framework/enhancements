@@ -27,10 +27,9 @@ see-also:
 
 ## Open Questions [optional]
 
-This is where to call out areas of the design that require closure before deciding
-to implement the design.  For instance,
- > 1. This requires exposing previously private resources which contain sensitive
-  information.  Can we do this?
+ 1. what validations do we have today?
+ 1. do these validations run against a cluster?
+ 1. can we use scorecard to replace all of these validations?
 
 ## Summary
 
@@ -85,11 +84,46 @@ bogged down.
 
 ### Implementation Details/Notes/Constraints [optional]
 
-What are the caveats to the implementation? What are some important details that
-didn't come across above. Go in to as much detail as necessary here. This might
-be a good place to talk about core concepts and how they releate.
+* put validations in their own images
+  * need to define "API" contract what is the entrypoint and what parameters do
+    we give it
+  * pro:
+    * already have a precendence for running things from images
+    * familiar tech
+    * could run locally and simply use the image as a data transport
+  * con:
+    * would need a cluster to run these validations
+    * authors would have to create binaries of their validations
 
+* wrap validations in their own executables
+  * validations would be wrapped in an executable that would be called from
+    operator-sdk
+  * pro:
+    * could reuse the existing go validations and put a main.go in front to make
+      them executable
+    * follows a similar phase 2 plugin path
+    * could reuse some of the phase 2 tech to run this
+    * would not need a cluster necessarily to run the validation
+  * con:
+    * authors would have to create binaries of their validations
 
+* use a language like JavaScript or CUE to define all validations
+  * validations could be run from a git repo, i.e. operator-sdk could pull it
+    and then evaluate it
+  * pro:
+    * simpler delivery, expose via a gitrepo and done
+  * con:
+    * all existing validations would have to be re-written in new language
+      structure which could introduce new bugs
+    * unproven technology
+    * would have to write the engine to know how to execute these
+
+* use scorecard to do the validations
+  * create validations written in scorecard as custom tests
+  * pro:
+    * infrastructure required to run is already built within scorecard
+  * con:
+    * would need a cluster to run these validations
 
 
 ### Risks and Mitigations
@@ -211,3 +245,4 @@ subproject, repos requested, github details, and/or testing infrastructure.
 Listing these here allows the community to get the process for these resources
 started right away.
 
+https://github.com/operator-framework/api/tree/master/pkg/validation
