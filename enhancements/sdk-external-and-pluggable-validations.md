@@ -30,6 +30,7 @@ see-also:
  1. what validations do we have today?
  1. do these validations run against a cluster?
  1. can we use scorecard to replace all of these validations?
+ 1. what would it take to convert an existing validator to an executable format?
 
 ## Summary
 
@@ -84,16 +85,12 @@ bogged down.
 
 ### Implementation Details/Notes/Constraints [optional]
 
-* put validations in their own images
-  * need to define "API" contract what is the entrypoint and what parameters do
-    we give it
-  * pro:
-    * already have a precendence for running things from images
-    * familiar tech
-    * could run locally and simply use the image as a data transport
-  * con:
-    * would need a cluster to run these validations
-    * authors would have to create binaries of their validations
+There are a few alternatives, I think putting the validations in their own
+images similar to how bundles are done makes sense. It is a known and easy
+transport.
+
+NOTE: if it's in an image is it just a data container or is it an entrypoint
+that needs to run in a cluster?
 
 * wrap validations in their own executables
   * validations would be wrapped in an executable that would be called from
@@ -107,34 +104,124 @@ bogged down.
   * con:
     * authors would have to create binaries of their validations
 
-* use a language like JavaScript or CUE to define all validations
-  * validations could be run from a git repo, i.e. operator-sdk could pull it
-    and then evaluate it
-  * pro:
-    * simpler delivery, expose via a gitrepo and done
-  * con:
-    * all existing validations would have to be re-written in new language
-      structure which could introduce new bugs
-    * unproven technology
-    * would have to write the engine to know how to execute these
 
-* use scorecard to do the validations
-  * create validations written in scorecard as custom tests
-  * pro:
-    * infrastructure required to run is already built within scorecard
-  * con:
-    * would need a cluster to run these validations
+List of current validators:
 
+##### Default validators run by operator-sdk
+
+* BundleValidator
+  * validates the bundle
+  * looks for duplicate keys in bundle
+  * verifies all owned keys match a CRD in the bundle
+  * verifies that all CRDs present in the bundle are in the CSV
+  * validates the service account
+
+* ClusterServiceVersionValidator
+  * operator-sdk checks to see if the CSV is nil on the bundle (that's the first
+    check)
+  * checks that the CSV name is a valid format
+    * DNS1123
+    * valid label
+  * verifies replaces name is also a valid format
+    * DNS1123
+    * valid label
+  * ensures that both `alm-examples` and `olm.examples` are not both present
+  * decodes the example yaml, to validate its format
+  * checks provided APIs
+  * validates the `InstallModes`
+    * verifies that conversion CRDs support `AllNamespaces`
+  * checks for missing mandatory fields
+  * validates the annotation names
+  * validates the version and kind
+
+* CustomResourceDefinitionValidator
+  * operator-sdk puts the v1beta1 and v1 CRDs together for validation
+  * validates v1beta1 CRDs
+  * validates v1 CRDs
+  * validates internal CRDs
+    * https://github.com/kubernetes/apiextensions-apiserver/blob/master/pkg/apis/apiextensions/validation/validation.go#L49-L78
+
+##### Optional validators
+
+* PackageManifestValidator
+
+* OperatorHubValidator
+
+* ObjectValidator
+
+* OperatorGroupValidator
+
+* CommunityOperatorValidator
+
+* AlphaDeprecatedAPIsValidator
+
+* AllValidators
+  * Uses ALL of the validators
+    * BundleValidator
+    * ClusterServiceVersionValidator
+    * CustomResourceDefinitionValidator
+    * PackageManifestValidator
+    * OperatorHubValidator
+    * ObjectValidator
+    * OperatorGroupValidator
+    * CommunityOperatorValidator
+    * AlphaDeprecatedAPIsValidator
+
+* DefaultBundleValidators
+  * Uses the following 3 validators
+    * BundleValidator
+    * ClusterServiceVersionValidator
+    * CustomResourceDefinitionValidator
+
+The current validators all return a
+[ManifestResults](https://github.com/operator-framework/api/blob/master/pkg/validation/errors/error.go#L9-L16)
+
+Each validator should have an "entrypoint", some executable that accepts a
+single argument, the bundle root.
+
+For example, the validator binary will be invoked from the `operator-sdk` in the
+following manner:
+
+```
+./validator-poc ~/dev/gatekeeper-operator/bundle
+```
+
+It should write its output to stdout to be parsed by operator-sdk. Output should
+be JSON.
+
+Exit non-zero ONLY if the entrypoint failed to run NOT if the bundle validation
+fails.
+
+Output
+
+Result format used by the `bundle validate` today.
+
+```json
+{
+    "passed": true,
+    "outputs": [
+        {
+            "type": "warning",
+            "message": "Warning: Value : (gatekeeper-operator.v0.2.0-rc.3) csv.Spec.minKubeVersion is not informed. It is recommended you provide this information. Otherwise, it would mean that your operator project can be distributed and installed in any cluster version available, which is not necessarily the case for all projects."
+        }
+    ]
+}
+```
+
+#### Migrating existing validator to executable
+
+In the short to near term, you create a new main.go for each of the validators.
+Then import the validator code from o-f/api. The main.go would take in 1
+argument which is the bundle directory.
+
+TODO: jmrodri determine the output format
+The output would be a Result json. Unless we want the more complicated
+ManifestResults
 
 ### Risks and Mitigations
 
-What are the risks of this proposal and how do we mitigate. Think broadly. For
-example, consider both security and how this will impact the larger Operator Framework
-ecosystem.
-
-How will security be reviewed and by whom? How will UX be reviewed and by whom?
-
-Consider including folks that also work outside your immediate sub-project.
+There is little risk, if this does not pan out we keep going on the current path
+of compiling them in.
 
 ## Design Details
 
@@ -233,9 +320,46 @@ The idea is to find the best form of an argument why this enhancement should _no
 
 ## Alternatives
 
-Similar to the `Drawbacks` section the `Alternatives` section is used to
-highlight and record other possible approaches to delivering the value proposed
-by an enhancement.
+* put validations in their own images
+  * need to define "API" contract what is the entrypoint and what parameters do
+    we give it
+  * pro:
+    * already have a precendence for running things from images
+    * familiar tech
+    * could run locally and simply use the image as a data transport
+  * con:
+    * would need a cluster to run these validations
+    * authors would have to create binaries of their validations
+
+* wrap validations in their own executables
+  * validations would be wrapped in an executable that would be called from
+    operator-sdk
+  * pro:
+    * could reuse the existing go validations and put a main.go in front to make
+      them executable
+    * follows a similar phase 2 plugin path
+    * could reuse some of the phase 2 tech to run this
+    * would not need a cluster necessarily to run the validation
+  * con:
+    * authors would have to create binaries of their validations
+
+* use a language like JavaScript or CUE to define all validations
+  * validations could be run from a git repo, i.e. operator-sdk could pull it
+    and then evaluate it
+  * pro:
+    * simpler delivery, expose via a gitrepo and done
+  * con:
+    * all existing validations would have to be re-written in new language
+      structure which could introduce new bugs
+    * unproven technology
+    * would have to write the engine to know how to execute these
+
+* use scorecard to do the validations
+  * create validations written in scorecard as custom tests
+  * pro:
+    * infrastructure required to run is already built within scorecard
+  * con:
+    * would need a cluster to run these validations
 
 ## Infrastructure Needed [optional]
 
