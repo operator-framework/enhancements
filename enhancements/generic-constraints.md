@@ -8,7 +8,7 @@ reviewers:
 approvers:
   - "@kevinrizza"
 creation-date: 2021-08-26
-last-updated: 2020-10-08
+last-updated: 2020-11-04
 status: provisional
 ---
 
@@ -41,9 +41,12 @@ Both types are specifically handled by the resolver in OLM and cannot be changed
 * Note: The current GVK and package constraints are specified in `dependencies.yaml` using `olm.gvk` and `olm.package` type and they are coverted to `olm.gvk.required` or `olm.package.required` property (which is required constraint) to differentiate from the `olm.package` and `olm.gvk` property in the bundle.
 
 ### Goals
+
 - Provide specification and guideline to specify a constraint that contains declarative requirements/rules.
 - Support the compound constraint (the constraint with mutliple requirements that is resolved into a single operator).
+
 ### Non-Goals
+
 - Eliminate the existing built-in constraints.
 - Support multiple expression languages other than CEL (though the syntax may allow the support for other languages for future use).
 - Provide mechanism to provide cluster constraints. This feature can be addressed in a separate enhancement.
@@ -93,13 +96,27 @@ Each constraint is specified using the following syntax:
 
 The constraint `type` is `olm.constraint` and the `value` is information associated with constraint. The `value` struct has 4 fields: `evaluator`, `rule`, `message` and `action`.
 
-The `evaluator` is a struct with `id` field to represent the language library that will be used to evaluate the expression. At the moment, only CEL expression is supported using `cel` as the identifier.
+The `evaluator` is a struct with `id` field to represent the language library that will be used to evaluate the expression. At the moment, only CEL expression is supported using `cel` as the identifier. Given the possibility of supporting other expression languages in the future, the `evaluator` is constructed as a struct so that additional fields can be added without breaking the current syntax. For example, if we support a hypothetical expression language named `lucky` that has ability to dynamically load a package named `bobby` at runtime, a `package` field can be added to `evaluator` struct to support that ability:
+
+```json=
+"evaluator":{
+    "id":"lucky",
+    "package":"bobby"
+},
+```
 
 The `rule` field is the string that presents a CEL expression that will be evaluated during resolution against . Only CEL expression is supported in the initial release.
 
 The `message` field is an optional field that is accommodating the rule field to surface information regarding what this CEL rule is about. The message will be surfaced in resolution output when the rule evaluates to false.
 
-Finally, the `action` field is a struct with the `id` field to indicate the resolution action that this constraint will behave. For example, for `require` action, there must be at least one candidate that satisfies this constraint. This action can be used to indicate optional constraint in the future. For the initial release, `require` action is supported.
+Finally, the `action` field is a struct with the `id` field to indicate the resolution action that this constraint will behave. For example, for `require` action, there must be at least one candidate that satisfies this constraint. This action can be used to indicate optional constraint in the future adding a new field `optional` such as:
+
+```json=
+"action":{
+    "id":"require"
+    "optional":true
+},
+```
 
 #### Compound Constraint
 
@@ -162,7 +179,74 @@ Besides CEL, there are other languages that can be used such as:
 
 All of these languages can be supported in constraint type. The `evaluator` field is designed to support multiple evaluators/languages if needed. However, intrducing a new language to the constraint type should be evaluated carefully to ensure there is a real need for it. Providing the support for multiple languages can be overwhelming and potentially creates a fragmented user experiences and unnecessary maintainance effort in a long run.
 
-### Simplified constraint type
+### Alternative constraint syntax
+
+#### Custom constraint type syntax
+
+The current proposed constraint syntax is designed to support other expression languages in the future. The current `evaluator` struct is designed to suppport additional fields to falicitate additional information that new expression languague may require. Additionally, other goals of this EP to support potentual custom constraints which may not use expression language and have additional fields without having to introduce a new constraint type. The complexity of using `evaluator` struct as an identifier and depending on identifier, more fields are required in the `value` struct can potentually be confusing as fields become intermingled. The alternative syntax is to shift cel constraint type into its own struct under `value` struct.
+
+```yaml=
+type: olm.constraint
+value:
+    message: 'require to have "certified" and "stable" properties'
+    CEL:
+        rule: 'properties.exists(p, p.type == "certified") && properties.exists(p, p.type == "stable")'
+    action:
+        id: "require"
+        optional: true
+```
+
+```
+type CEL struct {
+    Rule   string
+}
+```
+
+If there is a new custom type introduced, a new go struct will be added:
+
+```
+type CEL struct {
+    Rule   string
+    Action string
+}
+
+type PropertyEquals struct {
+    Name  string
+    Value string
+}
+```
+
+The overall construct struct in go:
+
+```
+type Constraint struct {
+    Message        string
+    Action         Action
+    CEL            *CEL
+    PropertyEquals *PropertyEquals
+}
+
+type Action struct {
+    id       string
+    optional bool
+}
+```
+
+The constraint syntax in YAML for the new `PropertyEquals` type is:
+
+```yaml=
+type: olm.constraint
+value:
+    message: 'require to have "certified" and "stable" properties'
+    propertyEquals:
+        name: "olm.maxOCPVersion"
+        value: "4.9"
+    action:
+        id: "require"
+        optional: false
+```
+
+#### Simplified CEL constraint type
 
 The current proposed constraint syntax has most of information nested under `value` field. The complexity of a struct with nested fields can create a bad user experience. It is possible to introduce a constraint type that is specified for CEL
 
