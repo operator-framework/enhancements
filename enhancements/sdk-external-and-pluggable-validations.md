@@ -20,16 +20,18 @@ see-also:
 
 ## Release Signoff Checklist
 
-- [ ] Enhancement is `implementable`
-- [ ] Design details are appropriately documented from clear requirements
+- [X] Enhancement is `implementable`
+- [X] Design details are appropriately documented from clear requirements
 - [ ] Test plan is defined
 - [ ] Graduation criteria for dev preview, tech preview, GA
 
 ## Open Questions [optional]
 
  1. what validations do we have today?
- 1. do these validations run against a cluster?
  1. can we use scorecard to replace all of these validations?
+    * scorecard uses the cluster to run the tests, these validations typically
+      run locally or in a pipeline. They are also done before the expensive
+      operator tests are run.
  1. what would it take to convert an existing validator to an executable format?
 
 ## Summary
@@ -49,65 +51,231 @@ order for the new validation rule change to be usable.
 
 This process slows down the business by having to wait for this release process
 to occur for what could be a very small rule change. It also causes downstream
-rules to require an immediate upstream operator-sdk release which may be as far
-as 3 weeks away.
+rules to require an immediate upstream operator-sdk release, which may
+otherwise be as far as 3 weeks away. It is difficult to explain to the community
+why we need a new release for a CVP need.
 
 ### Goals
 
 List the specific goals of the proposal. How will we know that this has succeeded?
 
 * allow validations to be updated when the business needs them to be
-* do not require newer builds of the operator-sdk to get updates
+* allow validations to release when the authors need them to be
+* do not require newer builds of the operator-sdk to get updated rules
 * allow validations to be hosted in their own repos
-* allow validations to be run external to operator-sdk
+* allow validations to be external to operator-sdk
+
+TODO: are there any other goals?
 
 ### Non-Goals
 
-TODO:
-What is out of scope for this proposal? Listing non-goals helps to focus discussion
+TODO: What is out of scope for this proposal? Listing non-goals helps to focus discussion
 and make progress.
 
 ## Proposal
 
 ### User Stories [optional]
 
-Detail the things that people will be able to do if this is implemented.
-Include as much detail as possible so that people can understand the "how" of
-the system. The goal here is to make this feel real for users without getting
-bogged down.
-
 #### Story 1
 * as a CVP admin I would like to change the validation for XXX and have it
-  useable right now.
+  useable as soon as I can do a validator release.
 
 #### Story 2
-* as a user
+* as a validation author, I can write a validation for a bundle and use it
+  without having to get a new operator-sdk release
+
+TODO: Stories from the epic; consolidate with the above stories
+
+#### Story 3
+* Users want to edit/add/remove a set of validation rules for Operator bundle validation.
+
+#### Story 4
+* Users can host a set of validation rules either locally or in remote.
+
+#### Story 5
+* Users can define the target set of validation rules for SDK's bundle validation command (either from local or remote source).
 
 ### Implementation Details/Notes/Constraints [optional]
 
-There are a few alternatives, I think putting the validations in their own
-images similar to how bundles are done makes sense. It is a known and easy
-transport.
+There are a few alternatives, but I think wrapping the validations in their
+own executables makes sense. It aligns with the work we've done with
+[Phase 2][phase-2] plugins. It allows the most flexibility in terms of
+implementation. It also has a simple API -
+input: bundle dir; output: ManifestErrors JSON.
 
-NOTE: if it's in an image is it just a data container or is it an entrypoint
-that needs to run in a cluster?
+Wrapping validations in their own executable simply means that there
+needs to be something that the operator-sdk can run like a shell script
+or a binary.
 
-* wrap validations in their own executables
-  * validations would be wrapped in an executable that would be called from
-    operator-sdk
-  * pro:
-    * could reuse the existing go validations and put a main.go in front to make
-      them executable
-    * follows a similar phase 2 plugin path
-    * could reuse some of the phase 2 tech to run this
-    * would not need a cluster necessarily to run the validation
-  * con:
-    * authors would have to create binaries of their validations
+The validation executable will need to accept a single input value which
+is the bundle directory. The output will need to be a ManifestErrors JSON. This
+JSON will be parsed by the operator-sdk converted and output as a Result.
+
+For example, the existing validations could easily be wrapped with a `main.go`
+file and compiled into a binary. They could be copied to their own repos for
+easier release. Now you might be thinking that this means we'll have many
+releases still, we actually would only have one (1) release which is the
+validator itself. For go based validators this might mean a new binary, but you
+could also release your validator in python and make it a single file or even a
+shell script.
+
+From the operator-sdk's point of view, we don't care what you use
+to create your validator only that we can run it and pass it a bundle directory.
 
 
-List of current validators:
+TODO: how will validators be found?
+
+#### Validators
+
+##### Running validators
+
+The [existing validators](#default-validators-run-by-operator-sdk) operate
+on a bundle. Each validator should be some executable that accepts a
+single argument, the bundle root directory. So `operator-sdk` will pass them
+the bundle directory. It will be the validator's responsibility to parse
+the bundle to get what it needs.
+
+For example, the validator executable will be invoked from the
+`operator-sdk` in the following manner:
+
+```
+/path/to/validator/executable /path/to/bundle
+```
+
+A concrete example might look like this:
+
+```
+./validator-poc /home/user/dev/gatekeeper-operator/bundle
+```
+
+The actual implementation is up to the author. Here we have an example of
+the [`OperatorHubValidator`][validator-poc1] as a Go binary.
+
+##### Validator results
+
+As stated earlier, each validator should be some executable that accepts a
+single argument, the bundle root directory. Th validators should also output
+ManifestErrors JSON to stdout.
+
+Because the [existing validators](#default-validators-run-by-operator-sdk)
+currently return a [ManifestErrors][manifest-errors], it seems logical that we
+use the same object as JSON for the output.
+
+The validator executable should exit non-zero ONLY if the entrypoint failed to
+run NOT if the bundle validation fails.
+
+For example, let's say the validator is given a path to the gatekeeper bundle.
+The validator should validate the given bundle and output the ManifestErrors JSON.
+Here is an example of a run:
+
+```json
+{
+    "Name": "gatekeeper-operator.v0.2.0-rc.3",
+    "Errors": null,
+    "Warnings": [
+        {
+            "Type": "CSVFileNotValid",
+            "Level": "Warning",
+            "Field": "",
+            "BadValue": "",
+            "Detail": "(gatekeeper-operator.v0.2.0-rc.3) csv.Spec.minKubeVersion is not informed. It is recommended you provide this information. Otherwise, it would mean that your operator project can be distributed and installed in any cluster version available, which is not necessarily the case for all projects."
+        }
+    ]
+}
+```
+
+The above JSON will be read by the `operator-sdk` during `bundle validate`
+command and output the results as it does today. The example below shows what
+`operator-sdk bundle validate` would printout if given the ManifestErrors from
+above.
+
+```json
+{
+    "passed": true,
+    "outputs": [
+        {
+            "type": "warning",
+            "message": "Warning: Value : (gatekeeper-operator.v0.2.0-rc.3) csv.Spec.minKubeVersion is not informed. It is recommended you provide this information. Otherwise, it would mean that your operator project can be distributed and installed in any cluster version available, which is not necessarily the case for all projects."
+        }
+    ]
+}
+```
+
+Allowing the validators to output ManifestErrors should make it easier to
+transition existing validators to the external format with minimal code.
+
+##### Migrating existing validator to executable
+
+In the short to near term, you create a new `main.go` for each of the validators.
+Then import the validator code from operator-framework/api. The `main.go` would
+take in one (1) argument, the bundle directory.
+
+Since the [existing validators](#default-validators-run-by-operator-sdk) already
+output `ManifestErrors`, it's easiest if we simply print that out as JSON to
+stdout.
+
+An example POC that takes an existing validator and outputs `ManifestErrors` can
+be found at [validator-poc][validator-poc1]
+
+Another example of a migration can be find at [ocp-olm-catalog-validator][camila-poc].
+This particular example does NOT yet output `ManifestErrors` format.
+
+TODO: do we need to add `json` tags to these structs?
+https://github.com/operator-framework/api/blob/master/pkg/validation/errors/error.go#L9-L16
+
+
+#### CLI
+
+The big question at hand is how do we indicate to the `operator-sdk` CLI that
+we want to run an external validator? Today, the `bundle validate` command takes
+in a few flags, here we will discuss how each might need to be changed to work
+with external validators.
+
+```
+Usage:
+  operator-sdk bundle validate [flags]
+
+...
+
+Flags:
+  -h, --help                                                 help for validate
+  -b, --image-builder string                                 Tool to pull and unpack bundle images. Only used when validating a bundle image. One of: [docker, podman, none] (default "docker")
+      --list-optional                                        List all optional validators available. When set, no validators will be run
+      --optional-values --optional-values=k8s-version=1.22   Inform a []string map of key=values which can be used by the validator. e.g. to check the operator bundle against an Kubernetes version that it is intended to be distributed use --optional-values=k8s-version=1.22 (default [])
+  -o, --output string                                        Result format for results. One of: [text, json-alpha1]. Note: output format types containing "alphaX" are subject to change and not covered by guarantees of stable APIs. (default "text")
+      --select-optional string                               Label selector to select optional validators to run. Run this command with '--list-optional' to list available optional validators
+
+Global Flags:
+      --plugins strings   plugin keys to be used for this subcommand execution
+      --verbose           Enable verbose logging
+```
+
+* *--help* works as is
+* *--image-builder* works as is
+* *--list-optional* would need to be updated to locate external validators.
+
+  TODO: How do we locate these validators? Do we use the XDG_CONFIG like Phase
+  2? Or allow users to pass in the location of the validators?
+
+* *--optional-values* would continue to be passed to the validators
+* *--output* indicates how we want to output the results.
+
+  TODO: what types do we want to support?
+
+* *--select-optional* takes in a label selector to specify which optional test
+  to run. We could allow a new label to indicate the location of the executable
+  to run as the validator. i.e. `validator-path=/path/to/validator/the-executable`
+
+TODO: need to define what the CLI for operator-sdk will look like. Are there
+any new flags? Do we use the environment variable?
+
+NOTE: what would the CLI look like?
+
 
 ##### Default validators run by operator-sdk
+
+List of current validators:
+TODO: do we need these validators called out like this?
 
 * BundleValidator
   * validates the bundle
@@ -172,52 +340,6 @@ List of current validators:
     * BundleValidator
     * ClusterServiceVersionValidator
     * CustomResourceDefinitionValidator
-
-The current validators all return a
-[ManifestResults](https://github.com/operator-framework/api/blob/master/pkg/validation/errors/error.go#L9-L16)
-
-Each validator should have an "entrypoint", some executable that accepts a
-single argument, the bundle root.
-
-For example, the validator binary will be invoked from the `operator-sdk` in the
-following manner:
-
-```
-./validator-poc ~/dev/gatekeeper-operator/bundle
-```
-
-It should write its output to stdout to be parsed by operator-sdk. Output should
-be JSON.
-
-Exit non-zero ONLY if the entrypoint failed to run NOT if the bundle validation
-fails.
-
-Output
-
-Result format used by the `bundle validate` today.
-
-```json
-{
-    "passed": true,
-    "outputs": [
-        {
-            "type": "warning",
-            "message": "Warning: Value : (gatekeeper-operator.v0.2.0-rc.3) csv.Spec.minKubeVersion is not informed. It is recommended you provide this information. Otherwise, it would mean that your operator project can be distributed and installed in any cluster version available, which is not necessarily the case for all projects."
-        }
-    ]
-}
-```
-
-#### Migrating existing validator to executable
-
-In the short to near term, you create a new main.go for each of the validators.
-Then import the validator code from o-f/api. The main.go would take in 1
-argument which is the bundle directory.
-
-TODO: jmrodri determine the output format
-The output would be a Result json. Unless we want the more complicated
-ManifestResults
-
 ### Risks and Mitigations
 
 There is little risk, if this does not pan out we keep going on the current path
@@ -297,17 +419,10 @@ enhancement:
 
 ### Version Skew Strategy
 
-How will the component handle version skew with other components?
-What are the guarantees? Make sure this is in the test plan.
-
-Consider the following in developing a version skew strategy for this
-enhancement:
-- During an upgrade, we will always have skew among components, how will this impact your work?
-- Does this enhancement involve coordinating behavior in the control plane and
-  in the kubelet? How does an n-2 kubelet without this feature available behave
-  when this feature is used?
-- Will any other components on the node change? For example, changes to CSI, CRI
-  or CNI may require updating that component before the kubelet.
+* The version of the validators can change however the validator author sees fit.
+* The API or contract between `operator-sdk` and validators will be
+  * input to validator: bundle directory
+  * output from validator: `ManifestErrors` JSON
 
 ## Implementation History
 
@@ -316,7 +431,8 @@ History`.
 
 ## Drawbacks
 
-The idea is to find the best form of an argument why this enhancement should _not_ be implemented.
+Validators would have to be their own executables which could result in a
+compilation step being needed depending on the language used to implement them.
 
 ## Alternatives
 
@@ -326,11 +442,11 @@ The idea is to find the best form of an argument why this enhancement should _no
   * pro:
     * already have a precendence for running things from images
     * familiar tech
-    * could run locally and simply use the image as a data transport
   * con:
     * would need a cluster to run these validations
-    * authors would have to create binaries of their validations
+    * authors would have to create binaries of their validations anyway
 
+TODO: ---------- vvvvvv CUT vvvvvv ----------
 * wrap validations in their own executables
   * validations would be wrapped in an executable that would be called from
     operator-sdk
@@ -342,6 +458,7 @@ The idea is to find the best form of an argument why this enhancement should _no
     * would not need a cluster necessarily to run the validation
   * con:
     * authors would have to create binaries of their validations
+TODO: ---------- ^^^^^^ CUT ^^^^^^ ----------
 
 * use a language like JavaScript or CUE to define all validations
   * validations could be run from a git repo, i.e. operator-sdk could pull it
@@ -349,7 +466,7 @@ The idea is to find the best form of an argument why this enhancement should _no
   * pro:
     * simpler delivery, expose via a gitrepo and done
   * con:
-    * all existing validations would have to be re-written in new language
+    * all existing validations would have to be re-written in a new language
       structure which could introduce new bugs
     * unproven technology
     * would have to write the engine to know how to execute these
@@ -370,3 +487,8 @@ Listing these here allows the community to get the process for these resources
 started right away.
 
 https://github.com/operator-framework/api/tree/master/pkg/validation
+
+[phase-2]: https://github.com/kubernetes-sigs/kubebuilder/blob/master/designs/extensible-cli-and-scaffolding-plugins-phase-2.md
+[manifest-errors]: https://github.com/operator-framework/api/blob/master/pkg/validation/errors/error.go#L9-L16
+[validator-poc1]: https://github.com/jmrodri/validator-poc/tree/poc1-manifestresults
+[camila-poc]: https://github.com/camilamacedo86/ocp-olm-catalog-validator
