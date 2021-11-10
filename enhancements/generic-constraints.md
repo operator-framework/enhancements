@@ -8,18 +8,18 @@ reviewers:
 approvers:
   - "@kevinrizza"
 creation-date: 2021-08-26
-last-updated: 2020-11-04
-status: provisional
+last-updated: 2020-11-10
+status: implementable
 ---
 
 # generic-constraint
 
 ## Release Signoff Checklist
 
-- [ ] Enhancement is `implementable`
-- [ ] Design details are appropriately documented from clear requirements
-- [ ] Test plan is defined
-- [ ] Graduation criteria for dev preview, tech preview, GA
+- [x] Enhancement is `implementable`
+- [x] Design details are appropriately documented from clear requirements
+- [x] Test plan is defined
+- [x] Graduation criteria for dev preview, tech preview, GA
 
 ## Summary
 
@@ -118,6 +118,53 @@ Finally, the `action` field is a struct with the `id` field to indicate the reso
 },
 ```
 
+##### Pros
+
+* Single-entry identifier is "easier" to validate
+* Fully expandable as additional fields can be added to `value`/`evaluator`/`action` to accommodate new expression languages and custom resolver behavior.
+
+##### Cons
+
+* Nested structure can be difficult to construct and decipher
+* Potential additional fields into mutliple struct and sub-struct increase complexity and readability
+
+#### Arbitrary Properties
+
+At the moment, operator authors may declare arbitrary properties in `properties.yaml` file in the bundle metadata. While those properties will be processed and surfaced in the properties table in the sqlite database, OLM resolver simply doesn't have any understanding of those properties due to lacking of custom code to perform evaluation (compare) those properties. As a result, operator authors cannot declare dependencies on those properties. The generic constraint proposal allow operator authors to specify dependencies that rely on any types of properties via CEL expressions.
+
+For example, the bundle properties map (which is an input to the resolver) is:
+
+```yaml
+properties:
+  - property:
+      type: sushi
+      value: salmon
+  - property:
+      type: soup
+      value: miso
+  - property:
+      type: olm.gvk
+      value:
+        group: olm.coreos.io
+        version: v1alpha1
+        kind: bento
+```
+
+The example constraint is specified to have a dependency for a custom property `sushi` with value `salmon`:
+
+```yaml=
+type: olm.constraint
+value:
+  evaluator:
+    id: cel
+  rule: "properties.exists(p, p.type == 'sushi' && p.value == 'salmon')"
+  message: "require to have the property `sushi` with value `salmon`""
+  action:
+    id: require
+```
+
+The cel expression will search for a property with the type `sushi` and the value `salmon` within the bundle property map and return `true` or `false`.
+
 #### Compound Constraint
 
 The CEL [syntax](https://github.com/google/cel-spec/blob/master/doc/langdef.md#syntax) supports a wide range of operators including logic operator such as AND and OR. As a result, a single CEL expression can have multiple rules for multiple conditions that are linked together by logic operators. These rules are evaluated against a dataset of multiple different properties from a bundle or any given source and the output is solved into a single bundle or operator that sastifies all of those rules within a single constraint. For example:
@@ -139,6 +186,17 @@ The CEL [syntax](https://github.com/google/cel-spec/blob/master/doc/langdef.md#s
 ```
 
 The expression in `rule` has two requirements that are linked in an AND (&&) logical operator. In order for that expression to be true, both requirements must be satisfied. Therefore, the resolved operator will be a single bundle that has both certified and stable properties. This concept represents the compound constraint.
+
+### Graduation Criteria
+
+Ideally, this feature is supported at release. However, it is possible to wrap this feature under feature flag which means it is disabled by default. As a result, the feature can be a dev-preview/tech-preview feature and begins to gather users' feedbacks.
+
+As the feature is being used and evaluated in production, changes can be made to address feedbacks and improve overall usefulness and user experience. Then, the feature flag can be removed and the feature is enabled by default moving forward. At the time, the feature is GA.
+
+### Test Plan
+
+* operator-lifecycle-manager unit and e2e tests with the emphasis on resolver tests to ensure the new constraint type is working properly with existing dependency types and arbitrary properties.
+* operator-registry unit and e2e tests to validate the configuration of the new constraint type to ensure it is properly constructed before being added to the index.
 
 ### Risks and Mitigations
 
@@ -246,6 +304,15 @@ value:
         optional: false
 ```
 
+##### Pros
+
+* Expandable to support new expression languages and custom types by adding new struct
+* Each type has its own struct with predefined fields which leads to easier to validate each type
+
+##### Cons
+
+* Require additional validation at build-time and/or run-time to ensure only one type is in use
+
 #### Simplified CEL constraint type
 
 The current proposed constraint syntax has most of information nested under `value` field. The complexity of a struct with nested fields can create a bad user experience. It is possible to introduce a constraint type that is specified for CEL
@@ -263,3 +330,11 @@ The current proposed constraint syntax has most of information nested under `val
 The identifier `type` for this constraint is `olm.constraint.cel` which means this is a CEL constraint that only supports CEL expression. The `value` field contains the `rule` field which houses the CEL expression and the `message` field which is the resolution output if the expression is evaluated as `false`.
 
 This simplified version of constraint type still satisfies the goals of having a generic constraint (though to lesser extend due to lacking of expandability that is provided by additional fields) and the compound constraint.
+
+##### Pros
+
+* Flat structure is simple and highly readable
+
+##### Cons
+
+* Lacking of expandability as the type is for cel language exclusively
