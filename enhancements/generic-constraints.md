@@ -8,7 +8,7 @@ reviewers:
 approvers:
   - "@kevinrizza"
 creation-date: 2021-08-26
-last-updated: 2020-11-10
+last-updated: 2020-11-15
 status: implementable
 ---
 
@@ -36,14 +36,14 @@ At the moment, OLM only supports 2 built-in types of constraint:
 - GVK constraint (`olm.gvk.required`)* which depends on a specific GroupVersionKind information of a CRD/API.
 - Package constraint (`olm.package.required`)* which depends a specific package name and version (or a range of version)
 
-Both types are specifically handled by the resolver in OLM and cannot be changed or expanded to support further use cases. In order to support more types of constraints, it is generically expected for OLM to add more specific built-in types to allow users to express those new constraints in the bundles. Over the time, it may become cumbersome and impractical to continue to add more specific types to the resolver. The need for OLM to support a generic constraint model becomes more apparent. With a generic constraint model, OLM no longer needs to carry any specific evaluation methodology besides the understanding of how to parse the constraint syntax. The users should be able to express declaratively the rules for a constraint that can be evaluated againts the dataset of arbitrary properties.
+Both types are specifically handled by the resolver in OLM and cannot be changed or expanded to support further use cases. In order to support more types of constraints, it is generically expected for OLM to add more specific built-in types to allow users to express those new constraints in the bundles. Over the time, it may become cumbersome and impractical to continue to add more specific types to the resolver. The need for OLM to support a generic constraint model becomes more apparent. With a generic constraint model, OLM no longer needs to carry any specific evaluation methodology besides the understanding of how to parse the constraint syntax. The users should be able to express declaratively the rules for a constraint that can be evaluated against the dataset of arbitrary properties.
 
-* Note: The current GVK and package constraints are specified in `dependencies.yaml` using `olm.gvk` and `olm.package` type and they are coverted to `olm.gvk.required` or `olm.package.required` property (which is required constraint) to differentiate from the `olm.package` and `olm.gvk` property in the bundle.
+* Note: The current GVK and package constraints are specified in `dependencies.yaml` using `olm.gvk` and `olm.package` type and they are converted to `olm.gvk.required` or `olm.package.required` property (which is required constraint) to differentiate from the `olm.package` and `olm.gvk` property in the bundle.
 
 ### Goals
 
 - Provide specification and guideline to specify a constraint that contains declarative requirements/rules.
-- Support the compound constraint (the constraint with mutliple requirements that is resolved into a single operator).
+- Support the compound constraint (the constraint with multiple requirements that is resolved into a single operator).
 
 ### Non-Goals
 
@@ -54,11 +54,11 @@ Both types are specifically handled by the resolver in OLM and cannot be changed
 
 ## Proposal
 
-The [Common Expression Language (CEL)](https://github.com/google/cel-go) is a great inline expression language that can be used to express multiple rules within a single expression. The rules are fully customizable and constructed specifically for users' needs and requirements without OLM needing to know the design methodology. It is important to recoginize the dependent relationship between constraints and properties. As a constraint is evaluated against a dataset of properties from a bundle or a given source, in order to design a constraint, there must be an understanding on what properties are available in a given a bundle or source and what information they present in order for a constraint to be evaluated propertly.
+The [Common Expression Language (CEL)](https://github.com/google/cel-go) is a great inline expression language that can be used to express multiple rules within a single expression. The rules are fully customizable and constructed specifically for users' needs and requirements without OLM needing to know the design methodology. It is important to recognize the dependent relationship between constraints and properties. As a constraint is evaluated against a dataset of properties from a bundle or a given source, in order to design a constraint, there must be an understanding on what properties are available in a given a bundle or source and what information they present in order for a constraint to be evaluated properly.
 
 The CEL library also supports [extension functions](https://github.com/google/cel-spec/blob/master/doc/langdef.md#extension-functions) which allows OLM to implement additional functions that may be necessary for certain operations. These functions then can be used within the CEL expression. For example, [semver](https://semver.org/) comparison is not built-in in CEL and it is often used in OLM as bundles are versioned in semver format. The semver functions can be added in the initial release and allow users to express semver evaluations in the constraint. However, extension functions should be treated and designed with care as they can be difficult to change in the future and potentially create version skew or breaking changes.
 
-All CEL expressions are [parsed and typechecked](https://github.com/google/cel-go#parse-and-check) before evaluation. The insulting programs can be cached for later evaluation to reduce unnecesary computation. Also, the CEL evaluation is [thread-safe and side-effect free](https://github.com/google/cel-go#evaluate).
+All CEL expressions are [parsed and typechecked](https://github.com/google/cel-go#parse-and-check) before evaluation. The insulting programs can be cached for later evaluation to reduce unnecessary computation. Also, the CEL evaluation is [thread-safe and side-effect free](https://github.com/google/cel-go#evaluate).
 
 ### User Stories
 
@@ -74,7 +74,179 @@ As an operator author, I would like to specify a constraint that has multiple ru
 
 #### Generic Constraint Syntax
 
-The constraint syntax is designed to have similarity with the existing constraints that OLM supports which are GVK and package. It is intentional to keep the fundamental syntax with `type` and `value` the same so that it doesn't introduce any dramatic changes to the overall user experiences.
+The constraint syntax is designed to have similarity with the existing constraints that OLM supports which are GVK and package. It is intentional to keep the fundamental syntax with `type` and `value` the same so that it doesn't introduce any dramatic changes to the overall user experiences. The proposed constraint syntax is designed to support other expression languages in the future. Additionally, other goals of this EP to support potential custom constraints which may not use expression language and have additional fields without having to introduce a new constraint type. As a result, each constraint type is designed to be an individual struct with custom fields that are specific to that type. New types can be introduced and added to `value` struct to support new constraint type without needing a new `type` identifier.
+
+Each constraint is specified using the following syntax:
+
+
+```yaml=
+type: olm.constraint
+value:
+    message: 'require to have "certified" and "stable" properties'
+    CEL:
+        rule: 'properties.exists(p, p.type == "certified") && properties.exists(p, p.type == "stable")'
+```
+
+```
+type CEL struct {
+    Rule   string
+}
+```
+
+The CEL struct is specific to CEL constraint type that supports CEL as the expression language. The CEL struct has `rule` field which contains the CEL expression string that will be evaluated against bundle properties at the runtime to determine if the bundle satisfies the CEL expression.
+
+If there is a new custom type named `PropertyEquals` introduced, a new go struct will be added along with the existing CEL struct:
+
+```
+type CEL struct {
+    Rule   string
+}
+
+type PropertyEquals struct {
+    Name  string
+    Value string
+}
+```
+
+Then, the `PropertyEquals` type is added into the `ConstraintValue` struct to support the new type:
+
+```
+type ConstraintValue struct {
+    Message        string
+    CEL            *CEL
+    PropertyEquals *PropertyEquals
+}
+```
+
+The constraint syntax in YAML for the new `PropertyEquals` type is:
+
+```yaml=
+type: olm.constraint
+value:
+    message: 'require to have "certified" and "stable" properties'
+    propertyEquals:
+        name: "olm.maxOCPVersion"
+        value: "4.9"
+```
+
+##### Pros
+
+* Expandable to support new expression languages and custom types by adding new struct
+* Each type has its own struct with predefined fields which leads to easier to validate each type
+
+##### Cons
+
+* Require additional validation at build-time and/or run-time to ensure only one type is in use
+
+#### Arbitrary Properties
+
+At the moment, operator authors may declare arbitrary properties in `properties.yaml` file in the bundle metadata. While those properties will be processed and surfaced in the properties table in the sqlite database, OLM resolver simply doesn't have any understanding of those properties due to lacking of custom code to perform evaluation (compare) those properties. As a result, operator authors cannot declare dependencies on those properties. The generic constraint proposal allow operator authors to specify dependencies that rely on any types of properties via CEL expressions.
+
+For example, the bundle properties map (which is an input to the resolver) is:
+
+```yaml
+properties:
+  - property:
+      type: sushi
+      value: salmon
+  - property:
+      type: soup
+      value: miso
+  - property:
+      type: olm.gvk
+      value:
+        group: olm.coreos.io
+        version: v1alpha1
+        kind: bento
+```
+
+The example constraint is specified to have a dependency for a custom property `sushi` with value `salmon`:
+
+```yaml=
+type: olm.constraint
+value:
+  message: "require to have the property `sushi` with value `salmon`"
+  CEL:
+    rule: "properties.exists(p, p.type == 'sushi' && p.value == 'salmon')"
+```
+
+The cel expression will search for a property with the type `sushi` and the value `salmon` within the bundle property map and return `true` or `false`.
+
+#### Compound Constraint
+
+The CEL [syntax](https://github.com/google/cel-spec/blob/master/doc/langdef.md#syntax) supports a wide range of operators including logic operator such as AND and OR. As a result, a single CEL expression can have multiple rules for multiple conditions that are linked together by logic operators. These rules are evaluated against a dataset of multiple different properties from a bundle or any given source and the output is solved into a single bundle or operator that satisfies all of those rules within a single constraint. For example:
+
+```json=
+{
+  "type": "olm.constraint",
+  "value": {
+      "message": 'require to have "certified" and "stable" properties',
+      "CEL": {
+          "rule": 'properties.exists(p, p.type == "certified") && properties.exists(p, p.type == "stable")'
+      }
+  }
+}
+```
+
+The expression in `rule` has two requirements that are linked in an AND (&&) logical operator. In order for that expression to be true, both requirements must be satisfied. Therefore, the resolved operator will be a single bundle that has both certified and stable properties. This concept represents the compound constraint.
+
+### Graduation Criteria
+
+This generic constraint is currently scheduled to be available in the next release with a set of supported functionalities. More functionalities will be added to the feature if needed in the subsequent releases.
+
+Alternatively, it is possible to wrap this feature under feature flag which means it is disabled by default. As a result, the feature can be a dev-preview/tech-preview feature and begins to gather users' feedbacks.
+
+As the feature is being used and evaluated in production, changes can be made to address feedbacks and improve overall usefulness and user experience. Then, the feature flag can be removed and the feature is enabled by default moving forward. At the time, the feature is GA.
+
+### Test Plan
+
+* operator-lifecycle-manager unit and e2e tests with the emphasis on resolver tests to ensure the new constraint type is working properly with existing dependency types and arbitrary properties.
+* operator-registry unit and e2e tests to validate the configuration of the new constraint type to ensure it is properly constructed before being added to the index.
+
+### Risks and Mitigations
+
+#### User experience concern
+
+The CEL language is relatively new and requires a learning curve to understand. The complexity of the language may potentially create a difficult user experience (UX) especially when the users intend to write a complex expression for an advanced user case. Also, the current resolver doesn't surface the resolution information very clearly which leads to the difficulty on how the users can identify what goes wrong when the CEL expression is evaluated to `false`.
+
+Mitigation: The feature can be implemented under a feature flag to allow feedbacks to be gathered and then the UX can be evaluated based on those feedbacks in order to improve the UX if needed in future releases.
+
+Also, the constraint syntax can be simplified to reduce the complexity in order to improve the overall UX. (See Alternatives).
+
+For majority of use cases, the CEL expression should be simple and straight-forward especially with well-constructed examples and guidelines where users can make a few plug-in changes and ready to be used.
+
+The `message` field is introduced to allow specific information from the author who writes the expression to surface as resolution output.
+
+#### CEL language maturity and support
+
+The CEL language is relatively new and not yet at stable release (v1). There are potentially breaking changes that can be introduced.
+
+Migration: The CEL library can be spinned to a specific release to avoid introducing breaking changes if occurs.
+
+The language is being used in another well-known opensource projects including Tekton and Kubernetes ([apiserver/CRD](https://github.com/kubernetes/enhancements/blob/master/keps/sig-api-machinery/2876-crd-validation-expression-language/README.md)). This should improve the confidence on the usage of CEL language and these teams will potentially influence or impose against any major breaking changes that may come to CEL.
+
+If CEL becomes too unstable in the future due to breaking changes, it is possible to gradually deprecate the support of the language and introduce another language that is more stable. The constraint syntax allows the support of other languages in the future via `evaluator` field.
+
+## Alternatives
+
+### Other languages choices
+
+While CEL is the selected language to be supported in the new OLM constraint type. It is not the intention to limit OLM to only support CEL expression. It possible to support multiple expression languages in the future releases if needed.
+
+Besides CEL, there are other languages that can be used such as:
+
+- [Rego](https://github.com/open-policy-agent/opa/tree/main/rego) (Open Policy Agent)
+- [Expr](https://github.com/antonmedv/expr)
+- [Starlark](https://github.com/bazelbuild/starlark)
+- [Cue](https://github.com/cue-lang/cue)
+
+All of these languages can be supported in constraint type. The `evaluator` field is designed to support multiple evaluators/languages if needed. However, introducing a new language to the constraint type should be evaluated carefully to ensure there is a real need for it. Providing the support for multiple languages can be overwhelming and potentially creates a fragmented user experiences and unnecessary maintenance effort in a long run.
+
+### Alternative constraint syntax
+
+#### Evaluator constraint type syntax
+
+Instead of using individual type/struct under `value` struct, this proposed syntax uses an `evaluator` struct as an identifier to signal to the resolver which constraint type it is and which fields are needed for this type.
 
 Each constraint is specified using the following syntax:
 
@@ -107,7 +279,7 @@ The `evaluator` is a struct with `id` field to represent the language library th
 
 The `rule` field is the string that presents a CEL expression that will be evaluated during resolution against . Only CEL expression is supported in the initial release.
 
-The `message` field is an optional field that is accommodating the rule field to surface information regarding what this CEL rule is about. The message will be surfaced in resolution output when the rule evaluates to false.
+The `message` field is an optional field that is accommodating the rule field to surface information regarding what this CEL rule is about. The message will be surfaced in resolution output when the rule is evaluated to false.
 
 Finally, the `action` field is a struct with the `id` field to indicate the resolution action that this constraint will behave. For example, for `require` action, there must be at least one candidate that satisfies this constraint. This action can be used to indicate optional constraint in the future adding a new field `optional` such as:
 
@@ -126,192 +298,7 @@ Finally, the `action` field is a struct with the `id` field to indicate the reso
 ##### Cons
 
 * Nested structure can be difficult to construct and decipher
-* Potential additional fields into mutliple struct and sub-struct increase complexity and readability
-
-#### Arbitrary Properties
-
-At the moment, operator authors may declare arbitrary properties in `properties.yaml` file in the bundle metadata. While those properties will be processed and surfaced in the properties table in the sqlite database, OLM resolver simply doesn't have any understanding of those properties due to lacking of custom code to perform evaluation (compare) those properties. As a result, operator authors cannot declare dependencies on those properties. The generic constraint proposal allow operator authors to specify dependencies that rely on any types of properties via CEL expressions.
-
-For example, the bundle properties map (which is an input to the resolver) is:
-
-```yaml
-properties:
-  - property:
-      type: sushi
-      value: salmon
-  - property:
-      type: soup
-      value: miso
-  - property:
-      type: olm.gvk
-      value:
-        group: olm.coreos.io
-        version: v1alpha1
-        kind: bento
-```
-
-The example constraint is specified to have a dependency for a custom property `sushi` with value `salmon`:
-
-```yaml=
-type: olm.constraint
-value:
-  evaluator:
-    id: cel
-  rule: "properties.exists(p, p.type == 'sushi' && p.value == 'salmon')"
-  message: "require to have the property `sushi` with value `salmon`""
-  action:
-    id: require
-```
-
-The cel expression will search for a property with the type `sushi` and the value `salmon` within the bundle property map and return `true` or `false`.
-
-#### Compound Constraint
-
-The CEL [syntax](https://github.com/google/cel-spec/blob/master/doc/langdef.md#syntax) supports a wide range of operators including logic operator such as AND and OR. As a result, a single CEL expression can have multiple rules for multiple conditions that are linked together by logic operators. These rules are evaluated against a dataset of multiple different properties from a bundle or any given source and the output is solved into a single bundle or operator that sastifies all of those rules within a single constraint. For example:
-
-```json=
-{
-  "type": "olm.constraint",
-  "value": {
-    "evaluator": {
-        "id": "cel",
-    }
-    "rule": 'properties.exists(p, p.type == "certified") && properties.exists(p, p.type == "stable")',
-    "message": 'require to have "certified" and "stable" properties',
-    "action": {
-        "id": "require"
-    }
-  }
-}
-```
-
-The expression in `rule` has two requirements that are linked in an AND (&&) logical operator. In order for that expression to be true, both requirements must be satisfied. Therefore, the resolved operator will be a single bundle that has both certified and stable properties. This concept represents the compound constraint.
-
-### Graduation Criteria
-
-Ideally, this feature is supported at release. However, it is possible to wrap this feature under feature flag which means it is disabled by default. As a result, the feature can be a dev-preview/tech-preview feature and begins to gather users' feedbacks.
-
-As the feature is being used and evaluated in production, changes can be made to address feedbacks and improve overall usefulness and user experience. Then, the feature flag can be removed and the feature is enabled by default moving forward. At the time, the feature is GA.
-
-### Test Plan
-
-* operator-lifecycle-manager unit and e2e tests with the emphasis on resolver tests to ensure the new constraint type is working properly with existing dependency types and arbitrary properties.
-* operator-registry unit and e2e tests to validate the configuration of the new constraint type to ensure it is properly constructed before being added to the index.
-
-### Risks and Mitigations
-
-#### User experience concern
-
-The CEL language is relatively new and requires a learning curve to understand. The complexity of the language may potentially create a difficult user experience (UX) especially when the users intend to write a complex expression for an advanced user case. Also, the current resolver doesn't surface the resolution information very clearly which leads to the difficulty on how the users can identify what goes wrong when the CEL expression is evaluated to `false`.
-
-Mitigation: The feature can be implemented under a feature flag to allow feedbacks to be gathered and then the UX can be evaluated based on those feedbacks in order to improve the UX if needed in future releases.
-
-Also, the constraint syntax can be simplified to reduce the complexity in order to improve the overall UX. (See Alternatives).
-
-For majority of use cases, the CEL expression should be simple and straight-forward especially with well-constructed examples and guidelines where users can make a few plug-in changes and ready to be used.
-
-The `message` field is introduced to allow specific information from the author who writes the expression to surface as resolution output.
-
-#### CEL language maturity and support
-
-The CEL language is relatively new and not yet at stable release (v1). There are potentially breaking changes that can be introduced.
-
-Migration: The CEL library can be spinned to a specific release to avoid introducing breaking changes if occurs.
-
-The language is being used in another well-known opensource projects including Tekton and Kubernetes ([apiserver/CRD](https://github.com/kubernetes/enhancements/blob/master/keps/sig-api-machinery/2876-crd-validation-expression-language/README.md)). This should improve the confidence on the usage of CEL language and these teams will potentially influence or impose against any major breaking changes that may come to CEL.
-
-If CEL becomes too instable in the future due to breaking changes, it is possible to gradually deprecate the support of the language and introduce another language that is more stable. The constraint syntax allows the support of other languages in the future via `evaluator` field.
-
-## Alternatives
-
-### Other languages choices
-
-While CEL is the selected language to be supoorted in the new OLM constraint type. It is not the intention to limit OLM to only support CEL expression. It possible to support multiple expression languages in the future releases if needed.
-
-Besides CEL, there are other languages that can be used such as:
-
-- [Rego](https://github.com/open-policy-agent/opa/tree/main/rego) (Open Policy Agent)
-- [Expr](https://github.com/antonmedv/expr)
-- [Starlark](https://github.com/bazelbuild/starlark)
-- [Cue](https://github.com/cue-lang/cue)
-
-All of these languages can be supported in constraint type. The `evaluator` field is designed to support multiple evaluators/languages if needed. However, intrducing a new language to the constraint type should be evaluated carefully to ensure there is a real need for it. Providing the support for multiple languages can be overwhelming and potentially creates a fragmented user experiences and unnecessary maintainance effort in a long run.
-
-### Alternative constraint syntax
-
-#### Custom constraint type syntax
-
-The current proposed constraint syntax is designed to support other expression languages in the future. The current `evaluator` struct is designed to suppport additional fields to falicitate additional information that new expression languague may require. Additionally, other goals of this EP to support potentual custom constraints which may not use expression language and have additional fields without having to introduce a new constraint type. The complexity of using `evaluator` struct as an identifier and depending on identifier, more fields are required in the `value` struct can potentually be confusing as fields become intermingled. The alternative syntax is to shift cel constraint type into its own struct under `value` struct.
-
-```yaml=
-type: olm.constraint
-value:
-    message: 'require to have "certified" and "stable" properties'
-    CEL:
-        rule: 'properties.exists(p, p.type == "certified") && properties.exists(p, p.type == "stable")'
-    action:
-        id: "require"
-        optional: true
-```
-
-```
-type CEL struct {
-    Rule   string
-}
-```
-
-If there is a new custom type introduced, a new go struct will be added:
-
-```
-type CEL struct {
-    Rule   string
-    Action string
-}
-
-type PropertyEquals struct {
-    Name  string
-    Value string
-}
-```
-
-The overall construct struct in go:
-
-```
-type Constraint struct {
-    Message        string
-    Action         Action
-    CEL            *CEL
-    PropertyEquals *PropertyEquals
-}
-
-type Action struct {
-    id       string
-    optional bool
-}
-```
-
-The constraint syntax in YAML for the new `PropertyEquals` type is:
-
-```yaml=
-type: olm.constraint
-value:
-    message: 'require to have "certified" and "stable" properties'
-    propertyEquals:
-        name: "olm.maxOCPVersion"
-        value: "4.9"
-    action:
-        id: "require"
-        optional: false
-```
-
-##### Pros
-
-* Expandable to support new expression languages and custom types by adding new struct
-* Each type has its own struct with predefined fields which leads to easier to validate each type
-
-##### Cons
-
-* Require additional validation at build-time and/or run-time to ensure only one type is in use
+* Potential additional fields into multiple struct and sub-struct increase complexity and readability
 
 #### Simplified CEL constraint type
 
