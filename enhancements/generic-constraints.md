@@ -8,7 +8,7 @@ reviewers:
 approvers:
   - "@kevinrizza"
 creation-date: 2021-08-26
-last-updated: 2020-11-15
+last-updated: 2020-11-17
 status: implementable
 ---
 
@@ -76,29 +76,31 @@ As an operator author, I would like to specify a constraint that has multiple ru
 
 The constraint syntax is designed to have similarity with the existing constraints that OLM supports which are GVK and package. It is intentional to keep the fundamental syntax with `type` and `value` the same so that it doesn't introduce any dramatic changes to the overall user experiences. The proposed constraint syntax is designed to support other expression languages in the future. Additionally, other goals of this EP to support potential custom constraints which may not use expression language and have additional fields without having to introduce a new constraint type. As a result, each constraint type is designed to be an individual struct with custom fields that are specific to that type. New types can be introduced and added to `value` struct to support new constraint type without needing a new `type` identifier.
 
+At the top level, `type` field is the identifier for the new constraint type named `olm.constraint`. The `value` field is a struct that contains all information related to the constraint. Under `value`, the `failureMessage` field is a place to include string-representation of the constraint failure message that will be surfaced to the users if the constraint is not satisfiable at runtime.
+
 Each constraint is specified using the following syntax:
 
 
 ```yaml=
 type: olm.constraint
 value:
-    message: 'require to have "certified" and "stable" properties'
-    CEL:
+    failureMessage: 'require to have "certified" and "stable" properties'
+    cel:
         rule: 'properties.exists(p, p.type == "certified") && properties.exists(p, p.type == "stable")'
 ```
 
 ```
-type CEL struct {
+type Cel struct {
     Rule   string
 }
 ```
 
-The CEL struct is specific to CEL constraint type that supports CEL as the expression language. The CEL struct has `rule` field which contains the CEL expression string that will be evaluated against bundle properties at the runtime to determine if the bundle satisfies the CEL expression.
+The `Cel` struct is specific to CEL constraint type that supports CEL as the expression language. The `Cel` struct has `rule` field which contains the CEL expression string that will be evaluated against bundle properties at the runtime to determine if the bundle satisfies the CEL expression.
 
-If there is a new custom type named `PropertyEquals` introduced, a new go struct will be added along with the existing CEL struct:
+If there is a new custom type named `PropertyEquals` introduced, a new go struct will be added along with the existing `Cel` struct:
 
 ```
-type CEL struct {
+type Cel struct {
     Rule   string
 }
 
@@ -112,9 +114,9 @@ Then, the `PropertyEquals` type is added into the `ConstraintValue` struct to su
 
 ```
 type ConstraintValue struct {
-    Message        string
-    CEL            *CEL
-    PropertyEquals *PropertyEquals
+    FailureMessage        string
+    Cel                   *Cel
+    PropertyEquals        *PropertyEquals
 }
 ```
 
@@ -123,7 +125,7 @@ The constraint syntax in YAML for the new `PropertyEquals` type is:
 ```yaml=
 type: olm.constraint
 value:
-    message: 'require to have "certified" and "stable" properties'
+    failureMessage: 'require to have "certified" and "stable" properties'
     propertyEquals:
         name: "olm.maxOCPVersion"
         value: "4.9"
@@ -165,8 +167,8 @@ The example constraint is specified to have a dependency for a custom property `
 ```yaml=
 type: olm.constraint
 value:
-  message: "require to have the property `sushi` with value `salmon`"
-  CEL:
+  failureMessage: "require to have the property `sushi` with value `salmon`"
+  cel:
     rule: "properties.exists(p, p.type == 'sushi' && p.value == 'salmon')"
 ```
 
@@ -180,8 +182,8 @@ The CEL [syntax](https://github.com/google/cel-spec/blob/master/doc/langdef.md#s
 {
   "type": "olm.constraint",
   "value": {
-      "message": 'require to have "certified" and "stable" properties',
-      "CEL": {
+      "failureMessage": 'require to have "certified" and "stable" properties',
+      "cel": {
           "rule": 'properties.exists(p, p.type == "certified") && properties.exists(p, p.type == "stable")'
       }
   }
@@ -215,7 +217,7 @@ Also, the constraint syntax can be simplified to reduce the complexity in order 
 
 For majority of use cases, the CEL expression should be simple and straight-forward especially with well-constructed examples and guidelines where users can make a few plug-in changes and ready to be used.
 
-The `message` field is introduced to allow specific information from the author who writes the expression to surface as resolution output.
+The `failureMessage` field is introduced to allow specific information from the author who writes the expression to surface as resolution output.
 
 #### CEL language maturity and support
 
@@ -225,7 +227,7 @@ Migration: The CEL library can be spinned to a specific release to avoid introdu
 
 The language is being used in another well-known opensource projects including Tekton and Kubernetes ([apiserver/CRD](https://github.com/kubernetes/enhancements/blob/master/keps/sig-api-machinery/2876-crd-validation-expression-language/README.md)). This should improve the confidence on the usage of CEL language and these teams will potentially influence or impose against any major breaking changes that may come to CEL.
 
-If CEL becomes too unstable in the future due to breaking changes, it is possible to gradually deprecate the support of the language and introduce another language that is more stable. The constraint syntax allows the support of other languages in the future via `evaluator` field.
+If CEL becomes too unstable in the future due to breaking changes, it is possible to gradually deprecate the support of the language and introduce another language that is more stable. The constraint syntax allows the support of other languages in the future by adding new struct type that can be added under `value` struct.
 
 ## Alternatives
 
@@ -240,7 +242,7 @@ Besides CEL, there are other languages that can be used such as:
 - [Starlark](https://github.com/bazelbuild/starlark)
 - [Cue](https://github.com/cue-lang/cue)
 
-All of these languages can be supported in constraint type. The `evaluator` field is designed to support multiple evaluators/languages if needed. However, introducing a new language to the constraint type should be evaluated carefully to ensure there is a real need for it. Providing the support for multiple languages can be overwhelming and potentially creates a fragmented user experiences and unnecessary maintenance effort in a long run.
+All of these languages can be supported in constraint type. A new struct with its own configuration can be created to support a new language similarly to `Cel` struct. However, introducing a new language to the constraint type should be evaluated carefully to ensure there is a real need for it. Providing the support for multiple languages can be overwhelming and potentially creates a fragmented user experiences and unnecessary maintenance effort in a long run.
 
 ### Alternative constraint syntax
 
@@ -258,7 +260,7 @@ Each constraint is specified using the following syntax:
          "id":"cel"
       },
       "rule": "properties.exists(p, p.type == \"certified\")",
-      "message": "require to have certified property",
+      "failureMessage": "require to have certified property",
       "action":{
          "id":"require"
       }
@@ -266,7 +268,7 @@ Each constraint is specified using the following syntax:
 }
 ```
 
-The constraint `type` is `olm.constraint` and the `value` is information associated with constraint. The `value` struct has 4 fields: `evaluator`, `rule`, `message` and `action`.
+The constraint `type` is `olm.constraint` and the `value` is information associated with constraint. The `value` struct has 4 fields: `evaluator`, `rule`, `failureMessage` and `action`.
 
 The `evaluator` is a struct with `id` field to represent the language library that will be used to evaluate the expression. At the moment, only CEL expression is supported using `cel` as the identifier. Given the possibility of supporting other expression languages in the future, the `evaluator` is constructed as a struct so that additional fields can be added without breaking the current syntax. For example, if we support a hypothetical expression language named `lucky` that has ability to dynamically load a package named `bobby` at runtime, a `package` field can be added to `evaluator` struct to support that ability:
 
@@ -279,7 +281,7 @@ The `evaluator` is a struct with `id` field to represent the language library th
 
 The `rule` field is the string that presents a CEL expression that will be evaluated during resolution against . Only CEL expression is supported in the initial release.
 
-The `message` field is an optional field that is accommodating the rule field to surface information regarding what this CEL rule is about. The message will be surfaced in resolution output when the rule is evaluated to false.
+The `failureMessage` field is a field that is accommodating the rule field to surface information regarding what this CEL rule is about. The message will be surfaced in resolution output when the rule is evaluated to false.
 
 Finally, the `action` field is a struct with the `id` field to indicate the resolution action that this constraint will behave. For example, for `require` action, there must be at least one candidate that satisfies this constraint. This action can be used to indicate optional constraint in the future adding a new field `optional` such as:
 
@@ -314,7 +316,7 @@ The current proposed constraint syntax has most of information nested under `val
 }
 ```
 
-The identifier `type` for this constraint is `olm.constraint.cel` which means this is a CEL constraint that only supports CEL expression. The `value` field contains the `rule` field which houses the CEL expression and the `message` field which is the resolution output if the expression is evaluated as `false`.
+The identifier `type` for this constraint is `olm.constraint.cel` which means this is a CEL constraint that only supports CEL expression. The `value` field contains the `rule` field which houses the CEL expression and the `failureMessage` field which is the resolution output if the expression is evaluated as `false`.
 
 This simplified version of constraint type still satisfies the goals of having a generic constraint (though to lesser extend due to lacking of expandability that is provided by additional fields) and the compound constraint.
 
