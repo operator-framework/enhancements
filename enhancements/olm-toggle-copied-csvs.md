@@ -75,23 +75,9 @@ That is, all CSVs installed by a given `Subscription` share an `Operator` resour
 
 Orphaned CSVs are CSVs that were installed via a `Subscription` that no longer exists. Since the lifetimes -- i.e. the period of existence on a cluster --  of `Operator` resources aren't directly tied to the lifetimes of the resources that triggered their generation, the `Operator` resource(s) associated with Orphaned CSVs will continue to exist _after_ a `Subscription` is deleted. If that `Operator` resource is deleted explicitly, OLM will generate another as per the rules [outlined above](#operator-cardinality).
 
-#### Copied RBAC 
-
-In addition to operator discoverability, Copied CSVs also serve as convienient vehicles for the garbage collection of Copied RBAC. These are resources that are copied along with the CSV to provide the operator access to a namespace. To support the loss of Copied CSVs, the RBAC copying logic in OLM will be extended to write additional owner references from copied resources to the related Operator resource. 
-
-#### The Toggle
-
-A feature toggle will be added to control OLM's use of Copied CSVs. When enabled (toggled on), OLM will delete all existing Copied CSVs and will not generate any more. When disabled (toggled off), OLM will generate Copied CSVs (much like it does today).
-
-When toggled (on then off), OLM will recreate any missing Copied CSVs and reassociate the owner references of related copied resources with them (i.e. the inverse operation of the one described in the [Copied RBAC](#copied-rbac) section).
-
-The toggle will be disabled by default.
-
-The toggle can be set from a command-line option on the olm-operator binary.
-
 #### Config CRD w/ Toggle
 
-A novel cluster-scoped `OLMConfig` CRD will be added to OLM. The resource type it defines will allow users to apply a limited set of configurations to the OLM instance on their cluster by creating or modifying a singlton (of that type) on the cluster.
+A novel cluster-scoped `OLMConfig` CRD will be added to OLM. The resource type it defines will allow users to apply a limited set of configurations to the OLM instance on their cluster by creating or modifying a singleton (of that type) on the cluster.
 
 The name of that singleton will be `cluster` and OLM will ignore all other `OLMConfig` resources on a cluster.
 
@@ -106,12 +92,14 @@ metadata:
   name: cluster
 spec:
   features:
-    'disable-copied-csvs': true
+    disableCopiedCSVs: true
 ```
 
-When both the [command-line option](#the-toggle) _and_ `cluster` resource toggle field are present, the latter takes precedence.
+ When enabled (toggled on), OLM will delete all existing Copied CSVs and will not generate any more. When disabled (toggled off), OLM will generate Copied CSVs (much like it does today).
 
-When the `cluster` resource isn't present, OLM uses its default settings (in this case, Copied CSVs would be **on** by default).
+When toggled (on then off), OLM will recreate any missing Copied CSVs.
+
+The toggle will be disabled by default. When the `cluster` resource isn't present, OLM uses its default settings (in this case, Copied CSVs would be **on** by default).
 
 ### Risks and Mitigations
 
@@ -122,7 +110,7 @@ When the `cluster` resource isn't present, OLM uses its default settings (in thi
 **Mitigations:** 
 
 - Reduce number of impacted users by limiting toggle to operators installed in `AllNamespace` mode only; that is, `Single` and `MultiNamespace` mode Copied CSVs will not be affected by the toggle.
-- OLM fires an alert in all affected namespaces on startup when Copied CSVs are disabled
+- When Copied CSVs are disabled, an event will be created in the namespace for each `AllNamespace` mode CSV.
 - Docs suggest admins notify their cluster tenants of installed operators directly; i.e. email, slack, etc
 
 #### OpenShift Console Integration
