@@ -11,7 +11,7 @@ approvers:
   - "@kevinrizza"
   - "@dinhxuanvu"
 creation-date: 2021-10-14
-last-updated: 2021-11-18
+last-updated: 2021-11-30
 status: implementable
 see-also:
   - "/enhancements/operator-dependency-resolution.md"
@@ -30,12 +30,7 @@ superseded-by:
 
 ## Open Questions
 
-1. Eventually I think it would be a good idea to create a general `constraints` property
-because, as we add more constraint properties to the top-level bundle config, it becomes
-difficult to differentiate what is a property (an intrinsic property of a bundle) and
-what is a property that acts as a constraint (a property of a bundle _describing other packages_).
-Is this actually a good idea, and is this outside the scope of this EP?
-  - This has been written into the `olm.constraints` spec in [#91][arb-constraints] and used here.
+None
 
 ## Summary
 
@@ -125,7 +120,7 @@ within a parent compound constraint.
 As an operator author, I should be able to build operator bundles that "work"
 with both older and newer versions of OLM. I understand that "work" might mean
 different things depending on OLM version; obviously older OLM versions cannot
-compound constraints using any method other than conjunction.
+compound constraints.
 
 #### Story 4
 
@@ -241,7 +236,7 @@ to remove any possible solution that includes a particular GVK, package
 at a version, or satisfies some child compound constraint from the result set.
 
 This is an example of a negation constraint of one version of a GVK,
-i.e. this GVK cannot satisfy the constraint:
+i.e. this GVK cannot be provided by any bundle in the result set:
 
 ```yaml
 schema: olm.bundle
