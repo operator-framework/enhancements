@@ -94,7 +94,6 @@ Currently the spec does not support specifying such "compound" dependency constr
 - Define nesting of compound constraints.
 - Describe how compound constraints are evaluated.
 - Describe what needs to change in OLM's resolver to support compound constraints.
-- Plan for implementation under an alpha feature gate, and a timeline for GA.
 
 ### Non-Goals
 
@@ -127,11 +126,6 @@ compound constraints.
 As a cluster administrator using OLM, I should receive the same information
 about successful and failed resolution as with current "simple" constraints.
 
-#### Story 5
-
-As a cluster administrator, I should be able to opt-in to resolving compound
-constraints in OLM while the feature is alpha. When opted-out, the resolver
-should emit errors so bundles are not installed incorrectly, ex. missing an API.
 
 ### Implementation Details/Notes/Constraints
 
@@ -166,7 +160,6 @@ properties:
 
 These new schemas are equivalent to the existing schemas, and can be used interchangeably
 at the top level; the old schema keys cannot be used within a compound constraint.
-The existing schemas will be [deprecated](#tech-preview-ga) at a later date.
 
 The implementation of compound constraints will primarily live in the OLM codebase,
 since they are properties that the resolver understands. Some parsing details
@@ -314,11 +307,6 @@ bundle author adds deep nesting to a bundle resulting in long resolver pauses.
   - Tools that work with bundle constraints _must_ limit the depth of nesting of 10 levels.
   - Typically bundles are vetted by catalog maintainers, so deep nesting can be caught
   by automation prior to inclusion in a catalog.
-- With this feature being in alpha/tech-preview state on release, the spec could break
-fairly soon based on feedback. In particular, changes to the spec will likely be needed
-based on the higher level constraint vs. property discussion.
-  - This feature will be gated such that breakage only occurs for those who
-  opted-in via CLI argument while the feature is still in alpha.
 
 
 ## Design Details
@@ -331,28 +319,11 @@ based on the higher level constraint vs. property discussion.
 
 ### Graduation Criteria
 
-The alpha feature gate will be removed and this feature will be on permanently
-by OLM v0.(Y+2) from the first v0.Y release.
-This should give ample time to garner feedback on how well the current spec
-tackles the outlined use cases as currently implemented,
-and allow spec breakage for improvements.
+This feature is in GA upon release.
 
 #### Examples
 
 See ["Implementation Details/Notes/Constraints"](#implementation-details-notes-constraints).
-
-##### Dev Preview -> Tech Preview
-
-- Basic e2e testing
-- Documentation available in `olm.operatorframework.io/docs`
-- Available under `--feature-gates="CompoundConstraintsV1Alpha1=true"`
-
-##### Tech Preview -> GA
-
-- Deprecate `olm.{gvk,package}.required`
-- Robust e2e testing
-- Sufficient time for feedback
-- Available by default
 
 ##### Removing a deprecated feature
 
@@ -370,12 +341,10 @@ constraint properties. See [version skew strategy](#version-skew-strategy) for d
 
 ### Version Skew Strategy
 
-Older versions of OLM will ignore unknown bundle properties, so compound constraints
-will be ignored. Starting with the first release containing this feature, the same
-holds for all properties not listed as feature gated properties; if the feature gate
-is not turned on for some property, OLM will emit an error. Therefore the same bundle
-will "work" between OLM versions, even though older versions will install the bundle
-without error by design.
+Older versions of OLM will ignore unknown bundle properties, i.e. `olm.constraint`'s,
+so compound constraints will be ignored.
+Therefore the same bundle will "work" between OLM versions, even though `olm.constraint`'s
+containing compound constraints will not be interpreted on bundles.
 
 ## Implementation History
 
