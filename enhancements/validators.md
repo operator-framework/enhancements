@@ -46,7 +46,7 @@ maintained and consumed.
 
 - [operator-framework/API][of-api] providing and defining what is in common use for any validator such as:
   - possible output formats
-  - common criteria, rules and suggestions to distribute solutions via OLM under Operator Framework, which are not a vendor and/or catalog specific
+  - common criteria, rules and suggestions to distribute Operators via OLM under Operator Framework, which are not a vendor and/or catalog specific
   - validators interface
   -  a standard format for the results of the tests
 -  Ability to use the [operator-framework/API][of-api] to build external validators, which are vendor or Index Catalog specific
