@@ -44,7 +44,7 @@ maintained and consumed.
 - A standard definition that brings flexibility and allows leveraging what exists and is already in use.
 ### Goals
 
-- [operator-framework/API][of-api] providing and defining what is a common use for any validator such as:
+- [operator-framework/API][of-api] providing and defining what is in common use for any validator such as:
   - possible output formats
   - common criteria, rules and suggestions to distribute solutions via OLM under Operator Framework, which are not a vendor and/or catalog specific
   - validators interface
