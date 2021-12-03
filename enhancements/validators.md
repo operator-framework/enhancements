@@ -28,8 +28,8 @@ The Validators are static checks (linters) that can scan the manifests and provi
 with low-cost valuable results to ensure the quality of the package of distributions(bundle or package formats) which will be distributed via OLM,
 to ensure that they respect some specific criteria for vendors and/or catalogs.
 
-For example, [Openshift](https://docs.openshift.com/container-platform/4.6/operators/admin/olm-managing-custom-catalogs.html)
-catalog is composed of more than one image (see [here](https://docs.openshift.com/container-platform/4.6/operators/admin/olm-managing-custom-catalogs.html)). To publish via each image is required to respect some specific criteria
+For example, Openshift
+catalog it is composed of more than one image ([More info](https://docs.openshift.com/container-platform/4.6/operators/admin/olm-managing-custom-catalogs.html)). To publish via each image is required to respect some specific criteria
 such as to be part of the vendor catalog.
 
 This proposal aims to provide a standard definition to reduce the complexity of keeping these rules
@@ -74,7 +74,7 @@ which can help us in the medium/long term with improving maintainability, usabil
 
 External Validators:
 - location for Index Catalog or vendor-specific validators
-- Implementing what is specific and without the need to re-implement common usage
+- implementation of catalog or vendor-specific validation logic
 - Extending [operator-framework/API][of-api] and using it as a lib to ensure a standard for its consumers
 
 ### Implementation Details/Notes/Constraints
