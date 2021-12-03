@@ -25,58 +25,57 @@ authors:
 ## Summary
 
 The Validators are static checks (linters) that can scan the manifests and provide
-with low-cost valuable results to ensure the quality of the distributions which will be distributed via OLM,
+with low-cost valuable results to ensure the quality of the package of distributions(bundle or package formats) which will be distributed via OLM,
 to ensure that they respect some specific criteria for vendors and/or catalogs.
 
-For example, [Openshit](https://docs.openshift.com/container-platform/4.6/operators/admin/olm-managing-custom-catalogs.html)
-catalog is composed for more than one image. To publish via each image is required to respect some specific criteria
+For example, [Openshift](https://docs.openshift.com/container-platform/4.6/operators/admin/olm-managing-custom-catalogs.html)
+catalog is composed of more than one image (see [here](https://docs.openshift.com/container-platform/4.6/operators/admin/olm-managing-custom-catalogs.html)). To publish via each image is required to respect some specific criteria
 such as to be part of the vendor catalog.
 
-This proposal aims to provide a standard definition to reduce the complexities of keeping these rules
+This proposal aims to provide a standard definition to reduce the complexity of keeping these rules
 maintained and consumed.
 
 ## Motivation
 
-- Reduces the effort and complexities to keep the validations and rules maintained
-- Bring visibility and clarity over what are common criteria to distributed via OLM, to publish on Openshift or to distributed via certain image catalogs
-- Defining a standard definition that brings flexibility to introduce specific rules levering in the [operator-framework/API][of-api] without the need to re-implement and keep maintained what is the common use
+- Reduces the effort and complexity to keep the validations and rules maintained
+- Bring visibility and clarity over what common criteria are for distributing via OLM, for publishing to OpenShift or for publishing via certain Index catalogs.
+- Defining a standard definition leveraging the [operator-framework/API][of-api] without the need to re-implement and to keep maintaining what is in common.
 - A clear strategy definition about what can be introduced and supported in [operator-framework/API][of-api]
-
+- A standard definition that brings flexibility and allows leveraging what exists and is already in use.
 ### Goals
 
 - [operator-framework/API][of-api] providing and defining what is a common use for any validator such as:
   - possible output formats
   - common criteria, rules and suggestions to distribute solutions via OLM under Operator Framework, which are not a vendor and/or catalog specific
   - validators interface
-  - the struct to ensure a standard for the results of the test
-- Ability to use [operator-framework/API][of-api] to build external validators with specific criteria, which are vendor or index catalog specific
-- Ability to consume many and different validators from different maintainers and sources without the need to deal with complexities related to different result structures
-- Have a standard definition that brings flexibility, allows leverage in what exists and in use without bringing extra high cost but allows us to add value with lower effort and with higher sustainability
-- Ability to use the Validators via tools, code source, ci and jobs
-- Ensure that upstream projects do not need to support and maintain specific criteria for vendors and catalogs
+  -  a standard format for the results of the tests
+-  Ability to use the [operator-framework/API][of-api] to build external validators, which are vendor or Index Catalog specific
+- Ability to consume various validators from different maintainers and sources by working with a single common result format
+- Ability to use the Validators via CLI tools (such as SDK and OPM) or any project by importing as a dependency or indeed address the common need to call them in Continuous Integration (CI) process
+- Remove the need to have vendor or catalog specific validators in-tree
 
 ### Non-Goals
 
-- SDK working with external validators. (_It is the scope of another PE, see [here](https://github.com/operator-framework/enhancements/pull/98)_)
-- New output or interface definitions that might be beneficial
-- Changes or improvements in the current interfaces, functionalities or validators
+- Amending the Operator SDK so that it works with external validators. (_It is the scope of another PE, see [here](https://github.com/operator-framework/enhancements/pull/98)_)
+- New options to output the results such as JUnit or changes in the operator-framework/api interface definitions that might be beneficial in long term
+- Changes or improvements to the current interfaces, functionalities or validators
 
 ## Proposal
 
-The goal of this proposal is to ensure that we can along with a defined standard concept and vision
-which can help us in the medium/long term have solutions with better maintainability, usability and understandability
-levering in what we have implemented currently.
+The goal of this proposal is to ensure that we agree on a defined standard concept and vision
+which can help us in the medium/long term with improving maintainability, usability and readability.
+ leveraging what we have already implemented.
 
 **Domain of Responsibilities**
 
 [operator-framework/API][of-api]:
-- centralizing and providing all that is common for any internal or external validator
-- provider of any validator that is valid for any solution which will be distributed via OLM
+- providing a common framework for internal and external validators
+- providing common validators (which are useful and required for any solution which will be distributed via OLM)
 
 External Validators:
-- Validator projects with the purpose to centralize specific checks and criteria
+- location for Index Catalog or vendor-specific validators
 - Implementing what is specific and without the need to re-implement common usage
-- Extending and implementing [operator-framework/API][of-api] interfaces to ensure a standard for its consumers
+- Extending [operator-framework/API][of-api] and using it as a lib to ensure a standard for its consumers
 
 ### Implementation Details/Notes/Constraints
 
