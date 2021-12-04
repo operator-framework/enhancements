@@ -206,7 +206,7 @@ ought to use to upgrade or downgrade.
 ### Version Skew Strategy
 
 External validators ought to have implemented a GitHub Action to perform releases automatically and with low effort
-such as it was implemented for [ocp olm catalog validator][ocp-validator], see: .
+such as it was implemented for [ocp olm catalog validator][ocp-validator], see: [here](https://github.com/redhat-openshift-ecosystem/ocp-olm-catalog-validator/blob/main/.github/workflows/release.yaml).
 
 ## Implementation History
 
