@@ -55,9 +55,10 @@ rules to require an immediate upstream operator-sdk release, which may
 otherwise be as far as 3 weeks away. It is difficult to explain to the community
 why we need a new release for a CVP need.
 
-### Goals
+Having the validators external to the SDK will allow for vendor specific
+validators to be created allowing for greater flexibility.
 
-List the specific goals of the proposal. How will we know that this has succeeded?
+### Goals
 
 * allow validations to be updated when the business needs them to be
 * allow validations to release when the authors need them to be
@@ -69,8 +70,7 @@ TODO: are there any other goals?
 
 ### Non-Goals
 
-TODO: What is out of scope for this proposal? Listing non-goals helps to focus discussion
-and make progress.
+* existing validations do NOT have be migrated unless they want to
 
 ## Proposal
 
@@ -101,14 +101,14 @@ There are a few alternatives, but I think wrapping the validations in their
 own executables makes sense. It aligns with the work we've done with
 [Phase 2][phase-2] plugins. It allows the most flexibility in terms of
 implementation. It also has a simple API -
-input: bundle dir; output: ManifestErrors JSON.
+input: bundle dir; output: ManifestResult JSON.
 
 Wrapping validations in their own executable simply means that there
 needs to be something that the operator-sdk can run like a shell script
 or a binary.
 
 The validation executable will need to accept a single input value which
-is the bundle directory. The output will need to be a ManifestErrors JSON. This
+is the bundle directory. The output will need to be a ManifestResult JSON. This
 JSON will be parsed by the operator-sdk converted and output as a Result.
 
 For example, the existing validations could easily be wrapped with a `main.go`
@@ -155,17 +155,17 @@ the [`OperatorHubValidator`][validator-poc1] as a Go binary.
 
 As stated earlier, each validator should be some executable that accepts a
 single argument, the bundle root directory. Th validators should also output
-ManifestErrors JSON to stdout.
+ManifestResult JSON to stdout.
 
 Because the [existing validators](#default-validators-run-by-operator-sdk)
-currently return a [ManifestErrors][manifest-errors], it seems logical that we
+currently return a [ManifestResult][manifest-result], it seems logical that we
 use the same object as JSON for the output.
 
 The validator executable should exit non-zero ONLY if the entrypoint failed to
 run NOT if the bundle validation fails.
 
 For example, let's say the validator is given a path to the gatekeeper bundle.
-The validator should validate the given bundle and output the ManifestErrors JSON.
+The validator should validate the given bundle and output the ManifestResult JSON.
 Here is an example of a run:
 
 ```json
@@ -186,7 +186,7 @@ Here is an example of a run:
 
 The above JSON will be read by the `operator-sdk` during `bundle validate`
 command and output the results as it does today. The example below shows what
-`operator-sdk bundle validate` would printout if given the ManifestErrors from
+`operator-sdk bundle validate` would printout if given the ManifestResult from
 above.
 
 ```json
@@ -201,7 +201,7 @@ above.
 }
 ```
 
-Allowing the validators to output ManifestErrors should make it easier to
+Allowing the validators to output ManifestResult should make it easier to
 transition existing validators to the external format with minimal code.
 
 ##### Migrating existing validator to executable
@@ -211,14 +211,14 @@ Then import the validator code from operator-framework/api. The `main.go` would
 take in one (1) argument, the bundle directory.
 
 Since the [existing validators](#default-validators-run-by-operator-sdk) already
-output `ManifestErrors`, it's easiest if we simply print that out as JSON to
+output `ManifestResult`, it's easiest if we simply print that out as JSON to
 stdout.
 
-An example POC that takes an existing validator and outputs `ManifestErrors` can
+An example POC that takes an existing validator and outputs `ManifestResult` can
 be found at [validator-poc][validator-poc1]
 
 Another example of a migration can be find at [ocp-olm-catalog-validator][camila-poc].
-This particular example does NOT yet output `ManifestErrors` format.
+This particular example does NOT yet output `ManifestResult` format.
 
 TODO: do we need to add `json` tags to these structs?
 https://github.com/operator-framework/api/blob/master/pkg/validation/errors/error.go#L9-L16
@@ -422,7 +422,7 @@ enhancement:
 * The version of the validators can change however the validator author sees fit.
 * The API or contract between `operator-sdk` and validators will be
   * input to validator: bundle directory
-  * output from validator: `ManifestErrors` JSON
+  * output from validator: `ManifestResult` JSON
 
 ## Implementation History
 
@@ -489,6 +489,6 @@ started right away.
 https://github.com/operator-framework/api/tree/master/pkg/validation
 
 [phase-2]: https://github.com/kubernetes-sigs/kubebuilder/blob/master/designs/extensible-cli-and-scaffolding-plugins-phase-2.md
-[manifest-errors]: https://github.com/operator-framework/api/blob/master/pkg/validation/errors/error.go#L9-L16
+[manifest-result]: https://github.com/operator-framework/api/blob/master/pkg/validation/errors/error.go#L9-L16
 [validator-poc1]: https://github.com/jmrodri/validator-poc/tree/poc1-manifestresults
 [camila-poc]: https://github.com/camilamacedo86/ocp-olm-catalog-validator
