@@ -86,7 +86,7 @@ External Validators:
 
 **External validators:**
 - To ensure the standard criteria to publish in Openshift catalog: https://github.com/redhat-openshift-ecosystem/ocp-olm-catalog-validator
-- To ensure specific criteria to publish in the OperatorHub image/catalog: https://github.com/camilamacedo86/k8s-community-validator
+- To ensure specific criteria to publish in the OperatorHub image/catalog: https://github.com/k8s-operatorhub/bundle-validator
 
 ### Risks and Mitigations
 
