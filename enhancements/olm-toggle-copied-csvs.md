@@ -13,8 +13,8 @@ approvers:
   - "@joelanford"
   - "@kevinrizza"
 creation-date: 2021-09-27
-last-updated: 2021-11-15
-status: implementable
+last-updated: 2021-12-20
+status: implemented
 see-also:
   - "/enhancements/olm-toggle-copied-csvs.md"
 ---
@@ -48,7 +48,7 @@ When an Operator is installed by OLM, a stripped down copy -- e.g. a stub -- of 
 
 ## Proposal
 
-Provide a CRD for OLM that allows users to enable and disable Copied CSVs for CSVs installed in `AllNamespace` mode, then for each non-Copied CSV, a single [Operator](https://github.com/operator-framework/enhancements/blob/master/enhancements/simplify-olm-apis.md#proposal) resource will be generated. This cluster-scoped resource will take the place of any related Copied CSVs.
+Provide a CRD for OLM that allows users to enable and disable Copied CSVs for CSVs installed in `AllNamespace` mode.
 
 ### User Stories
 
@@ -61,19 +61,6 @@ As a Cluster Admin, I want a way to disable Copied CSVs so that I can reduce OLM
 As a Cluster Admin, I want a way to enable Copied CSVs if I've reconfigured the cluster in ways that mitigate the problem; e.g. uninstalled operators from `AllNamespace` `OperatorGroups`.
 
 ### Implementation Details/Notes/Constraints
-
-#### Operator Cardinality
-
-Today, Operator resources are generated on a per-Subscription basis. Since CSVs -- and thus Copied CSVs -- can exist without matching Subscriptions, OLM's controllers will be extended to generate additional Operator resources for these "free CSVs" such that:
-
-- there exists at least one `Operator` resource for every CSV
-- there exists at least one `Operator` resource for every `Subscription`
-
-That is, all CSVs installed by a given `Subscription` share an `Operator` resource __and__ any CSVs that weren't installed by a `Subscription` are related to their own `Operator` resource.
-
-#### Orphaned CSVs
-
-Orphaned CSVs are CSVs that were installed via a `Subscription` that no longer exists. Since the lifetimes -- i.e. the period of existence on a cluster --  of `Operator` resources aren't directly tied to the lifetimes of the resources that triggered their generation, the `Operator` resource(s) associated with Orphaned CSVs will continue to exist _after_ a `Subscription` is deleted. If that `Operator` resource is deleted explicitly, OLM will generate another as per the rules [outlined above](#operator-cardinality).
 
 #### Config CRD w/ Toggle
 
@@ -95,7 +82,7 @@ spec:
     disableCopiedCSVs: true
 ```
 
- When enabled (toggled on), OLM will delete all existing Copied CSVs and will not generate any more. When disabled (toggled off), OLM will generate Copied CSVs (much like it does today).
+When enabled (toggled on), OLM will delete all existing Copied CSVs and will not generate any more. When disabled (toggled off), OLM will generate Copied CSVs (much like it does today).
 
 When toggled (on then off), OLM will recreate any missing Copied CSVs.
 
@@ -134,7 +121,7 @@ For the **dev console**, Copied CSVs drive the creation and tracking of CRs.
 
 > **Note:** The mitigations below are **suggestions** for mitigations that could be implemented in the Console if deemed valuable by its maintainers. They are not a prerequisite of any other solutions in this proposal. As such, they are **not** guaranteed implementation.
 
-- Console detects when Copied CSVs are diabled and displays a warning to admins and affected users
+- Console detects when Copied CSVs are disabled and displays a warning to admins and affected users
 - A toggle component is added to Console to make re-enabling Copied CSVs easier
 - A link to revelant docs is displayed to admins and affected users
 
