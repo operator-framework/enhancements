@@ -1,37 +1,25 @@
 
 ---
-
 title: SHA-Bundle-Digest
-
 authors:
-
 - "@theishshah"
-
 reviewers:
-
-- TBD
-
+- @camilamacedo86 
+- @joelanford 
+- @jmrodri
+- @ryantking 
+- @tlwu2013 
 approvers:
-
-- TBD
-
+- @tlwu2013 
+- @jmrodri
+- @joelanford 
 creation-date: 2022-01-14
-
 last-updated: 2022-01-14
-
 status:implementable
-
 ---
 
-  
-
 # Title
-
-  
-
 Add support for SHA-based Digest for Images
-
-  
 
 ## Summary
 
@@ -57,107 +45,48 @@ This change is necessary due to non-deterministic behavior with images identifie
 
 ### Goals
 
-  
-  
-
 -   Give users the ability to the enable digest-based image resolution via a CLI flag when generating bundles.
-    
--   Allow user to specify additional images to resolve digests via an environment variable.
-    
--   Add ability to resolve image digests from image tag dynamically using local docker registry.
-    
+-   Allow users to specify additional images to resolve digests via an environment variable.
+-   Add the ability to resolve image digests from image tag dynamically using local docker registry.
 -   OPEN QUESTION: Store digest and tag mappings in file so that user-written code can resolve tags to digest.
-    
-
-  
 
 ### Non-Goals
 
-  
-
--   Migrate existing Operator-SDK-based operators from image tags to image digests.
-    
+-   Migrate existing `operator-sdk` based operators from image tags to image digests.
 -   Identify locations in user code that reference images by tag.
-    
-
-  
-  
 
 ## Proposal
 
 -   Add `--image-digests` flag to `make bundle` in order to enable this feature to be run. TODO(ish): Add example command being run with this flag.
-    
+
 -   During bundle generation, discover all environment variables that begin with `RELATED_IMAGE_` then resolve the tags to digests. These variables should be set in `config/manager/manager.yaml` as suggested in [https://master.sdk.operatorframework.io/docs/best-practices/common-recommendation/#other-common-suggestions](https://master.sdk.operatorframework.io/docs/best-practices/common-recommendation/#other-common-suggestions). 
-    
 
-```
- - name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
-
-   value: quay.io/eclipse/che-jwtproxy:0.10.0
-
-- name: RELATED_IMAGE_single_host_gateway
-
-  value: quay.io/eclipse/che--traefik:v2.5.0-eb30f9f09a65cee1fab5ef9c64cb4ec91b800dc3fdd738d62a9d4334f0114683
-```
-
--   Generate OCP cluster CSV to allow the docker daemon to resolve image tags to digests. 
-    
-
-  
-  
 
 ### Risks and Mitigations
 
-  
-
-Since the feature is op-in, it carries the risk of the end-user enabling it without a correct understanding of the feature and its implications. This can be mitigated with clear documentation both on the website and in the CLI help section.
-
-  
-  
+Since the feature is opt-in, it carries the risk of the end-user enabling it without a correct understanding of the feature and its implications. This can be mitigated with clear documentation both on the website and in the CLI help section.
 
 ## Design Details
 
-  
-
  -   Add a `--image-digests` flag to the `operator-sdk generate bundle` command that will enable this functionality.
-    
- -   Add a variable to the generated Makefile called `USE_IMAGE_DIGESTS` that defaults to false and when enabled, it passes the `--use-image-digests` flag to `operator-sdk generate bundle`.
-    
+ -   Add a variable to the generated `Makefile` called `USE_IMAGE_DIGESTS` that defaults to `false` and when enabled, it passes the `--use-image-digests` flag to `operator-sdk generate bundle`.
  -   When `operator-sdk generate-bundle` is called with the `--use-image-digests` flag enabled, it will execute the following logic.
-    
-	- Search the environment that is defined in the manager.yaml fi for all variables that begin with `RELATED_IMAGE_` to    build a list of images that need to have tags resolved to digests    along with the Operator’s main image and rbac-proxy image.
-   
-	   -  For each image on the list, it will use `operator-manifest-tools` to resolve the image tag to a digest
-   
-	   -  When building the cluster CSV, all images that have been identified as needing a digest instead of a tag should have that  digest as an annotation in the CSV. TODO(ish): add before/after    snippet from the CSV to show the difference.
-    
- 
+ 	1. Search the environment that is defined in the `manager.yaml` file for all variables that begin with `RELATED_IMAGE_` to build a list of images that need to have tags resolved to digests along with the Operator’s main image and rbac-proxy image.
+ 	 1.  For each image in the list, it will use `operator-manifest-tools` to resolve the image tag to a digest
+ 	 1.  When building the cluster CSV, all images that have been identified as needing a digest instead of a tag should have that  digest as an annotation in the CSV. TODO(ish): add before/after snippet from the CSV to show the difference.
 
 ### Test Plan
 
-  
-
-The resulting artifact of this EP will be a cluster CSV with image digests instead of tags in the image definitions as well as digest annotations. This feature will need an integration test that veifiesthat the knobs we provide to enable and configure image digests generates an expected CSV. The expected CSV will be manually created based on the expectations for how the feature should work. We can use this CSV in existing Operator Registry testing setups to verify that OPM correctly renders it.
-
-  
+The resulting artifact of this EP will be a cluster CSV with image digests instead of tags in the image definitions as well as digest annotations. This feature will need an integration test that veifies that the knobs we provide to enable and configure image digests generates an expected CSV. The expected CSV will be manually created based on the expectations for how the feature should work. We can use this CSV in existing Operator Registry testing setups to verify that OPM correctly renders it.
 
 ## Implementation History
 
-  
-
 There has been no implementation to this point.
-
-  
 
 ## Drawbacks
 
-  
-
 The original motivation for this feature is used in a disconnected environment with an SDK-built operator, OLM, and OCP. Performing a full E2E test in a complex environment that will need to be specifically built out for this task is out of scope for this SDK EP.
 
-
 ## Alternatives
-
-  
 
 We are not considering any alternative solutions at this time.
