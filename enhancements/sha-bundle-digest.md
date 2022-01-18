@@ -61,7 +61,7 @@ Since the feature is opt-in, it carries the risk of the end-user enabling it wit
  -   When `operator-sdk generate-bundle` is called with the `--use-image-digests` flag enabled, it will execute the following logic.
  	1. Search the environment that is defined in the `manager.yaml` file for all variables that begin with `RELATED_IMAGE_` to build a list of images that need to have tags resolved to digests along with the Operator’s main image and rbac-proxy image.
  	 1.  For each image in the list, it will use `operator-manifest-tools` to resolve the image tag to a digest
- 	 1.  When building the cluster CSV, all images that have been identified as needing a digest instead of a tag should have that  digest as an annotation in the CSV. TODO(ish): add before/after snippet from the CSV to show the difference.
+ 	 1.  When building the cluster CSV, all images that have been identified as needing a digest instead of a tag should have that  digest as an annotation in the CSV.
 
 ### Test Plan
 
