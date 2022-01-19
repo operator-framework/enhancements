@@ -1,4 +1,3 @@
-
 ---
 title: SHA-Bundle-Digest
 authors:
@@ -13,9 +12,13 @@ approvers:
 - @tlwu2013 
 - @jmrodri
 - @joelanford 
+
 creation-date: 2022-01-14
+
 last-updated: 2022-01-14
+
 status:implementable
+
 ---
 
 # Add support for SHA-based Digest for Images
@@ -32,21 +35,20 @@ This set of changes will allow SDK users in air-gapped (disconnected) environmen
 
 ### Goals
 
--   Allow users to specify additional images to resolve digests via an environment variable.
--   Add the ability to resolve image digests from image tag dynamically using local docker registry.
--   OPEN QUESTION: Store digest and tag mappings in file so that user-written code can resolve tags to digest.
+- Allow users to specify additional images to resolve digests via an environment variable.
+- Add the ability to resolve image digests from image tag dynamically using local docker registry.
+- OPEN QUESTION: Store digest and tag mappings in file so that user-written code can resolve tags to digest.
 
 ### Non-Goals
 
--   Automated migration of existing `operator-sdk` based operators from image tags to image digests.
--   Identify locations in user code that reference images by tag.
+- Automated migration of existing `operator-sdk` based operators from image tags to image digests.
+- Identify locations in user code that reference images by tag.
 
 ## Proposal
 
--   Add `--image-digests` flag to `make bundle` in order to enable this feature to be run. 
--   During bundle generation, discover all environment variables that begin with `RELATED_IMAGE_` then resolve the tags to digests. These variables should be set in `config/manager/manager.yaml` as suggested in [https://master.sdk.operatorframework.io/docs/best-practices/common-recommendation/#other-common-suggestions](https://master.sdk.operatorframework.io/docs/best-practices/common-recommendation/#other-common-suggestions). 
--   Update CSV relatedImages with resolved image tags to digests
-
+- Add `--image-digests` flag to `make bundle` in order to enable this feature to be run.
+- During bundle generation, discover all environment variables that begin with `RELATED_IMAGE_` then resolve the tags to digests. These variables should be set in `config/manager/manager.yaml` as suggested in [https://master.sdk.operatorframework.io/docs/best-practices/common-recommendation/#other-common-suggestions](https://master.sdk.operatorframework.io/docs/best-practices/common-recommendation/#other-common-suggestions).
+- Update CSV relatedImages with resolved image tags to digests
 
 ### Risks and Mitigations
 
@@ -54,12 +56,12 @@ Since the feature is opt-in, it carries the risk of the end-user enabling it wit
 
 ## Design Details
 
- -   Add a `--image-digests` flag to the `operator-sdk generate bundle` command that will enable this functionality.
- -   Add a variable to the generated `Makefile` called `USE_IMAGE_DIGESTS` that defaults to `false` and when enabled, it passes the `--use-image-digests` flag to `operator-sdk generate bundle`.
- -   When `operator-sdk generate-bundle` is called with the `--use-image-digests` flag enabled, it will execute the following logic.
- 	1. Search the environment that is defined in the `manager.yaml` file for all variables that begin with `RELATED_IMAGE_` to build a list of images that need to have tags resolved to digests along with the Operator’s main image and rbac-proxy image.
- 	 1.  For each image in the list, it will use `operator-manifest-tools` [https://github.com/operator-framework/operator-manifest-tools](https://github.com/operator-framework/operator-manifest-tools) to resolve the image tag to a digest
- 	 1.  When building the cluster CSV, all images that have been identified as needing a digest instead of a tag should have that  digest as an annotation in the CSV.
+- Add a `--image-digests` flag to the `operator-sdk generate bundle` command that will enable this functionality.
+- Add a variable to the generated `Makefile` called `USE_IMAGE_DIGESTS` that defaults to `false` and when enabled, it passes the `--use-image-digests` flag to `operator-sdk generate bundle`.
+- When `operator-sdk generate-bundle` is called with the `--use-image-digests` flag enabled, it will execute the following logic.
+  1. Search the environment that is defined in the `manager.yaml` file for all variables that begin with `RELATED_IMAGE_` to build a list of images that need to have tags resolved to digests along with the Operator’s main image and rbac-proxy image.
+  1. For each image in the list, it will use `operator-manifest-tools` [https://github.com/operator-framework/operator-manifest-tools](https://github.com/operator-framework/operator-manifest-tools) to resolve the image tag to a digest
+  1. When building the cluster CSV, all images that have been identified as needing a digest instead of a tag should have that digest as an annotation in the CSV.
 
 ### Test Plan
 
