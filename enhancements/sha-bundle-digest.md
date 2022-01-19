@@ -18,8 +18,7 @@ last-updated: 2022-01-14
 status:implementable
 ---
 
-# Title
-Add support for SHA-based Digest for Images
+# Add support for SHA-based Digest for Images
 
 ## Summary
 
@@ -33,21 +32,20 @@ This set of changes will allow SDK users in air-gapped (disconnected) environmen
 
 ### Goals
 
--   Give users the ability to the enable digest-based image resolution via a CLI flag when generating bundles.
 -   Allow users to specify additional images to resolve digests via an environment variable.
 -   Add the ability to resolve image digests from image tag dynamically using local docker registry.
 -   OPEN QUESTION: Store digest and tag mappings in file so that user-written code can resolve tags to digest.
 
 ### Non-Goals
 
--   Migrate existing `operator-sdk` based operators from image tags to image digests.
+-   Automated migration of existing `operator-sdk` based operators from image tags to image digests.
 -   Identify locations in user code that reference images by tag.
 
 ## Proposal
 
 -   Add `--image-digests` flag to `make bundle` in order to enable this feature to be run. 
-
 -   During bundle generation, discover all environment variables that begin with `RELATED_IMAGE_` then resolve the tags to digests. These variables should be set in `config/manager/manager.yaml` as suggested in [https://master.sdk.operatorframework.io/docs/best-practices/common-recommendation/#other-common-suggestions](https://master.sdk.operatorframework.io/docs/best-practices/common-recommendation/#other-common-suggestions). 
+-   Update CSV relatedImages with resolved image tags to digests
 
 
 ### Risks and Mitigations
