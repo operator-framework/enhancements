@@ -134,3 +134,101 @@ We are not considering any alternative solutions at this time.
 - Store digest and tag mappings in file so that user-written code can resolve tags to digest.
 - What is the function of `spec.relatedImage.name`?
 - How are the values of `spec.relatedImage.name` used?
+
+## Appendix A
+
+The following is an example of an image manifest for `golang:1.17.6`:
+
+```json
+[
+  {
+    "Config": "8b86bf336a01235faf28137dae90772076e6f431a2951259d949eb9153012755.json",
+    "RepoTags": ["golang:1.17.6"],
+    "Layers": [
+      "644b6e1dc104cf7c01e3d906bad42ca6386e62e03ba55c23c9229eeca2aedf4e/layer.tar",
+      "dbaefc91c060fe8e827580d1018824c5479bb8eeadf644b44f9bbdc6cc0ad314/layer.tar",
+      "7164fcc370aec09c29fb107f4b404d667a046d7eb652130cfcad3b493d7f9485/layer.tar",
+      "ded273d40fe1a66f4cc0e6cc15236a8800c4e465df4df2b682422a5477910951/layer.tar",
+      "eac35aa9198a17ca6942cda2efacf8b052fcfd7c9046cace7290a0b80bd43d7b/layer.tar",
+      "34cd146535bd6d8585e4bc411593bc82a336a335fbcc0a1cf78b1ecfe635c549/layer.tar",
+      "0aafe4d111d6dbd2414e183de18f5736f470de5b0e750b05bbe4063f00366386/layer.tar"
+    ]
+  }
+]
+```
+
+The manifest is built out of a list of layers, repo tags, and a config file. Since the config file and layers themselves
+are hashed, if any of them change or the repo tags, the manifest digest will change.
+
+## Appendix B
+
+A `ClusterServiceVersion` is a [CRD](https://olm.operatorframework.io/docs/concepts/crds/clusterserviceversion/) defined by [Operator Lifecycle Manager](https://github.com/operator-framework/operator-lifecycle-manager) that defines metadata about the entire operator.
+
+````
+
+An example CSV for the Memcached example operator is available [here](https://github.com/operator-framework/operator-sdk/blob/master/testdata/go/v3/memcached-operator/bundle/manifests/memcached-operator.clusterserviceversion.yaml).
+
+This EP will change two things on the CSV: use digests in deployment container image locations and add the `spec.relatedImages` section with all other images, such as base images, that need to have a digest resolved from a tag. An abbreviated version of the CSV with the aforementioned changes looks like this:
+
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  # ...
+spec:
+  # ...
+  install:
+    spec:
+      # ...
+      deployments:
+        - name: memcached-operator-controller-manager
+          spec:
+            # ...
+            template:
+              # ...
+              spec:
+                containers:
+                  - args:
+                    # ...
+                    image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:e10d1d982dd653db74ca87a1d1ad017bc5ef1aeb651bdea089debf16485b080b
+                    # ...
+                  - args:
+                    # ...
+                    image: quay.io/example/memcached-operator@sha256:d044b878fbcbd0c06c2bcc050f3f9ca070ffb089e6bac01accddcd0ba85b7b9e
+                    # ...
+      # ...
+    # ...
+  # ...
+  relatedImages:
+    - name: golang:1.17
+      image: golang:8d717e8a7fa8035f5cfdcdc86811ffd53b7bb17542f419f2a121c4c7533d29ee
+    - name: gcr.io/distroless/static:nonroot
+      image: gcr.io/distroless/static:741704ac0e5e6ff758a8c46f0f028375252fdf147248d95514ce11ff57fdece9
+````
+
+## Appendix C
+
+Example `manager.yaml` containing correctly populated RELATED IMAGE environment variables.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # ...
+spec:
+    # ...
+    template:
+    # ...
+    spec:
+        containers:
+            env:
+                name:  RELATED_IMAGE_single_host_gateway
+                value: quay.io/eclipse/che--traefik:v2.5.0-eb30f9f09a65cee1fab5ef9c64cb4ec91b800dc3fdd738d62a9d4334f0114683
+        # ...
+        - args:
+            # ...
+        # ...
+      # ...
+    # ...
+  # ...
+```
