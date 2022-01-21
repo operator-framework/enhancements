@@ -55,8 +55,8 @@ which will keep the digest from changing, and then the operator will pull the im
 - Give users the ability to enable digest-based image resolution.
 - Allow users to specify related images to resolve digests for.
 - Use image digests in the output `ClusterServiceVersion` (see [Appendix B](#appendix-b)).
-    - Images specified in deployments will have digests.
-    - The `spec.relatedImage` section of the CSV will contain a mapping of images to their digests.
+  - Images specified in deployments will have digests.
+  - The `spec.relatedImage` section of the CSV will contain a mapping of images to their digests.
 
 ### Non-Goals
 
@@ -67,7 +67,7 @@ which will keep the digest from changing, and then the operator will pull the im
 
 - Add `--use-image-digests` to `operator-sdk generate bundle` command. When enabled, the CLI will:
   1. Search the environment defined in `manager.yaml` for all variables that begin with `RELATED_IMAGE_` to build a list
-    of all related images that need to be added to the CSV (see Appendix C).
+     of all related images that need to be added to the CSV (see Appendix C).
   2. Resolve the digests for the operator image and any additional related images it finds in the environment.
   3. Output the operator image(s) with digests instead of tags in the CSV.
   4. Add related images with their digests to the CSV.
@@ -139,9 +139,7 @@ We are not considering any alternative solutions at this time.
 
 - Operator-manifest-tools relies on an external binary, skopio. In order to remove the external binary, can we PR
   operator-manifest-tools to replace the calls to the skopeo CLI with library calls?
-- Store digest and tag mappings in file so that user-written code can resolve tags to digest.
-- What is the function of `spec.relatedImage.name`?
-- How are the values of `spec.relatedImage.name` used?
+  - Non-blocking question, a future improvment will be to add library support instead of using an external binary.
 
 ## Appendix A
 
