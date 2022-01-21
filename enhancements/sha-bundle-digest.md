@@ -27,7 +27,7 @@ status: implementable
 Operators built with `operator-sdk` use Docker images that are referenced via an image URL and tag name. This EP adds
 the ability to create operators that use image digests instead of tags for operator images as well as related images. An
 image digest is a `SHA-256` sum that is created by hashing the contents of a Docker image manifest. A Docker image
-manifest is a JSON file that defines the image, most notably its layers. See [Appendix A](##appendix-a) for an example
+manifest is a JSON file that defines the image, most notably its layers. See [Appendix A](#appendix-a) for an example
 manifest for `golang:1.17.6`. An alternative method to specify an image is to use its digest directly instead of a tag.
 For example, an image for go 1.17.6 would be pulled with the Docker command `docker pull golang:1.17.6`. The exact same
 image can be pulled by its digest as well:
@@ -67,7 +67,7 @@ which will keep the digest from changing, and then the operator will pull the im
 
 - Add `--use-image-digests` to `operator-sdk generate bundle` command. When enabled, the CLI will:
   1. Search the environment defined in `manager.yaml` for all variables that begin with `RELATED_IMAGE_` to build a list
-     of all related images that need to be added to the CSV (see Appendix C).
+     of all related images that need to be added to the CSV (see [Appendix C](#appendix-c)).
   2. Resolve the digests for the operator image and any additional related images it finds in the environment.
   3. Output the operator image(s) with digests instead of tags in the CSV.
   4. Add related images with their digests to the CSV.
