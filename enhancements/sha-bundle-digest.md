@@ -127,9 +127,9 @@ We are not considering any alternative solutions at this time.
 
 ## Open Questions
 
-- Operator-manifest-tools relies on an external binary, skopio. In order to remove the external binary, can we PR
+- `operator-manifest-tools` relies on an external binary, `skopeo`. In order to remove the external binary, can we PR
   operator-manifest-tools to replace the calls to the skopeo CLI with library calls?
-  - Non-blocking question, a future improvment will be to add library support instead of using an external binary.
+  - Non-blocking question, a future improvement will be to add library support instead of using an external binary.
 
 ## Appendix A
 
