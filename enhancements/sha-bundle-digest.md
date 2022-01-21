@@ -73,16 +73,6 @@ which will keep the digest from changing, and then the operator will pull the im
   4. Add related images with their digests to the CSV.
 - Add a variable to the `Makefile` called `USE_IMAGE_DIGESTS`.
 
-```yaml
-# Image w/ traditional tags
-- name: RELATED_IMAGE_che_server_secure_exposer_jwt_proxy_image
-  value: quay.io/eclipse/che-jwtproxy:0.10.0
-
-# Image w/ SHA based digest
-- name: RELATED_IMAGE_single_host_gateway
-  value: quay.io/eclipse/che--traefik:v2.5.0-eb30f9f09a65cee1fab5ef9c64cb4ec91b800dc3fdd738d62a9d4334f0114683
-```
-
 ### Risks and Mitigations
 
 Since the feature is opt-in, it carries the risk of the end-user enabling it without a correct understanding of the
