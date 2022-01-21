@@ -160,8 +160,6 @@ are hashed, if any of them change or the repo tags, the manifest digest will cha
 
 A `ClusterServiceVersion` is a [CRD](https://olm.operatorframework.io/docs/concepts/crds/clusterserviceversion/) defined by [Operator Lifecycle Manager](https://github.com/operator-framework/operator-lifecycle-manager) that defines metadata about the entire operator.
 
-````
-
 An example CSV for the Memcached example operator is available [here](https://github.com/operator-framework/operator-sdk/blob/master/testdata/go/v3/memcached-operator/bundle/manifests/memcached-operator.clusterserviceversion.yaml).
 
 This EP will change two things on the CSV: use digests in deployment container image locations and add the `spec.relatedImages` section with all other images, such as base images, that need to have a digest resolved from a tag. An abbreviated version of the CSV with the aforementioned changes looks like this:
@@ -200,7 +198,7 @@ spec:
       image: golang:8d717e8a7fa8035f5cfdcdc86811ffd53b7bb17542f419f2a121c4c7533d29ee
     - name: gcr.io/distroless/static:nonroot
       image: gcr.io/distroless/static:741704ac0e5e6ff758a8c46f0f028375252fdf147248d95514ce11ff57fdece9
-````
+```
 
 ## Appendix C
 
