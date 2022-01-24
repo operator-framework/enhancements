@@ -1,5 +1,5 @@
 ---
-title: compound-bundle-constraints
+title: compound-dependency-selectors
 authors:
   - "@estroz"
 reviewers:
@@ -19,7 +19,7 @@ replaces:
 superseded-by:
 ---
 
-# compound-bundle-constraints
+# compound-dependency-selectors
 
 ## Release Signoff Checklist
 
@@ -131,27 +131,25 @@ about successful and failed resolution as with current "simple" constraints.
 
 **Note**: see ["Implementation History"](#implementation-history) for proof-of-concept info.
 
-I propose the new [`olm.constraint` property][arb-constraints] fields `all`, `any`, and `none`
-to specify conjunction, disjunction, and negation compound constraints, respectively.
-Their value type is a struct containing a list of constraints such as GVK,
-package, or any compound constraint listed above under a `constraints` key.
+I propose the new [`olm.constraint` property][arb-constraints] fields `all`, `any`, and `not`
+to specify conjunction, disjunction, and negation compound constraints, respectively. Their value 
+type is a struct containing a list of constraints such as GVK, package, or any compound constraint 
+listed above under a `constraints` key. This new `olm.constraint` key should be defined in 
+`dependencies.yaml` but can also be defined in `properties.yaml`.
 
 I also propose that `olm.gvk.required` and `olm.package.required` are redefined as
 `gvk` and `package` fields to align with other properties under `olm.constraint`:
 
 ```yaml
-schema: olm.bundle
-name: baz.v1.0.0
-properties:
 - type: olm.constraint
   value:
-    message: Package bar v1.0.0+ is needed for...
+    failureMessage: Package bar v1.0.0+ is needed for...
     package:
       name: bar
       versionRange: '>=1.0.0'
 - type: olm.constraint
   value:
-    message: GVK Buf/v1 is needed for...
+    failureMessage: GVK Buf/v1 is needed for...
     gvk:
       group: bufs.example.com
       version: v1
@@ -170,80 +168,53 @@ against an installable object's properties.
 
 #### Conjunction and disjunction
 
-These compound constraint types are evaluated following their logical definitions.
+These compound constraint types are evaluated following their logical definitions. 
+
+**Note**: Before proceeding, it is important to keep in mind that each constraint will be solved
+by a single operator, not multiple. In order to define multiple operators you must specify 
+multiple `olm.constraint` values within the dependencies.yaml. 
 
 This is an example of a conjunctive constraint of two packages and one GVK,
 i.e. they must all be satisfied by installed bundles:
 
 ```yaml
-schema: olm.bundle
-name: baz.v1.0.0
-properties:
-- type: olm.constraint
-  value:
-    message: All are required for Baz because...
-    all:
-      constraints:
-      - message: Package bar is needed for...
-        package:
-          name: bar
-          versionRange: '>=1.0.0'
-      - message: GVK Buf/v1 is needed for...
-        gvk:
-          group: bufs.example.com
-          version: v1
-          kind: Buf
+type: olm.constraint
+value:
+  failureMessage: All are required for Baz because...
+  all:
+    constraints:
+    - failureMessage: Package bar is needed for...
+      package:
+        name: bar
+        versionRange: '>=1.0.0'
+    - failureMessage: GVK Buf/v1 is needed for...
+      gvk:
+        group: bufs.example.com
+        version: v1
+        kind: Buf
 ```
 
 This is an example of a disjunctive constraint of three versions of the same GVK,
 i.e. at least one must be satisfied by installed bundles:
 
 ```yaml
-schema: olm.bundle
-name: baz.v1.0.0
-properties:
-- type: olm.constraint
-  value:
-    message: Any are required for Baz because...
-    any:
-      constraints:
-      - gvk:
-          group: foos.example.com
-          version: v1beta1
-          kind: Foo
-      - gvk:
-          group: foos.example.com
-          version: v1beta2
-          kind: Foo
-      - gvk:
-          group: foos.example.com
-          version: v1
-          kind: Foo
-```
-
-#### Negation
-
-Negation is worth further explanation, since at first glance its semantics
-are unclear in this context. The negation is really instructing the resolver
-to remove any possible solution that includes a particular GVK, package
-at a version, or satisfies some child compound constraint from the result set.
-
-This is an example of a negation constraint of one version of a GVK,
-i.e. this GVK cannot be provided by any bundle in the result set:
-
-```yaml
-schema: olm.bundle
-name: baz.v1.0.0
-properties:
-- type: olm.constraint
-  value:
-    message: Cannot be required for Baz because...
-    none:
-      constraints:
-      - gvk:
-          group: foos.example.com
-          version: v1alpha1
-          kind: Foo
+type: olm.constraint
+value:
+  failureMessage: Any are required for Baz because...
+  any:
+    constraints:
+    - gvk:
+        group: foos.example.com
+        version: v1beta1
+        kind: Foo
+    - gvk:
+        group: foos.example.com
+        version: v1beta2
+        kind: Foo
+    - gvk:
+        group: foos.example.com
+        version: v1
+        kind: Foo
 ```
 
 #### Nested compound constraints
@@ -256,37 +227,94 @@ This is an example of a disjunction of conjunctions, where one, the other, or bo
 can be satisfy the constraint.
 
 ```yaml
-schema: olm.bundle
-name: baz.v1.0.0
-properties:
-- type: olm.constraint
-  value:
-    message: Required for Baz because...
-    any:
-      constraints:
-      - all:
-          constraints:
-          - package:
-              name: foo
-              versionRange: '>=1.0.0'
-          - gvk:
-              group: foos.example.com
-              version: v1
-              kind: Foo
-      - all:
-          constraints:
-          - package:
-              name: foo
-              versionRange: '<1.0.0'
-          - gvk:
-              group: foos.example.com
-              version: v1beta1
-              kind: Foo
+type: olm.constraint
+value:
+  failureMessage: Required for Baz because...
+  any:
+    constraints:
+    - all:
+        constraints:
+        - package:
+            name: foo
+            versionRange: '>=1.0.0'
+        - gvk:
+            group: foos.example.com
+            version: v1
+            kind: Foo
+    - all:
+        constraints:
+        - package:
+            name: foo
+            versionRange: '<1.0.0'
+        - gvk:
+            group: foos.example.com
+            version: v1beta1
+            kind: Foo
 ```
 
 The maximum raw size of an `olm.constraint` is 64KB to limit resource exhaustion attacks.
 See [this issue][json-limit-issue] for details on why size is limited and not depth.
 This limit can be changed at a later date if necessary.
+
+#### Negation
+
+Negation is worth further explanation, since at first glance its semantics
+are unclear in this context. The negation instructs the resolver to remove 
+any possible solution that includes a particular GVK, package at a version, 
+or satisfies some child compound constraint from the result set.
+
+If you define a negation constraint on a resource, then that resource cannot 
+be used as a solution. This can be useful if you want to introduce a constraint 
+that cannot be solved by a specific GVK or bundle. In almost all instances, the
+negation constraint should be used as a nested constraint as it will not restrict 
+anything when placed in the root. 
+
+**Remember, negation is only used to say "this package cannot be used as a 
+solution". It does not mean that the bundle is restricted from successfully 
+installing if the negated package is already installed on the cluster**
+
+The most common usecase for negation is excluding a certain package/version of a package
+from providing a GVK that your operator depends on. In the below example, if the only package
+providing the `bufs.example.com/v1` GVK was named `foo` with version `>=v1.0.0` it would
+be removed from the solution and the constraints would be considered unsolvable.
+
+```yaml   
+type: olm.constraint
+value:
+  message: All are required because...
+  all:
+    constraints:
+    - all:
+        constraints:
+        - failureMessage: GVK Buf/v1 required for...
+          gvk:
+            group: bufs.example.com
+            version: v1
+            kind: Buf
+    - not:
+        constraints:
+        - failureMessage: Package foo version >=1.0.0 cannot be required for...
+          package:
+            name: foo
+            versionRange: '>=1.0.0'
+```
+
+While less useful, here is an example of a negation constraint of one version of 
+a GVK under the root. Again, this says that this GVK cannot be provided by any bundle 
+in the result set. Since there are no other constraints, anything will solve this
+constraint and thus it will be installable:
+
+```yaml
+type: olm.constraint
+value:
+  failureMessage: Cannot be required for Baz because...
+  not:
+    constraints:
+    - gvk:
+        group: foos.example.com
+        version: v1alpha1
+        kind: Foo
+```
 
 #### Changes to OLM's resolver
 
