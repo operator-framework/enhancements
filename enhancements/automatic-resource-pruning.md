@@ -1,34 +1,41 @@
 ---
-title: Automatic Resource Pruning
+title: automatic-resource-pruning
 authors:
-  - "@ryantking"
+  - '@ryantking'
 reviewers:
-  - "@jmrodri"
-  - "@gallettilance"
+  - '@jmrodri'
+  - '@gallettilance'
+  - '@fgiloux'
+  - '@joelanford'
 approvers:
-  - "@jmrodri"
-creation-date:2022-01-28
-last-updated: 2022-01-28
+  - '@jmrodri'
+creation-date: 2022-01-28
+last-updated: 2022-01-31
 status: implementable
 ---
 
+# Automatic Resource Pruning
+
 ## Summary
 
-This EP aims to provide an easy way for users to operator authors to limit the number of ephemeral resources that may
-exist on the cluster at any point in time. In this context, we define an ephemeral resource as a short-lived resource
-that is continuously created as the operator runs. Short-lived does not refer to a specific amount of time, rather, the
-fact that the resource has a defined life span. For example, a web server running in a `Pod` is not ephemeral because it
-will run until an external force such as a cluster administrator or CD pipeline acts on it while a log rotating script
-running in a `Pod` is ephemeral since it will run for until it finishes its defined work. Operator authors will be able
-to employ different strategies to limit the number of ephemeral resources such as adding a numerical limit, an age
-limit, or something custom to the author's use case.
+This EP will provide a way for operator authors to limit the number of unbounded resources that may exist on the
+cluster. In the context of this EP, we define an "unbounded resource" as any resource that has the following two
+properties:
+
+1. The resource is continuously created as the operator runs.
+2. The resource is not removed as the operator runs.
+
+When those two properties exist for a resource, the total number of that resource will grow unbounded. The functionality
+introduced by this EP will make it possible for operator authors to easily control the entire life cycle of a resource
+by automatically removing resources that meet specific criteria. These criteria can include properties of individual
+resources, the entire set of resources, or a combination of both.
 
 ## Motivation
 
-Often, operators will create ephemeral resources during execution. For example, if we imagine an operator that
-implements Kubernetes' builtin `CronJob` functionality, every time the operator reconciles and finds a `CronJos` to run,
+Often, operators will create unbounded resources during execution. For example, if we imagine an operator that
+implements Kubernetes' builtin `CronJob` functionality, every time the operator reconciles and finds a `CronJo` to run,
 it creates a new `Job` type to represent a single execution of the `CronJob`. Users will often want to have access to
-theses ephemeral resources in order to view historical data, but want to limit the number that can exist on the system.
+theses unbounded resources in order to view historical data, but want to limit the number that can exist on the system.
 Looking again at Kubernetes out-of-the-box functionalities, users can configure the retention policy for resources such
 as `ReplicaSets` and `Jobs` to maintain a certain amount of historical data. Operator authors should have a defined path
 for implementing the same functionality for their operators.
@@ -37,8 +44,8 @@ for implementing the same functionality for their operators.
 
 - Add a library to [operator-lib](https://github.com/operator-framework/operator-lib) that houses this functionality
   with a user-friendly API.
-- Add a happy path for what we determine to be common use cases, such as removing `Pods` in a finished state if they are
-  older than a set age.
+- Add a happy path for what we determine to be common use cases, such as removing operator-owned `Pods` that are both in
+  a finished state and older than a certain age.
 - Provide an easy way for operator authors to plug in custom logic for their custom resource types and use cases.
 
 ### Non-Goals
@@ -74,29 +81,34 @@ must then be sure to add safe guards to the strategy to avoid unexpected behavio
 
 #### Story 1
 
-An an operator author, I want to limit the number of `Jobs` in a completed state on the cluster so that the long term
-storage cost of my operator has a cap.
+An an operator author, I want to limit the number of operator-owned `Jobs` in a completed state on the cluster so that
+the long term storage cost of my operator has a cap.
 
 #### Story 2
 
-As an operator author, I want to limit the number of `Pods` in a completed state on a the cluster and preserve the
-`Pods` in an error state so that the long term storage cost of my operator has a soft cap and the user can see status
-information about failed `Pods` before manually removing.
+As an operator author, I want to limit the number of operator-owned `Pods` in a completed state on a the cluster and
+preserve the `Pods` in an error state so that the long term storage cost of my operator has a soft cap and the user can
+see status information about failed `Pods` before manually removing.
 
 #### Story 3
 
-As an operator author, I want to limit the number of `Pods`with a custom heuristic based on the creation timestamp so
-that the long term storage cost of my operator has a cap based on my operator's logic.
+As an operator author, I want to limit the number of operator-owned `Pods`with a custom heuristic based on the creation
+timestamp so that the long term storage cost of my operator has a cap based on my operator's logic.
 
 #### Story 4
 
-As an operator author, I want to prune a custom resources with specific status information when there is a certain
-number so that the long term storage cost of my operator has a cap.
+As an operator author, I want to prune a custom resource with specific state information when there is a certain number
+so that the long term storage cost of my operator has a cap.
 
 #### Story 5
 
-As an operator author, I want to prune both `Jobs` and `Pods` of a certain age so that the long term storage cost of my
-operator has a cap and there are no orphaned resources.
+As an operator author, I want to prune both operator-owned `Jobs` and `Pods` of a certain age so that the long term
+storage cost of my operator has a cap and there are no orphaned resources.
+
+#### Story 6
+
+As an operator author, I want to prune a custom resource with specific state information with a custom strategy so that
+the long term storage cost of my operator has a cap.
 
 ### Implementation Details
 
@@ -107,7 +119,7 @@ operator has a cap and there are no orphaned resources.
 - The library will provide built-in is-pruneable functions for `Pods` and `Jobs` that can be overwritten.
 - A registry will hold a mapping of resource types (`GVKs`) to is-pruneable functions.
 
-A proposed go API is in [Appendix A](#appendix-a).
+There are two proposed go APIis in [Appendix A](#appendix-a) and [Appendix B](#appendix-b).
 
 ### Risks and Mitigations
 
@@ -172,6 +184,9 @@ type ErrUnpruneable struct {
   Reason string
 }
 
+// Error returns a string reprenstation of an `ErrUnpruneable` error.
+func (e *ErrUnpruneable) Error() string { return "" }
+
 // IsPruneableFunc is a function that checks a the data of an object to see whether or not it is safe to prune it.
 // It should return `nil` if it is safe to prune, `ErrUnpruneable` if it is unsafe, or another error.
 // It should safely assert the object is the expected type, otherwise it might panic.
@@ -188,9 +203,66 @@ type Pruner struct {
 // PrunerOption configures the pruner.
 type PrunerOption func(p *Pruner)
 
-// NewPruner returns a pruner that uses the given startegy to prune objects.
-func NewPruner(client dynamic.Interface, opts ...PrunerOption) Pruner { return Pruner{} }
+// NewPruner returns a pruner that uses the given strategy to prune objects.
+func NewPruner(client dynamic.Interface, opts ...func(p *Pruner)) Pruner { return Pruner{} }
 
 // Prune runs the pruner.
-func (p Pruner) Prune(ctx Context) error { return nil }
+func (p Pruner) Prune(ctx context.Context) error { return nil }
+```
+
+## Appendix B
+
+The following is a more modular Go API that can support more custom resource functionality in the future:
+
+```go
+// StrategyFunc takes a list of resources and returns the subset to prune.
+type StrategyFunc func(ctx context.Context, objs []runtime.Object) ([]runtime.Object, error)
+
+// ErrUnpruneable indicates that it is not allowed to prune a specific object.
+type ErrUnpruneable struct {
+  Obj *runtime.Object
+  Reason string
+}
+
+// Error returns a string reprenstation of an `ErrUnpruneable` error.
+func (e *ErrUnpruneable) Error() string { return "" }
+
+// Registration holds information about a resource with how it should be
+type Registration struct {
+  // IsPruneable is a function that checks the data of an object to check whether or not it is eligible for pruning.
+  // It should return `nil` if it is eligible to prune, `ErrUnpruneable` if it is unsafe, or another error.
+  // It should safely assert the object is the expected type, otherwise it might panic.
+  IsPruneable func(obj *runtime.Object) error
+}
+
+// Registry holds configuration about specific resource types.
+type Registry struct {
+ // ...
+}
+
+// Register adds a resource to the registry.
+func (r *Registry) Register(gvk *schema.GroupVersionKind, ...func(r *Registration)) { /* ... */ }
+
+// Get returns a resource registered with the given GVK.
+func (r *Registry) Get(gvk *schema.GroupVersionKind) (*Registration, bool) { return nil, false }
+
+// Register adds a resource to the default registry.
+func Register(gvk *schema.GroupVersionKind, ...func(r *Registration)) { /* ... */ }
+
+// Get returns a resource registered in the default registry with the given GVK.
+func Get(gvk *schema.GroupVersionKind) (*Registration, bool) { return nil, false }
+
+// WithIsPruneable adds a function to the resource registration.
+func WithIsPruneable(func (obj *runtime.Object) error) func (*Registration) { return nil }
+
+// Pruner is an object that runs a prune job.
+type Pruner struct {
+  // ...
+}
+
+// NewPruner returns a pruner that uses the given strategy to prune objects.
+func NewPruner(client dynamic.Interface, opts ...func(p *Pruner)) Pruner { return Pruner{} }
+
+// Prune runs the pruner.
+func (p Pruner) Prune(ctx context.Context) error { return nil }
 ```
