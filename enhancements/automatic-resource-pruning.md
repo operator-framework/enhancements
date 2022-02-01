@@ -10,7 +10,7 @@ reviewers:
 approvers:
   - '@jmrodri'
 creation-date: 2022-01-28
-last-updated: 2022-01-31
+last-updated: 2022-02-01
 status: implementable
 ---
 
@@ -33,12 +33,12 @@ resources, the entire set of resources, or a combination of both.
 ## Motivation
 
 Often, operators will create unbounded resources during execution. For example, if we imagine an operator that
-implements Kubernetes' builtin `CronJob` functionality, every time the operator reconciles and finds a `CronJo` to run,
-it creates a new `Job` type to represent a single execution of the `CronJob`. Users will often want to have access to
-theses unbounded resources in order to view historical data, but want to limit the number that can exist on the system.
-Looking again at Kubernetes out-of-the-box functionalities, users can configure the retention policy for resources such
-as `ReplicaSets` and `Jobs` to maintain a certain amount of historical data. Operator authors should have a defined path
-for implementing the same functionality for their operators.
+implements Kubernetes' builtin `CronJob` functionality, every time the operator reconciles and finds a `CronJobs` to
+run, it creates a new `Job` type to represent a single execution of the `CronJob`. Users will often want to have access
+to theses unbounded resources in order to view historical data, but want to limit the number that can exist on the
+system. Looking again at Kubernetes out-of-the-box functionalities, users can configure the retention policy for
+resources such as `ReplicaSets` and `Jobs` to maintain a certain amount of historical data. Operator authors should have
+a defined path for implementing the same functionality for their operators.
 
 ### Goals
 
