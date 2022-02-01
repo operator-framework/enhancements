@@ -160,6 +160,7 @@ existing operators.
 
 - What are the predefined use cases that we want to support? Currently we support pruning completed `Jobs` and `Pods` by
   age and max count.
+- Should we mandate that an author must register any resource type that they wish to prune?
 
 ### Implementation-specific
 
@@ -215,9 +216,6 @@ func (p Pruner) Prune(ctx context.Context) error { return nil }
 The following is a more modular Go API that can support more custom resource functionality in the future:
 
 ```go
-// StrategyFunc takes a list of resources and returns the subset to prune.
-type StrategyFunc func(ctx context.Context, objs []runtime.Object) ([]runtime.Object, error)
-
 // ErrUnpruneable indicates that it is not allowed to prune a specific object.
 type ErrUnpruneable struct {
   Obj *runtime.Object
@@ -240,11 +238,11 @@ type Registry struct {
  // ...
 }
 
-// Register adds a resource to the registry.
-func (r *Registry) Register(gvk *schema.GroupVersionKind, ...func(r *Registration)) { /* ... */ }
+// RegisterResource adds a resource to the registry.
+func (r *Registry) RegisterResource(gvk *schema.GroupVersionKind, ...func(r *Registration)) { /* ... */ }
 
-// Get returns a resource registered with the given GVK.
-func (r *Registry) Get(gvk *schema.GroupVersionKind) (*Registration, bool) { return nil, false }
+// GetRegistration returns a resource registered with the given GVK.
+func (r *Registry) GetRegistration(gvk *schema.GroupVersionKind) (*Registration, bool) { return nil, false }
 
 // Register adds a resource to the default registry.
 func Register(gvk *schema.GroupVersionKind, ...func(r *Registration)) { /* ... */ }
@@ -255,13 +253,16 @@ func Get(gvk *schema.GroupVersionKind) (*Registration, bool) { return nil, false
 // WithIsPruneable adds a function to the resource registration.
 func WithIsPruneable(func (obj *runtime.Object) error) func (*Registration) { return nil }
 
+// StrategyFunc takes a list of resources and returns the subset to prune.
+type StrategyFunc func(ctx context.Context, objs []runtime.Object) ([]runtime.Object, error)
+
 // Pruner is an object that runs a prune job.
 type Pruner struct {
   // ...
 }
 
 // NewPruner returns a pruner that uses the given strategy to prune objects.
-func NewPruner(client dynamic.Interface, opts ...func(p *Pruner)) Pruner { return Pruner{} }
+func NewPruner(client dynamic.Interface, strategy StrategyFunc, opts ...func(p *Pruner)) Pruner { return Pruner{} }
 
 // Prune runs the pruner.
 func (p Pruner) Prune(ctx context.Context) error { return nil }
