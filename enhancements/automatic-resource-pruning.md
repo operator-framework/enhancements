@@ -239,16 +239,16 @@ type Registry struct {
 }
 
 // RegisterResource adds a resource to the registry.
-func (r *Registry) RegisterResource(gvk *schema.GroupVersionKind, ...func(r *Registration)) { /* ... */ }
+func (r *Registry) Register(gvk *schema.GroupVersionKind, ...func(r *Registration)) { /* ... */ }
 
 // GetRegistration returns a resource registered with the given GVK.
-func (r *Registry) GetRegistration(gvk *schema.GroupVersionKind) (*Registration, bool) { return nil, false }
+func (r *Registry) Get(gvk *schema.GroupVersionKind) (*Registration, bool) { return nil, false }
 
-// Register adds a resource to the default registry.
-func Register(gvk *schema.GroupVersionKind, ...func(r *Registration)) { /* ... */ }
+// RegisterResource adds a resource to the default registry.
+func RegisterResource(gvk *schema.GroupVersionKind, ...func(r *Registration)) { /* ... */ }
 
-// Get returns a resource registered in the default registry with the given GVK.
-func Get(gvk *schema.GroupVersionKind) (*Registration, bool) { return nil, false }
+// GetResource returns a resource registered in the default registry with the given GVK.
+func GetResource(gvk *schema.GroupVersionKind) (*Registration, bool) { return nil, false }
 
 // WithIsPruneable adds a function to the resource registration.
 func WithIsPruneable(func (obj *runtime.Object) error) func (*Registration) { return nil }
