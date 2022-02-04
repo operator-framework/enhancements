@@ -37,11 +37,11 @@ see-also:
 
 ## Summary
 
-Today, validations used by CVP are compiled into the `operator-sdk`. Any changes
-to the validation rules requires a release of operator-framework/api followed by
-a release of `operator-sdk`. This proposal attempts to design a way where the
-validations can be hosted in their own repos as well as updated without
-requiring new releases of the `operator-sdk`.
+Today, validations used by Container Verification Pipeline (CVP) are compiled into
+the `operator-sdk`. Any changes to the validation rules requires a release of
+operator-framework/api followed by a release of `operator-sdk`. This proposal
+attempts to design a way where the validations can be hosted in their own repos
+as well as updated without requiring new releases of the `operator-sdk`.
 
 ## Motivation
 
