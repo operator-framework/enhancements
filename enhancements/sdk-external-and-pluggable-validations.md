@@ -145,6 +145,11 @@ A concrete example might look like this:
 The actual implementation is up to the author. Here we have an example of
 the [`OperatorHubValidator`][validator-poc1] as a Go binary.
 
+The validators can be written in any language but there must be an executable
+entry point that accepts a single bundle path as a CLI argument. For example,
+you can write your validator in python but you would want to make the main
+python file executable or supply a shell script to be invoked.
+
 ##### Validator results
 
 As stated earlier, each validator should be some executable that accepts a
