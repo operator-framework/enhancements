@@ -61,15 +61,15 @@ validators to be created allowing for greater flexibility.
 
 ### Goals
 
-* allow validations to be updated when the business needs them to be
-* allow validations to release when the authors need them to be
-* do not require newer builds of the operator-sdk to get updated rules
-* allow validations to be hosted in their own repos
-* allow validations to be external to operator-sdk
+* Allow validations to be updated when the business needs them to be
+* Allow validations to release when the authors need them to be
+* Do not require newer builds of the operator-sdk to get updated rules
+* Allow validations to be hosted in their own repos
+* Allow validations to be external to operator-sdk
 
 ### Non-Goals
 
-* existing validations do NOT have be migrated unless they want to
+* Migrate existing validators to the new format
 
 ## Proposal
 
