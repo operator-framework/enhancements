@@ -262,6 +262,12 @@ Global Flags:
 There is little risk, if this does not pan out we keep going on the current path
 of compiling them in.
 
+Another possible risk is users of an airgapped environment will have to install
+these external validator executables. We could supply a mechanism for
+distributing these external validators as an image. For this first release, we
+will ignore the distribution solutions leaving it to the user to copy the
+validators onto the system running `operator-sdk`.
+
 ## Design Details
 
 ### Test Plan
