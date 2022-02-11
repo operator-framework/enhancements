@@ -43,6 +43,39 @@ operator-framework/api followed by a release of `operator-sdk`. This proposal
 attempts to design a way where the validations can be hosted in their own repos
 as well as updated without requiring new releases of the `operator-sdk`.
 
+The validator is defined in the operator-framework/api, for example here is the
+[`OperatorHubValidator`][operator-hub-validator]. In the `operator-sdk`, it is
+"registered" as an optional validator.
+
+```go
+var optionalValidators = validators{
+	{
+		Validator: apivalidation.OperatorHubValidator,
+		name:      "operatorhub",
+		labels: map[string]string{
+			nameKey:  "operatorhub",
+			suiteKey: "operatorframework",
+		},
+		desc: "OperatorHub.io metadata validation. ",
+	},
+    ...
+```
+
+When the validators are specified on the CLI, we call `run()` on the
+[validators][optional-validators]. In that `run()` method we loop through the
+validaors specified by `vals`. On each validator we invoke `Validate` with the
+list of objects to validate.
+
+```go
+    ...
+    for _, v := range vals {
+		if sel.Matches(labels.Set(v.labels)) {
+			results = append(results, v.Validate(objs...)...)
+		}
+	}
+    ...
+```
+
 ## Motivation
 
 Every time the business changes validation rules, it requires an update to the
@@ -339,3 +372,5 @@ N/A
 [validator-poc1]: https://github.com/jmrodri/validator-poc/tree/poc1-manifestresults
 [camila-poc]: https://github.com/camilamacedo86/ocp-olm-catalog-validator
 [errors-go]: https://github.com/operator-framework/api/blob/master/pkg/validation/errors/error.go#L9-L16
+[operator-hub-validator]: https://github.com/operator-framework/api/blob/master/pkg/validation/internal/operatorhub.go
+[optional-validator]: https://github.com/operator-framework/operator-sdk/blob/master/internal/cmd/operator-sdk/bundle/validate/optional.go#L130-L156
