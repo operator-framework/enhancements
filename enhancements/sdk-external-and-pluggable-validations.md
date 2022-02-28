@@ -27,13 +27,13 @@ see-also:
 
 ## Open Questions [optional]
 
- 1. can we use scorecard to replace all of these validations?
-    * scorecard uses the cluster to run the tests, these validations typically
+ 1. Can we use scorecard to replace all of these validations?
+    * Scorecard uses the cluster to run the tests, these validations typically
       run locally or in a pipeline. They are also done before the expensive
       operator tests are run.
- 1. what would it take to convert an existing validator to an executable format?
+ 1. What would it take to convert an existing validator to an executable format?
     Simply add a `main.go` to wrap existing validators.
- 1. do we need to add `json` tags to [these structs][errors-go]?
+ 1. Do we need to add `json` tags to [these structs][errors-go]?
 
 ## Summary
 
@@ -103,6 +103,7 @@ validators to be created allowing for greater flexibility.
 ### Non-Goals
 
 * Migrate existing validators to the new format
+* The distribution of the external validators
 
 ## Proposal
 
@@ -249,10 +250,10 @@ stdout.
 An example POC that takes an existing validator and outputs `ManifestResult` can
 be found at [validator-poc][validator-poc1]
 
-Another example of a migration can be find at [ocp-olm-catalog-validator][camila-poc].
-This particular example does NOT yet output `ManifestResult` format.
-
-
+Another pair of examples of a migration can be found at
+[ocp-olm-catalog-validator][ocp-olm-catalog-valdator] and at
+[the k8s-bundle-validator][k8s-bundle-validator]. These particular examples do NOT
+yet output `ManifestResult` format.
 
 #### CLI
 
@@ -362,6 +363,8 @@ compilation step being needed depending on the language used to implement them.
     * infrastructure required to run is already built within scorecard
   * con:
     * would need a cluster to run these validations
+    * because of cluster, tests would require 3 minutes to be executed
+    * would make it very time consuming and difficult to run from Audit Tool
 
 ## Infrastructure Needed [optional]
 
@@ -370,7 +373,8 @@ N/A
 [phase-2]: https://github.com/kubernetes-sigs/kubebuilder/blob/master/designs/extensible-cli-and-scaffolding-plugins-phase-2.md
 [manifest-result]: https://github.com/operator-framework/api/blob/master/pkg/validation/errors/error.go#L9-L16
 [validator-poc1]: https://github.com/jmrodri/validator-poc/tree/poc1-manifestresults
-[camila-poc]: https://github.com/camilamacedo86/ocp-olm-catalog-validator
 [errors-go]: https://github.com/operator-framework/api/blob/master/pkg/validation/errors/error.go#L9-L16
 [operator-hub-validator]: https://github.com/operator-framework/api/blob/master/pkg/validation/internal/operatorhub.go
 [optional-validator]: https://github.com/operator-framework/operator-sdk/blob/master/internal/cmd/operator-sdk/bundle/validate/optional.go#L130-L156
+[ocp-olm-catalog-validator]: https://github.com/redhat-openshift-ecosystem/ocp-olm-catalog-validator
+[k8s-bundle-validator]: https://github.com/k8s-operatorhub/bundle-validator
