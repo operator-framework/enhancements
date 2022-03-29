@@ -10,7 +10,7 @@ reviewers:
 approvers:
   - '@jmrodri'
 creation-date: 2022-01-28
-last-updated: 2022-02-01
+last-updated: 2022-03-29
 status: implementable
 ---
 
@@ -118,8 +118,12 @@ the long term storage cost of my operator has a cap.
   to prune or has other issues.
 - The library will provide built-in is-pruneable functions for `Pods` and `Jobs` that can be overwritten.
 - A registry will hold a mapping of resource types (`GVKs`) to is-pruneable functions.
+- The library will use `client.Object` from controller-runtime to reference Kubernetes objects since it includes both
+  `metav1.Object` and `runtime.Object`.
+- The library will perform all Kubernetes operations with a dynamic client to support custom resources.
 
-There are two proposed go APIis in [Appendix A](#appendix-a) and [Appendix B](#appendix-b).
+There are two proposed go APIis in [Appendix A](#appendix-a) and [Appendix B](#appendix-b). This design will go with the
+first API due to its simplicity.
 
 ### Risks and Mitigations
 
@@ -152,24 +156,19 @@ The user will need to manually integrate this functionality into their operator 
 
 ## Alternatives
 
+### Scaffolding
+
 An alternative approach would be adding this logic to the core SDK and scaffolding it optionally during operation
 generation. The primary drawbacks with this approach are the increased complexity to the implementation and adding it to
 existing operators.
 
-## Open Questions
+### Separate Operator
 
-- What are the predefined use cases that we want to support? Currently we support pruning completed `Jobs` and `Pods` by
-  age and max count.
-- Should we mandate that an author must register any resource type that they wish to prune?
-
-### Implementation-specific
-
-- What type of Kubernetes object should we generically work with? E.g. `metav1.Object`or `runtime.Object`?
-- How do we specify which Kubernetes objects to delete? Pass back another list of objects? We just need name, namespace,
-  and `GVK`.
-- Which Kubernetes client should we work with? Dynamic client due to custom resource types?
-- Should we register `IsPruneable` functions or a `ResourceConfig` structure that will hold that function and
-  potentially additional configuration.
+Another alternative would be exposing a set of pruning APIs that would configure an operator that handles all resource
+pruning. See [Appendix C](#appendix-c) for an example as to what the spec for a pruning CRD could look like. The
+advantage to this approach is that configuring pruning logic would be simple since the user would only have to add one
+resource to the cluster to enable pruning. The major disadvantage would be any operator that relies on or encourages
+pruning would add a dependent operator that must me managed.
 
 ## Appendix A
 
@@ -266,4 +265,27 @@ func NewPruner(client dynamic.Interface, strategy StrategyFunc, opts ...func(p *
 
 // Prune runs the pruner.
 func (p Pruner) Prune(ctx context.Context) error { return nil }
+```
+
+## Appendix C
+
+The following is an example of what a prune CRD could look like:
+
+```go
+spec:
+  objects:
+    - group: example.com
+      version: v1
+      kind: MyKind
+      matchers:
+        - selector:
+            matchLabels:
+              example.com/is-completed: true
+        - maxAge: 10h
+  default:
+    matchers:
+      - selector:
+          matchLabels:
+            example.com/is-completed: true
+      - maxCount: 50
 ```
