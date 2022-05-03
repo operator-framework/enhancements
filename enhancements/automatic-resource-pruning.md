@@ -1,16 +1,16 @@
 ---
 title: automatic-resource-pruning
 authors:
-  - '@ryantking'
+  - "@ryantking"
 reviewers:
-  - '@jmrodri'
-  - '@gallettilance'
-  - '@fgiloux'
-  - '@joelanford'
+  - "@jmrodri"
+  - "@gallettilance"
+  - "@fgiloux"
+  - "@joelanford"
 approvers:
-  - '@jmrodri'
+  - "@jmrodri"
 creation-date: 2022-01-28
-last-updated: 2022-03-29
+last-updated: 2022-05-03
 status: implementable
 ---
 
@@ -58,7 +58,7 @@ a defined path for implementing the same functionality for their operators.
 The proposed implementation is adding a package, `prune`, to
 [operator-lib](https://github.com/operator-framework/operator-lib) that exposes this functionality. There will be a
 primary entry point function that takes in configuration and prunes resources accordingly. The configuration will accept
-one or many resource types, a pruning strategy, namespaces, label selectors, and other common settings such as a dry run
+one or resource types, a pruning strategy, namespaces, label selectors, and other common settings such as a dry run
 mode, hooks, and logging configuration.
 
 Another aspect of the library will be determining when it can and cannot prune a resource. For example, the prune
@@ -72,7 +72,7 @@ account such as the count of resources and creation timestamp. The is-pruneable 
 and only one resource at a given point in time to determine whether or not the current prune task can remove a resource
 based on its specific data.
 
-Note that stategies will not be programmatically limited to being resource agnostic, but it will be a defined best
+Note that strategies will not be programmatically limited to being resource agnostic, but it will be a defined best
 practice to write strategies in such a way. One exception to this recommendation will be when the operator author wants
 to prune based on a cumulative value such as the summation of a field across multiple resources. The operator author
 must then be sure to add safe guards to the strategy to avoid unexpected behavior if used with an incompatible resource.
@@ -110,7 +110,7 @@ storage cost of my operator has a cap and there are no orphaned resources.
 As an operator author, I want to prune a custom resource with specific state information with a custom strategy so that
 the long term storage cost of my operator has a cap.
 
-### Implementation Details
+### Implementation Detail
 
 - A strategy is a function that takes in a collection of resources and returns a collection of resources to remove.
 - The identifier for a resource types will be `GroupVersionKind` value.
@@ -122,8 +122,7 @@ the long term storage cost of my operator has a cap.
   `metav1.Object` and `runtime.Object`.
 - The library will perform all Kubernetes operations with a dynamic client to support custom resources.
 
-There are two proposed go APIis in [Appendix A](#appendix-a) and [Appendix B](#appendix-b). This design will go with the
-first API due to its simplicity.
+The proposed API is in [Appendix A](#appendix-a).
 
 ### Risks and Mitigations
 
@@ -138,7 +137,7 @@ shrink.
 The following components will be unit tested:
 
 - The builtin strategies.
-- The builtin is-prunable functions.
+- The builtin is-pruneable functions.
 - The main prune routine.
 
 The feature author will add an integration test suite that runs the prune routine in the use cases defined in the user
@@ -149,6 +148,8 @@ stories.
 [operator-framework/operator-lib#75](https://github.com/operator-framework/operator-lib/pull/75): Implements a first
 pass of the prune package with only support for `Jobs` and `Pods`. The API is also slightly different than the one
 proposed in this EP.
+
+[operator-framework/operator-lib#105](https://github.com/operator-framework/operator-lib/pull/105): Refactor of the first implementation that uses the API designed in this EP.
 
 ## Drawbacks
 
@@ -165,7 +166,7 @@ existing operators.
 ### Separate Operator
 
 Another alternative would be exposing a set of pruning APIs that would configure an operator that handles all resource
-pruning. See [Appendix C](#appendix-c) for an example as to what the spec for a pruning CRD could look like. The
+pruning. See [Appendix B](#appendix-b) for an example as to what the spec for a pruning CRD could look like. The
 advantage to this approach is that configuring pruning logic would be simple since the user would only have to add one
 resource to the cluster to enable pruning. The major disadvantage would be any operator that relies on or encourages
 pruning would add a dependent operator that must me managed.
@@ -176,21 +177,21 @@ The following is the proposed Go API:
 
 ```go
 // StrategyFunc takes a list of resources and returns the subset to prune.
-type StrategyFunc func(ctx context.Context, objs []runtime.Object) ([]runtime.Object, error)
+type StrategyFunc func(ctx context.Context, objs []client.Object) ([]client.Object, error)
 
-// ErrUnpruneable indicates that it is not allowed to prune a specific object.
-type ErrUnpruneable struct {
-  Obj *runtime.Object
+// Unpruneable is an error that indicates that the pruner should not prune an object.
+type Unpruneable struct {
+  Object *client.Object
   Reason string
 }
 
-// Error returns a string reprenstation of an `ErrUnpruneable` error.
-func (e *ErrUnpruneable) Error() string { return "" }
+// Error returns a string reprenstation of an `Unpruneable` error.
+func (e *Unpruneable) Error() string { return "" }
 
 // IsPruneableFunc is a function that checks a the data of an object to see whether or not it is safe to prune it.
-// It should return `nil` if it is safe to prune, `ErrUnpruneable` if it is unsafe, or another error.
+// It should return `nil` if it is safe to prune, `Unpruneable` if it is unsafe, or another error.
 // It should safely assert the object is the expected type, otherwise it might panic.
-type IsPruneableFunc func(obj *runtime.Object) error
+type IsPruneableFunc func(obj client.Object) error
 
 // RegisterIsPruneableFunc registers a function to check whether it is safe to prune a resources of a certain type.
 func RegisterIsPrunableFunc(gvk schema.GroupVersionKind, isPruneable IsPruneableFunc) { /* ... */ }
@@ -204,70 +205,15 @@ type Pruner struct {
 type PrunerOption func(p *Pruner)
 
 // NewPruner returns a pruner that uses the given strategy to prune objects.
-func NewPruner(client dynamic.Interface, opts ...func(p *Pruner)) Pruner { return Pruner{} }
+func NewPruner(client client.Client, gvk scheme.GroupVersionKind, *opts ...PrunerOption) (*Pruner, error) {
+    return &Pruner{}, nil
+}
 
-// Prune runs the pruner.
-func (p Pruner) Prune(ctx context.Context) error { return nil }
+// Prune performs a single instance.
+func (p Pruner) Prune(ctx context.Context) ([]client.Object, error) { return nil, nil }
 ```
 
 ## Appendix B
-
-The following is a more modular Go API that can support more custom resource functionality in the future:
-
-```go
-// ErrUnpruneable indicates that it is not allowed to prune a specific object.
-type ErrUnpruneable struct {
-  Obj *runtime.Object
-  Reason string
-}
-
-// Error returns a string reprenstation of an `ErrUnpruneable` error.
-func (e *ErrUnpruneable) Error() string { return "" }
-
-// Registration holds information about a resource with how it should be
-type Registration struct {
-  // IsPruneable is a function that checks the data of an object to check whether or not it is eligible for pruning.
-  // It should return `nil` if it is eligible to prune, `ErrUnpruneable` if it is unsafe, or another error.
-  // It should safely assert the object is the expected type, otherwise it might panic.
-  IsPruneable func(obj *runtime.Object) error
-}
-
-// Registry holds configuration about specific resource types.
-type Registry struct {
- // ...
-}
-
-// RegisterResource adds a resource to the registry.
-func (r *Registry) Register(gvk *schema.GroupVersionKind, ...func(r *Registration)) { /* ... */ }
-
-// GetRegistration returns a resource registered with the given GVK.
-func (r *Registry) Get(gvk *schema.GroupVersionKind) (*Registration, bool) { return nil, false }
-
-// RegisterResource adds a resource to the default registry.
-func RegisterResource(gvk *schema.GroupVersionKind, ...func(r *Registration)) { /* ... */ }
-
-// GetResource returns a resource registered in the default registry with the given GVK.
-func GetResource(gvk *schema.GroupVersionKind) (*Registration, bool) { return nil, false }
-
-// WithIsPruneable adds a function to the resource registration.
-func WithIsPruneable(func (obj *runtime.Object) error) func (*Registration) { return nil }
-
-// StrategyFunc takes a list of resources and returns the subset to prune.
-type StrategyFunc func(ctx context.Context, objs []runtime.Object) ([]runtime.Object, error)
-
-// Pruner is an object that runs a prune job.
-type Pruner struct {
-  // ...
-}
-
-// NewPruner returns a pruner that uses the given strategy to prune objects.
-func NewPruner(client dynamic.Interface, strategy StrategyFunc, opts ...func(p *Pruner)) Pruner { return Pruner{} }
-
-// Prune runs the pruner.
-func (p Pruner) Prune(ctx context.Context) error { return nil }
-```
-
-## Appendix C
 
 The following is an example of what a prune CRD could look like:
 
