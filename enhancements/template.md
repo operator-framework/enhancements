@@ -137,6 +137,21 @@ challenging to test should be called out.
 All code is expected to have adequate tests (eventually with coverage
 expectations).
 
+### Prototype Demo [optional]
+
+A demo showcasing a prototype of your design can be extremely useful to the
+community when reviewing your proposal. There are many services that enable
+you to record and share demos. Most OLM features can be showcased from the
+command line, making [https://asciinema.org](https://asciinema.org) an
+excellent option to [record](https://asciinema.org/docs/usage) and 
+[embed](https://asciinema.org/docs/embedding) your demo.
+
+Be sure to include:
+- An embedded recording of the prototype in action.
+- A link to the repository hosting the changes that the prototype introduces. 
+
+An example of this section can be found [here](https://github.com/operator-framework/enhancements/blob/87e6ac32a0caac86fdfc733740892da612d00ee2/enhancements/fail-forward-upgrades.md#prototype-demo).
+
 ### Graduation Criteria
 
 **Note:** *Section not required until targeted at a release.*
