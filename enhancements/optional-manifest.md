@@ -24,8 +24,8 @@ superseded-by:
 
 - [x] Enhancement is `implementable`
 - [x] Design details are appropriately documented from clear requirements
-- [ ] Test plan is defined
-- [ ] Graduation criteria for dev preview, tech preview, GA
+- [x] Test plan is defined
+- [x] Graduation criteria for dev preview, tech preview, GA
 - [ ] User-facing documentation is created in [olm-docs](https://github.com/operator-framework/olm-docs/)
 
 ## Summary
@@ -52,7 +52,7 @@ ServiceMonitor and VerticalPodAutoscaler are among the supported resources. They
 
 A resource can be marked as optional by leveraging [Explicit Bundle Properties](https://github.com/operator-framework/enhancements/blob/master/enhancements/properties.md). Therefore a new file can be added to the bundle metadata directory. The file itself can have any name, but it has to be in the top-level metadata directory of the bundle and to consist of YAML with a top-level `properties` element containing an array of type/value tuples. There should be a single file containing a top-level `properties` element.
 
-The property type for optional manifest is `olm.manifests.optional`. Its value field is a `files` structure, which contains a list of optional files.
+The property type for optional manifest is `olm.manifests.optional`. Its value field is a `manifests` structure, which contains a list of optional manifests. These manifests are identified by group, kind, namespace and name. The namespace value is optional. For cluster scoped resources or resources where no namespace is specified in the manifest file the field has to be empty.
 
 Example:
 
@@ -60,12 +60,17 @@ Example:
 properties:
 - type: 'olm.manifests.optional'
   value:
-    files:
-    - verticalpodautoscaler.yaml
-    - servicemonitor.yaml
+    manifests:
+      - group: monitoring.coreos.com
+        kind: PrometheusRule
+        namespace: my-namespace
+        name: my-rule
+      - group: autoscaling.k8s.io/v1
+        kind: VerticalPodAutoscaler
+        name: my-vpa
 ~~~
 
-If a file listed in the property file does not exist in the bundle manifest directory it will be ignored without further hints.
+If a manifest listed in the property file does not exist in the bundle manifest directory it will be ignored without further hints.
 
 It does not make sense to list a resource core to OLM (ClusterServiceVersion) or resources shipped with Kubernetes under `olm.manifests.optional` as the availability of the API is a prerequisite for OLM to work. This means that no extra check will be implemented for the following types:
 
@@ -171,7 +176,7 @@ When OLM requests the API server to create an optional manifest there are 3 pote
 [1] The logic used in OLM to differentiate when the API is not available from other errors is as follows:
 
 ~~~
-if k8serrors.IsNotFound(err) {
+if apierrors.IsNotFound(err) {
 	notFoundErr := discoveryQuerier.WithStepResource(step.Resource).QueryForGVK()
 	if notFoundErr != nil {
 		return notFoundErr
@@ -186,7 +191,6 @@ For optional manifests we will differentiate between errors that are specific to
 - StatusReasonUnauthorized 401
 - StatusReasonForbidden 403
 - StatusReasonNotFound 404
-- StatusReasonAlreadyExists 409
 - StatusReasonInvalid 442
 - StatusReasonNotAcceptable 406
 - StatusReasonUnsupportedMediaType 415
@@ -205,6 +209,8 @@ For optional manifests we will differentiate between errors that are specific to
 - StatusReasonExpired 410
 - StatusReasonServiceUnavailable 503
 
+StatusReasonAlreadyExists 409: it is a special case as the error is [caught during object creation](https://github.com/operator-framework/operator-lifecycle-manager/blob/d6346a1c0507c765145a0b6bb18e9f06bc4058c4/pkg/controller/operators/catalog/step_ensurer.go#L307-L325) and an update is performed instead.
+
 ### Risks and Mitigations
 
 The change is very localised so that the risks are low. The interpretation of the property `olm.manifests.optional` is also 100% backward compatible: Resources not listed under it continue to be created and mandatory for the InstallPlan to succeed. Having a file in the optional list and the operator deployed on a cluster with an OLM version not having this enhancement means that the property is just ignored and the previous behaviour stays unchanged.
@@ -217,91 +223,31 @@ The logic in any future solution for bundle distribution, like RukPak, would nee
 
 ### Test Plan
 
-**Note:** *Section not required until targeted at a release.*
+Code coverage for this enhancement is ensured by two set of unit tests.
 
-Consider the following in developing a test plan for this enhancement:
-- Will there be e2e and integration tests, in addition to unit tests?
-- How will it be tested in isolation vs with other components?
+- Validation that a resource is properly identified as optional based on the Properties that have been configured.
+- Step processing:
+	- Validation that a step flagged as optional does not cause the failure of the InstallPlan if it cannot be successfully processed due to one of the API errors listed above as NotCreated.
+	- Validation that a step flagged as optional still fails the InstallPlan due to one of the API errors listed above as Failure.
+	- Validation that the logic has not changed for non optional steps
 
-No need to outline all of the test cases, just the general strategy. Anything
-that would count as tricky in the implementation and anything particularly
-challenging to test should be called out.
+### Feature gate
 
-All code is expected to have adequate tests (eventually with coverage
-expectations).
+The optional manifest feature is currently scheduled to be available in the next release behind a feature gate, which means it is disabled by default. It will first be provided with no guarantee of API (the configuration through explicite bundle properties) stability and begins to gather users' feedbacks.
 
-### Graduation Criteria
+As the feature is being used and evaluated API changes can be made to improve its overall usefulness and user experience. Such changes may not be backward compatible with the first verion of its API.
 
-**Note:** *Section not required until targeted at a release.*
+After enough time has been given the feature gate may get removed and the feature available by default. Decision criteria:
+- Negative feedback could be addressed
+- No resilience issue introduced by the feature
+- API has been stable for 3 months
 
-Define graduation milestones.
-
-These may be defined in terms of API maturity, or as something else. Initial proposal
-should keep this high-level with a focus on what signals will be looked at to
-determine graduation.
-
-Consider the following in developing the graduation criteria for this
-enhancement:
-- Maturity levels - `Dev Preview`, `Tech Preview`, `GA`
-- Deprecation
-
-Clearly define what graduation means.
-
-#### Examples
-
-These are generalized examples to consider, in addition to the aforementioned
-[maturity levels][maturity-levels].
-
-##### Dev Preview -> Tech Preview
-
-- Ability to utilize the enhancement end to end
-- End user documentation, relative API stability
-- Sufficient test coverage
-- Gather feedback from users rather than just developers
-
-##### Tech Preview -> GA
-
-- More testing (upgrade, downgrade, scale)
-- Sufficient time for feedback
-- Available by default
-
-**For non-optional features moving to GA, the graduation criteria must include
-end to end tests.**
-
-##### Removing a deprecated feature
-
-- Announce deprecation and support policy of the existing feature
-- Deprecate the feature
-
-### Upgrade / Downgrade Strategy
-
-If applicable, how will the component be upgraded and downgraded? Make sure this
-is in the test plan.
-
-Consider the following in developing an upgrade/downgrade strategy for this
-enhancement:
-- What changes (in invocations, configurations, API use, etc.) is an existing
-  cluster required to make on upgrade in order to keep previous behavior?
-- What changes (in invocations, configurations, API use, etc.) is an existing
-  cluster required to make on upgrade in order to make use of the enhancement?
-
-### Version Skew Strategy
-
-How will the component handle version skew with other components?
-What are the guarantees? Make sure this is in the test plan.
-
-Consider the following in developing a version skew strategy for this
-enhancement:
-- During an upgrade, we will always have skew among components, how will this impact your work?
-- Does this enhancement involve coordinating behavior in the control plane and
-  in the kubelet? How does an n-2 kubelet without this feature available behave
-  when this feature is used?
-- Will any other components on the node change? For example, changes to CSI, CRI
-  or CNI may require updating that component before the kubelet.
+If the use of the feature presents major hurdles it will be deprecated and get eventually removed.
 
 ## Implementation History
 
-2021.10.06 First draft
+- 2021.10.06 First draft
+- 2022.03.30 Second draft
 
 ## Drawbacks
 
@@ -351,6 +297,10 @@ The reasoning behind the exclusion of the above list is:
 
 - The list of mandatory or optional resources cannot can be seen in one place.
 - The "Explicit Bundle Properties" mechanism already exists. Using a manifest annotation introduces an additional control mechanism.
+
+### Identfication by filenames
+
+The approach is similar to the current enhancement proposal with the difference that manifests are identified by filenames instead of /group/kind/namespace/name. This was challenged by the fact that filenames may not be available when the gRPC API is used to process bundles.
 
 ### Operator dependencies
 
